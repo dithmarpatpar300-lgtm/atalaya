@@ -137,6 +137,43 @@ func TestSesionInteractiva(t *testing.T) {
 }
 
 // Sin carpeta de Codex, o con una sin sessions/ (otra versión, Linux sin Codex): sin errores y sin sesiones.
+// La app de escritorio de Codex (source «vscode», 31-10): el pedido llega como item_completed (UserMessage) y no como
+// user_message, y el mensaje del modelo con role «user» trae el contexto que Codex le agrega. En cuanto llega
+// task_complete la sesión espera al usuario, aunque haya escrito hace segundos.
+const rolloutApp = `{"timestamp":"2026-10-31T21:10:24.000Z","type":"session_meta","payload":{"id":"` + idSesion + `","timestamp":"2026-10-31T21:10:22.000Z","cwd":"C:\\Proyectos\\Tienda Demo","originator":"Codex Desktop","cli_version":"0.166.0-alpha.5.1","source":"vscode"}}
+{"timestamp":"2026-10-31T21:10:24.000Z","type":"event_msg","payload":{"type":"task_started","turn_attribution":{"turn_id":"t1"}}}
+{"timestamp":"2026-10-31T21:10:24.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<environment_context><cwd>C:\\Proyectos\\Tienda Demo</cwd></environment_context>"}]}}
+{"timestamp":"2026-10-31T21:10:24.000Z","type":"turn_context","payload":{"cwd":"C:\\Proyectos\\Tienda Demo","model":"gpt-6.1-terra","effort":"high","summary":"auto"}}
+{"timestamp":"2026-10-31T21:10:24.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Solo responde que estás presente.\n"}]}}
+{"timestamp":"2026-10-31T21:10:24.000Z","type":"event_msg","payload":{"type":"item_completed","thread_id":"x","turn_id":"t1","item":{"type":"UserMessage","id":"u1","content":[{"type":"text","text":"Solo responde que estás presente.\n","text_elements":[]}]}}}
+{"timestamp":"2026-10-31T21:10:25.000Z","type":"event_msg","payload":{"type":"item_completed","thread_id":"x","turn_id":"t1","item":{"type":"AgentMessage","id":"a1","content":[{"type":"Text","text":"Estoy aquí."}]}}}
+{"timestamp":"2026-10-31T21:10:25.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Estoy aquí."}]}}
+{"timestamp":"2026-10-31T21:10:25.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1"}}
+`
+
+func TestSesionDeLaAppDeEscritorio(t *testing.T) {
+	casa := t.TempDir()
+	ruta := escribirRollout(t, casa, "2026-10-31", rolloutApp)
+	ahora := time.Date(2026, 10, 31, 21, 10, 40, 0, time.UTC)
+	_ = os.Chtimes(ruta, ahora.Add(-15*time.Second), ahora.Add(-15*time.Second))
+	l := NuevoLector(filepath.Join(casa, "trazas-que-no-existen"))
+	l.Sesiones, l.Ahora = casa, func() time.Time { return ahora }
+	l.RaizDe = func(c string) string { return c }
+	if _, err := l.Actualizar(); err != nil {
+		t.Fatal(err)
+	}
+	c, ok := l.Llamada(Prefijo + PrefijoSesion + idSesion)
+	if !ok || c.Origen != "vscode" || c.Meta.Tema != "Solo responde que estás presente." {
+		t.Fatalf("sesión: %+v", c)
+	}
+	if len(c.Pasos) != 2 || c.Pasos[0].Tipo != "Pide" || c.Pasos[1].Tipo != "Responde" || c.Pasos[1].Resumen != "Estoy aquí." {
+		t.Errorf("pasos (el pedido una vez, la respuesta una vez): %+v", c.Pasos)
+	}
+	if c.EnTurno || c.Activa(ahora) || !c.EnEspera(ahora) {
+		t.Errorf("con el turno cerrado hace 15 s debería esperar al usuario: en turno %v, activa %v", c.EnTurno, c.Activa(ahora))
+	}
+}
+
 func TestSinSesiones(t *testing.T) {
 	for _, casa := range []string{"", filepath.Join(t.TempDir(), "no-existe"), t.TempDir()} {
 		l := NuevoLector(t.TempDir())

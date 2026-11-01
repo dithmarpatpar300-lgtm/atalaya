@@ -37,6 +37,9 @@ const VentanaSesiones = 30 * 24 * time.Hour
 type sesion struct {
 	llamadas map[string]int // call_id -> índice del paso
 	turno    int
+	// El pedido del turno en curso: la app de escritorio lo manda como item_completed (UserMessage) y la TUI como
+	// user_message; si llegan los dos, es el mismo pedido y va una vez.
+	pedido string
 }
 
 // reIDRollout: el id de Codex al final del nombre del archivo.
@@ -173,7 +176,11 @@ type carga struct {
 		Query   string          `json:"query"`
 	} `json:"action"`
 	// event_msg
-	Message          string `json:"message"`
+	Message string `json:"message"`
+	Item    *struct {
+		Type    string          `json:"type"`
+		Content json.RawMessage `json:"content"`
+	} `json:"item"`
 	ExitCode         *int   `json:"exit_code"`
 	AggregatedOutput string `json:"aggregated_output"`
 	Info             *struct {
@@ -298,24 +305,21 @@ func (c *Llamada) fijarTokens(u *usoTokens) {
 func (c *Llamada) eventoSesion(p carga, hora time.Time) {
 	switch p.Type {
 	case "task_started", "turn_started":
-		c.EnTurno = true
+		c.EnTurno, c.TurnoInformado, c.ses.pedido = true, true, ""
 	case "task_complete", "turn_complete", "turn_aborted":
-		c.EnTurno = false
+		c.EnTurno, c.TurnoInformado = false, true
 		// Lo que quedó sin salida al cerrar el turno ya no va a tenerla.
 		for i := range c.Pasos {
 			c.Pasos[i].Hecho = true
 		}
 	case "user_message":
-		texto := strings.TrimSpace(p.Message)
-		if texto == "" {
-			return
+		c.pedidoSesion(p.Message, hora)
+	case "item_completed":
+		// La app de escritorio: el pedido, limpio (sin el contexto que Codex le agrega al mensaje del modelo). La
+		// respuesta (AgentMessage) ya llega como response_item.
+		if p.Item != nil && p.Item.Type == "UserMessage" {
+			c.pedidoSesion(textoDe(p.Item.Content), hora)
 		}
-		c.ses.turno++
-		if c.Meta.Tema == "" {
-			c.Meta.Tema = secretos.Tapar(primeraLinea(texto))
-		}
-		c.agregarSesion(claude.Paso{Hora: hora, Tipo: "Pide", Herramienta: "Mensaje", Resumen: primeraLinea(texto),
-			Meta: fmt.Sprintf("%d caracteres", len([]rune(texto))), Hecho: true}, &claude.DetallePaso{Orden: "—", Salida: texto})
 	case "token_count":
 		if p.Info != nil {
 			c.fijarTokens(p.Info.Total)
@@ -329,6 +333,21 @@ func (c *Llamada) eventoSesion(p carga, hora time.Time) {
 		c.agregarSesion(claude.Paso{Hora: hora, Tipo: "Error", Herramienta: "codex", Resumen: primeraLinea(p.Message), Meta: "error", Error: true, Hecho: true},
 			&claude.DetallePaso{Orden: "—", Salida: p.Message})
 	}
+}
+
+// pedidoSesion: lo que pide el usuario abre un turno de la conversación y, el primero, da la tarea de la sesión.
+func (c *Llamada) pedidoSesion(texto string, hora time.Time) {
+	texto = strings.TrimSpace(texto)
+	if texto == "" || texto == c.ses.pedido {
+		return
+	}
+	c.ses.pedido = texto
+	c.ses.turno++
+	if c.Meta.Tema == "" {
+		c.Meta.Tema = secretos.Tapar(primeraLinea(texto))
+	}
+	c.agregarSesion(claude.Paso{Hora: hora, Tipo: "Pide", Herramienta: "Mensaje", Resumen: primeraLinea(texto),
+		Meta: fmt.Sprintf("%d caracteres", len([]rune(texto))), Hecho: true}, &claude.DetallePaso{Orden: "—", Salida: texto})
 }
 
 func (c *Llamada) itemSesion(p carga, hora time.Time) {
@@ -543,11 +562,14 @@ func salidaDe(raw json.RawMessage) (string, *int) {
 	return s, nil
 }
 
-// Activa: para una sesión interactiva, la que escribió hace menos de 2 min, o la que tiene un turno abierto y
-// escribió hace menos de 15 (una orden larga calla un rato).
+// Activa: para una sesión interactiva, la que tiene un turno abierto y escribió hace menos de 15 min (una orden larga
+// calla un rato). Si Codex no informa sus turnos (versiones viejas), la que escribió hace menos de 2 min.
 func (c Llamada) activaSesion(ahora time.Time) bool {
 	quieta := ahora.Sub(c.Ultimo)
-	return quieta < 2*time.Minute || (c.EnTurno && quieta < 15*time.Minute)
+	if c.TurnoInformado {
+		return c.EnTurno && quieta < 15*time.Minute
+	}
+	return quieta < 2*time.Minute
 }
 
 // EnEspera: una sesión interactiva que terminó su turno hace menos de 30 min y seguramente sigue abierta, esperando

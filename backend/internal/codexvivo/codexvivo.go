@@ -62,8 +62,10 @@ type Llamada struct {
 	Interactiva bool   `json:"interactiva,omitempty"`
 	Origen      string `json:"origen,omitempty"`
 	EnTurno     bool   `json:"en_turno,omitempty"`
-	Ruta        string `json:"ruta,omitempty"`
-	Carpeta     string `json:"carpeta,omitempty"`
+	// TurnoInformado: Codex dijo dónde empieza y termina cada turno (task_started y task_complete).
+	TurnoInformado bool   `json:"-"`
+	Ruta           string `json:"ruta,omitempty"`
+	Carpeta        string `json:"carpeta,omitempty"`
 
 	detalles map[int]*claude.DetallePaso
 	ses      *sesion
