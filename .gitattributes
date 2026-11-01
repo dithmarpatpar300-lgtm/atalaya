@@ -1,0 +1,11 @@
+# Line endings: LF in the repository and in every checkout, also on Windows with core.autocrlf=true. gofmt (and so
+# compilar.ps1 -Verificar and CI) rejects Go files with CRLF; the rest follow so a clone looks the same everywhere.
+* text=auto eol=lf
+
+# Binary files: never touched.
+*.png binary
+*.ico binary
+*.jpg binary
+*.woff binary
+*.woff2 binary
+*.zip binary
