@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -33,9 +34,29 @@ type listaProyectos []string
 func (l *listaProyectos) String() string     { return strings.Join(*l, ", ") }
 func (l *listaProyectos) Set(v string) error { *l = append(*l, v); return nil }
 
+// carpetaLocal: donde Atalaya guarda lo suyo (el índice, el diario, las trazas de Codex) y donde viven las
+// herramientas vecinas (Cuotas). En Windows, %LOCALAPPDATA%; en Linux, $XDG_DATA_HOME o ~/.local/share; en macOS,
+// ~/Library/Application Support. Nunca vacía: una carpeta vacía volvía relativas las rutas, y fuera de Windows
+// Atalaya guardaba su base en la carpeta desde donde se lo lanzaba.
+func carpetaLocal(casa, sistema string) string {
+	if l := os.Getenv("LOCALAPPDATA"); l != "" {
+		return l
+	}
+	switch sistema {
+	case "windows":
+		return filepath.Join(casa, "AppData", "Local")
+	case "darwin":
+		return filepath.Join(casa, "Library", "Application Support")
+	}
+	if x := os.Getenv("XDG_DATA_HOME"); x != "" {
+		return x
+	}
+	return filepath.Join(casa, ".local", "share")
+}
+
 func main() {
 	casa, _ := os.UserHomeDir()
-	local := os.Getenv("LOCALAPPDATA")
+	local := carpetaLocal(casa, runtime.GOOS)
 	escucha := flag.String("escucha", "127.0.0.1:7420", "dirección; solo se acepta 127.0.0.1 o localhost")
 	transcritos := flag.String("claude", filepath.Join(casa, ".claude", "projects"), "carpeta de los transcritos de Claude Code")
 	dirCuotas := flag.String("cuotas", filepath.Join(local, "Cuotas"), "carpeta de Cuotas (cuotas.exe y sus archivos)")
@@ -49,7 +70,8 @@ func main() {
 	rutaDB := flag.String("db", filepath.Join(local, "Atalaya", "atalaya.db"), "índice de la datapedia (SQLite; se rehace si se borra)")
 	var proyectos listaProyectos
 	flag.Var(&proyectos, "proyecto", "Nombre=Ruta de un proyecto con docs/trazabilidad (se repite; se suma al registro)")
-	conAvisos := flag.Bool("avisos", true, "notificaciones de Windows de lo que te espera (decisiones y alertas de error)")
+	// Las notificaciones son de Windows: en los demás sistemas, apagadas de fábrica.
+	conAvisos := flag.Bool("avisos", runtime.GOOS == "windows", "notificaciones de Windows de lo que te espera (decisiones y alertas de error)")
 	dirDiario := flag.String("diario", filepath.Join(local, "Atalaya", "diario"), "carpeta del diario, un JSON por día (vacía: sin diario)")
 	rutaRegistro := flag.String("proyectos", "", "registro de proyectos (por omisión, "+registro.Archivo+" junto al ejecutable)")
 	modoDemo := flag.Bool("demo", false, "usar proyectos y agentes inventados")

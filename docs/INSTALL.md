@@ -8,8 +8,8 @@ Windows 11; everything you type is PowerShell. The panel is in English and Spani
 
 ## 1. Requirements
 
-- **Windows 10 or 11.** (On Linux the whole test suite passes in CI, but the panel has not been tried by hand; macOS
-  compiles, untested. Neither has notifications.)
+- **Windows 10 or 11.** (On Linux the panel runs, tried on Ubuntu under WSL 2, without notifications and without
+  `scripts/codex.ps1`, which needs Windows; macOS compiles, untested.)
 - **Claude Code** (CLI or desktop app) and/or **Codex CLI**: Atalaya follows the agents they launch.
 - To build: **Go 1.27 or newer** and **Node.js 20 or newer**, with `npm`. Git to clone.
 
@@ -159,7 +159,8 @@ Atalaya sees Codex in three ways:
 ## 8. Data and uninstalling
 
 Atalaya keeps the datapedia index, the diary, the notification settings and the Codex traces in
-`%LOCALAPPDATA%\Atalaya`. To uninstall, stop `atalaya.exe` and delete that folder, the repository folder and, if you
+`%LOCALAPPDATA%\Atalaya` (on Linux, `~/.local/share/Atalaya` or `$XDG_DATA_HOME/Atalaya`; on macOS,
+`~/Library/Application Support/Atalaya`). To uninstall, stop `atalaya.exe` and delete that folder, the repository folder and, if you
 copied it, the skill in `%USERPROFILE%\.claude\skills\atalaya-proyecto`. What the kit installed in your projects
 (`AGENTS.md`, `docs/trazabilidad/`…) stays: it is yours.
 
