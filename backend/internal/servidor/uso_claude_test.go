@@ -86,7 +86,7 @@ func TestUsoClaudeEmpujar(t *testing.T) {
 	for _, v := range e.Ventanas {
 		got[v.Clave] = v.Porcentaje
 	}
-	if got["session"] != 43.5 || got["weekly_all"] != 51 || got["weekly_scoped:Fable"] != 7 || e.Fuente != "app" || len(e.Historial) != 2 {
+	if got["session"] != 44 || got["weekly_all"] != 51 || got["weekly_scoped:Fable"] != 7 || e.Fuente != "app" || len(e.Historial) != 2 {
 		t.Errorf("tras empujar: %v, fuente %q, %d puntos", got, e.Fuente, len(e.Historial))
 	}
 	if e.Ventanas[0].Severidad != "normal" {

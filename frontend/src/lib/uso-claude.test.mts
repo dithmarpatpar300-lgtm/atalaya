@@ -121,6 +121,22 @@ test("las series tienen orden y color fijos; desde el segundo modelo, discontinu
   assert.equal(sinSesion[0].color, 1);
 });
 
+test("las dos fuentes no hacen saltar la línea; el reinicio baja a 0 sin hueco (la serie real del 01-11)", () => {
+  // La semanal alterna 57/58 entre /usage y el mod; la de 5 h se reinicia a las 14:10 (con su hora del servidor).
+  const h = [
+    { t: 100, v: { session: 80, weekly_all: 57 }, r: { session: 600 } },
+    { t: 200, v: { session: 81, weekly_all: 58 }, r: { session: 600 } },
+    { t: 300, v: { session: 81, weekly_all: 57 }, r: { session: 600 } },
+    { t: 400, v: { session: 81, weekly_all: 58 }, r: { session: 601 } }, // el mod da otra hora: no es reinicio
+    { t: 700, v: { session: 0, weekly_all: 58 } },
+    { t: 800, v: { session: 1, weekly_all: 59 } },
+  ];
+  const { tramos, reinicios } = trazos(h, ["session", "weekly_all"], 0, 10_000);
+  assert.deepEqual(tramos.get("weekly_all"), [[[100, 57], [200, 58], [300, 58], [400, 58], [700, 58], [800, 59]]]);
+  assert.deepEqual(tramos.get("session"), [[[100, 80], [200, 81], [300, 81], [400, 81], [601, 81], [601, 0], [700, 0], [800, 1]]]);
+  assert.deepEqual(reinicios.map((r) => [r.t, r.claves]), [[600, ["session"]]]);
+});
+
 test("los tramos se cortan en los huecos y en los reinicios, que se marcan", () => {
   const h = [
     { t: 0, v: { session: 10, weekly_all: 40 } },
@@ -131,8 +147,10 @@ test("los tramos se cortan en los huecos y en los reinicios, que se marcan", () 
     { t: 1800 + 4200, v: { session: 7, weekly_all: 1 } }, // la semana baja sin hora: reinicio inferido
   ];
   const { tramos, reinicios } = trazos(h, ["session", "weekly_all"], 0, 10_000);
-  assert.deepEqual(tramos.get("session")!.map((tr) => tr.length), [3, 1, 2]);
-  assert.deepEqual(tramos.get("weekly_all")!.map((tr) => tr.length), [4, 1, 1]);
+  // La de 5 h: sube, baja a 0 a las 1500 y sigue en el mismo tramo; el hueco de 1 h corta. La semanal: el hueco corta,
+  // y la caída de 44 a 1 es un reinicio que baja a 0 sin hueco.
+  assert.deepEqual(tramos.get("session")!.map((tr) => tr.length), [6, 2]);
+  assert.deepEqual(tramos.get("weekly_all")!.map((tr) => tr.length), [4, 4]);
   assert.deepEqual(
     reinicios.map((r) => [r.t, r.claves, r.exacto]),
     [

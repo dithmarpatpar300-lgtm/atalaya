@@ -187,10 +187,15 @@ export interface Trazos {
   reinicios: Reinicio[];
 }
 
+/** Cuánto tiene que caer una ventana sin hora de reinicio para contarlo como reinicio: menos es redondeo. */
+export const CAIDA_REINICIO = 5;
+
 /**
- * Arma los tramos de cada serie dentro de [ini, fin]. Un tramo se corta en un hueco de más de `hueco` segundos o en un
- * reinicio, que se marca: con la hora del servidor si el punto la trae (`r`), o en la primera lectura después de la
- * bajada si no.
+ * Arma los tramos de cada serie dentro de [ini, fin]. Dentro de una ventana el uso solo crece: la línea sigue el máximo
+ * acumulado, así las dos fuentes (`/usage` y el mod, que redondean distinto) no la hacen saltar 57-58-57. Un reinicio
+ * es real si pasó la hora que da el servidor (`r`) o si la ventana cae `CAIDA_REINICIO` puntos o más; entonces la
+ * línea baja en vertical a 0 a esa hora y sigue, sin hueco, y se marca. Solo un hueco de más de `hueco` segundos corta
+ * el tramo.
  */
 export function trazos(historial: PuntoUsoClaude[], claves: string[], ini: number, fin: number, hueco = HUECO_S): Trazos {
   const pts = historial.filter((p) => p.t >= ini && p.t <= fin).sort((a, b) => a.t - b.t);
@@ -208,24 +213,32 @@ export function trazos(historial: PuntoUsoClaude[], claves: string[], ini: numbe
     const lista: [number, number][][] = [];
     let actual: [number, number][] = [];
     let previo: PuntoUsoClaude | null = null;
+    let maximo = 0; // el máximo de la ventana en curso: lo que se dibuja
     for (const p of pts) {
-      const v = p.v[clave];
-      if (typeof v !== "number" || !Number.isFinite(v)) continue;
+      const crudo = p.v[clave];
+      if (typeof crudo !== "number" || !Number.isFinite(crudo)) continue;
+      const v = Math.min(100, Math.max(0, crudo));
       if (previo) {
-        const vp = previo.v[clave];
         const rp = previo.r?.[clave];
         const reinicioServidor = typeof rp === "number" && rp > previo.t && rp <= p.t;
-        const bajada = v < vp - 0.5;
-        if (reinicioServidor || bajada) {
-          marcar(reinicioServidor ? rp : p.t, clave, reinicioServidor, previo.t);
+        const caida = v <= maximo - CAIDA_REINICIO;
+        if (p.t - previo.t > hueco) {
           if (actual.length) lista.push(actual);
           actual = [];
-        } else if (p.t - previo.t > hueco) {
-          if (actual.length) lista.push(actual);
-          actual = [];
+          if (reinicioServidor || caida) {
+            marcar(reinicioServidor ? rp : p.t, clave, reinicioServidor, previo.t);
+            maximo = 0;
+          }
+        } else if (reinicioServidor || caida) {
+          // La bajada a 0 a la hora del reinicio (o, sin ella, en esta lectura), en el mismo tramo: sin hueco.
+          const tr = reinicioServidor ? rp : p.t;
+          marcar(tr, clave, reinicioServidor, previo.t);
+          actual.push([tr, maximo], [tr, 0]);
+          maximo = 0;
         }
       }
-      actual.push([p.t, Math.min(100, Math.max(0, v))]);
+      maximo = Math.max(maximo, v);
+      actual.push([p.t, maximo]);
       previo = p;
     }
     if (actual.length) lista.push(actual);

@@ -2,6 +2,7 @@ package usoclaude
 
 import (
 	"errors"
+	"math"
 	"time"
 )
 
@@ -39,7 +40,8 @@ func (l *Lector) Empujar(es []Empujada) error {
 		if e.Porcentaje < 0 || e.Porcentaje > 100 || e.ReiniciaEn.IsZero() {
 			return ErrEmpujadaInvalida
 		}
-		nuevas[clave] = Ventana{Clave: clave, Etiqueta: etiqueta, Porcentaje: e.Porcentaje, ReiniciaEn: e.ReiniciaEn.Unix(), DuracionMin: mins}
+		// Entero, como lo da /usage: el mod trae un decimal y, sin redondear, las dos fuentes discrepan en un punto.
+		nuevas[clave] = Ventana{Clave: clave, Etiqueta: etiqueta, Porcentaje: math.Round(e.Porcentaje), ReiniciaEn: e.ReiniciaEn.Unix(), DuracionMin: mins}
 	}
 	if len(nuevas) == 0 {
 		return ErrEmpujadaInvalida
