@@ -11,6 +11,7 @@ import (
 
 	"atalaya/internal/claude"
 	"atalaya/internal/codexvivo"
+	"atalaya/internal/pruebas"
 	"atalaya/internal/trazabilidad"
 )
 
@@ -22,7 +23,7 @@ func TestArmarMarkdown(t *testing.T) {
 		Encargo: "**Asignación: nivel enfocado · clase I2.** Si vas a pasarte, dilo.\n\nQue la cola respete stock.\nSegunda línea.", Bitacora: "docs/trazabilidad/F5/avance/codificador-t1a.md",
 		Avance: &trazabilidad.Avance{Porcentaje: 100}, Acta: "docs/trazabilidad/F5/temporales/x.md", ActaEstado: "cerrada", Pasos: 3,
 		Tokens: claude.Tokens{Entrada: 98, CacheEscrita: 164_200, CacheLeida: 3_810_000, Salida: 36_400}}
-	raiz := `C:\Proyectos\Tienda Demo`
+	raiz := pruebas.Nativa(`C:\Proyectos\Tienda Demo`)
 	pasos := []claude.Paso{
 		{N: 0, Hora: ini, Tipo: "Lee", Resumen: "carrito.rs", Turno: 1},
 		{N: 1, Hora: ini.Add(24 * time.Minute), Tipo: "Edita", Resumen: "carrito.rs", Turno: 1},
@@ -32,7 +33,7 @@ func TestArmarMarkdown(t *testing.T) {
 	detalle := func(n int) (claude.DetallePaso, bool) {
 		switch n {
 		case 1:
-			return claude.DetallePaso{Archivo: raiz + `\crates\pedidos\src\carrito.rs`,
+			return claude.DetallePaso{Archivo: raiz + pruebas.Nativa(`\crates\pedidos\src\carrito.rs`),
 				Diff: []claude.Trozo{{ViejoDesde: 398, ViejoLineas: 1, NuevoDesde: 398, NuevoLineas: 2, Lineas: []string{"-a", "+b", "+c"}}}}, true
 		case 2:
 			return claude.DetallePaso{Salida: larga}, true

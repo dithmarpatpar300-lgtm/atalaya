@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Una fase inventada de Tienda Demo con horas y porcentajes para comprobar el cálculo.
@@ -93,6 +94,28 @@ func TestLeerLasFases(t *testing.T) {
 	}
 	if Actual(t.TempDir()) != nil || Leer("") != nil {
 		t.Error("sin avance")
+	}
+}
+
+// El último hito no puede ser posterior a la hora en que se guardó el archivo (se vio «22:55» en un AVANCE.md guardado
+// a las 21:30). Un hito de la víspera, 20 h «adelante», no cuenta.
+func TestHitoConHoraInventada(t *testing.T) {
+	guardado := time.Date(2026, 10, 31, 21, 30, 35, 0, time.Local)
+	for _, c := range []struct {
+		hora  string
+		avisa bool
+	}{{"22:55", true}, {"21:30", false}, {"21:31", false}, {"20:10", false}, {"17:45", false}} {
+		f := Parsear("Avance: 0 % — x\n\n- "+c.hora+" · algo\n- 09:00 · antes\n", "F6", "x")
+		f.horaDelUltimoHito(guardado)
+		if got := strings.Contains(strings.Join(f.Avisos, "|"), "posterior"); got != c.avisa {
+			t.Errorf("%s guardado 21:30: avisa %v, quería %v (%q)", c.hora, got, c.avisa, f.Avisos)
+		}
+	}
+	// Guardado a las 00:10 con el último hito de anoche a las 23:50: es de la víspera.
+	f := Parsear("Avance: 0 % — x\n\n- 23:50 · anoche\n", "F6", "x")
+	f.horaDelUltimoHito(time.Date(2026, 11, 1, 0, 10, 0, 0, time.Local))
+	if len(f.Avisos) != 0 {
+		t.Errorf("un hito de la víspera no es inventado: %q", f.Avisos)
 	}
 }
 

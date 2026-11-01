@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"atalaya/internal/pruebas"
 )
 
 func TestParsear(t *testing.T) {
@@ -50,10 +52,10 @@ func TestSigla(t *testing.T) {
 }
 
 func TestNombreDistinto(t *testing.T) {
-	if NombreDistinto(Proyecto{Nombre: "Recetario-Demo", Ruta: `C:\Proyectos\Recetario-Demo\`}) {
+	if NombreDistinto(Proyecto{Nombre: "Recetario-Demo", Ruta: pruebas.Nativa(`C:\Proyectos\Recetario-Demo\`)}) {
 		t.Error("el nombre es el de la carpeta")
 	}
-	if !NombreDistinto(Proyecto{Nombre: "Recetario Demo", Ruta: `C:\Proyectos\Recetario-Demo`}) {
+	if !NombreDistinto(Proyecto{Nombre: "Recetario Demo", Ruta: pruebas.Nativa(`C:\Proyectos\Recetario-Demo`)}) {
 		t.Error("el nombre no es el de la carpeta")
 	}
 }

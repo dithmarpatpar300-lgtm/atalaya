@@ -18,6 +18,10 @@ export const PATRONES_SERVIDOR: [RegExp, string][] = [
   [/^(.+?) no dice sus horas: no pesa en el %$/, "$1 has no hours: it does not count towards progress"],
   [/^la primera línea dice (\d+) % y los paquetes dan (\d+),(\d+) %$/, "the first line says $1% and the packages yield $2.$3%"],
   [/^los paquetes salen del plan \((.+)\): AVANCE\.md todavía no tiene su tabla$/, "the packages come from the plan ($1): AVANCE.md has no table yet"],
+  [
+    /^el último hito dice (\d\d:\d\d) y el archivo se guardó a las (\d\d:\d\d): la hora del hito es posterior y no puede ser la real$/,
+    "the latest milestone says $1 but the file was saved at $2: a milestone cannot be later than that, so its time is wrong",
+  ],
   [/^registrado en proyectos\.json$/, "registered in proyectos.json"],
   [/^sin clase en el encargo$/, "no class in the brief"],
   [/^las asignaciones de la clase$/, "the class assignments"],

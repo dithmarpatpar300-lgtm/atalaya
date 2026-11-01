@@ -14,6 +14,7 @@ import (
 	"atalaya/internal/claude"
 	"atalaya/internal/codexvivo"
 	"atalaya/internal/cuotas"
+	"atalaya/internal/pruebas"
 	"atalaya/internal/trazabilidad"
 )
 
@@ -47,7 +48,7 @@ func TestDatapediaSinIndice(t *testing.T) {
 func TestCodexEnVivoReemplazaSuFilaDelRegistro(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "2026-10-31-e2-x")
-	_ = os.WriteFile(base+".meta.json", []byte(`{"tema":"e2-x","clase":"E2","modelo":"gpt-6.1-sol","fase":"F5","raiz":"C:\\Proyectos\\Tienda Demo","inicio":"2026-10-31T10:00:00Z","fin":"2026-10-31T10:02:00Z","salida":0,"segundos":120}`), 0o644)
+	_ = os.WriteFile(base+".meta.json", []byte(pruebas.NativaJSON(`{"tema":"e2-x","clase":"E2","modelo":"gpt-6.1-sol","fase":"F5","raiz":"C:\\Proyectos\\Tienda Demo","inicio":"2026-10-31T10:00:00Z","fin":"2026-10-31T10:02:00Z","salida":0,"segundos":120}`)), 0o644)
 	_ = os.WriteFile(base+".jsonl", []byte(`{"type":"item.completed","item":{"id":"a","type":"agent_message","text":"Listo"}}`+"\n"), 0o644)
 	s := nuevo(t)
 	s.CodexVivo = codexvivo.NuevoLector(dir)
@@ -87,12 +88,12 @@ func TestCodexCuelgaDeSuSesion(t *testing.T) {
 {"type":"assistant","timestamp":"2026-10-31T09:59:50Z","message":{"id":"m1","role":"assistant","content":[{"type":"tool_use","id":"t1","name":"PowerShell","input":{"command":"& scripts/ops/codex.ps1 -Tema E2-X -Clase E2"}}]}}
 {"type":"assistant","timestamp":"2026-10-31T10:05:00Z","message":{"id":"m2","role":"assistant","content":[{"type":"tool_use","id":"t2","name":"PowerShell","input":{"command":"$tareas = @('i1-lote', 'i1-otro')\n# ` + strings.Repeat("relleno ", 60) + `\nforeach ($t in $tareas) { Start-Job { & scripts/ops/codex.ps1 -Tema $using:t -Clase I1 } }"}}]}}
 `
-	_ = os.WriteFile(filepath.Join(dirSes, "ses1.jsonl"), []byte(sesion), 0o644)
+	_ = os.WriteFile(filepath.Join(dirSes, "ses1.jsonl"), []byte(pruebas.NativaJSON(sesion)), 0o644)
 
 	dir := t.TempDir()
 	llamada := func(nombre, meta string) {
 		base := filepath.Join(dir, nombre)
-		_ = os.WriteFile(base+".meta.json", []byte(meta), 0o644)
+		_ = os.WriteFile(base+".meta.json", []byte(pruebas.NativaJSON(meta)), 0o644)
 		_ = os.WriteFile(base+".jsonl", []byte(`{"type":"item.completed","item":{"id":"a","type":"agent_message","text":"Listo"}}`+"\n"), 0o644)
 	}
 	llamada("2026-10-31-e2-x", `{"tema":"e2-x","clase":"E2","modelo":"gpt-6.1-sol","fase":"F5","raiz":"C:\\Proyectos\\Tienda Demo","inicio":"2026-10-31T10:00:30Z","fin":"2026-10-31T10:02:00Z","salida":0,"segundos":90}`)

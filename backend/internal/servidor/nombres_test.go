@@ -10,6 +10,7 @@ import (
 
 	"atalaya/internal/claude"
 	"atalaya/internal/cuotas"
+	"atalaya/internal/pruebas"
 )
 
 func TestNombreVista(t *testing.T) {
@@ -76,10 +77,10 @@ func TestSesionConEquipoTrabajando(t *testing.T) {
 {"type":"assistant","timestamp":"` + hora + `","message":{"id":"m1","role":"assistant","content":[{"type":"text","text":"Lanzo al auditor."}]}}
 `
 	rutaSes := filepath.Join(dirProy, "ses1.jsonl")
-	_ = os.WriteFile(rutaSes, []byte(sesion), 0o644)
+	_ = os.WriteFile(rutaSes, []byte(pruebas.NativaJSON(sesion)), 0o644)
 	vieja := time.Now().Add(-20 * time.Minute)
 	_ = os.Chtimes(rutaSes, vieja, vieja)
-	_ = os.WriteFile(filepath.Join(dir, "agent-abc.jsonl"), []byte(transcritoMCP), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, "agent-abc.jsonl"), []byte(pruebas.NativaJSON(transcritoMCP)), 0o644)
 	_ = os.WriteFile(filepath.Join(dir, "agent-abc.meta.json"), []byte(`{"agentType":"auditor","description":"P3: auditoría E2"}`), 0o644)
 	s := &Servidor{Cuotas: cuotas.NuevoLector("x", t.TempDir()), Claude: claude.NuevoIndice(raiz)}
 	if _, err := s.Claude.Actualizar(); err != nil {

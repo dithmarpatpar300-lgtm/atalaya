@@ -42,7 +42,23 @@ $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
-function Fallar([string]$mensaje) { Write-Host "NO: $mensaje"; exit 1 }
+$copiado = $false
+# A rejected copy never stays behind: a clone goes back to its last commit (it had to be clean to start), and a new
+# copy, which started empty, is removed.
+function Fallar([string]$mensaje) {
+    Write-Host "NO: $mensaje"
+    if ($script:copiado) {
+        if ($actualizar) {
+            & git -C $destinoAbs checkout -q -- .
+            & git -C $destinoAbs clean -fdq
+            Write-Host "== the public clone is back at its last commit"
+        } else {
+            Remove-Item -LiteralPath $destinoAbs -Recurse -Force
+            Write-Host "== the partial copy was removed"
+        }
+    }
+    exit 1
+}
 
 $destinoAbs = [System.IO.Path]::GetFullPath($Destino)
 if ($destinoAbs.StartsWith($raiz, [System.StringComparison]::OrdinalIgnoreCase)) { Fallar "the copy must be outside the repository ($raiz)" }
@@ -69,6 +85,7 @@ $archivos = & git -C $raiz ls-files | Where-Object {
     $_ -match '^(backend|frontend|kit|scripts|\.github|docs/img)/' -or $sueltos -contains $_
 }
 foreach ($a in $sueltos) { if ($archivos -notcontains $a) { Fallar "$a is not tracked" } }
+$copiado = $true
 foreach ($rel in $archivos) {
     $origen = Join-Path $raiz $rel
     $copia = Join-Path $destinoAbs $rel

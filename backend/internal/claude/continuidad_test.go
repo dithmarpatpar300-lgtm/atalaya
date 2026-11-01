@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"atalaya/internal/pruebas"
 )
 
 func TestEnlazarDesvioYVuelta(t *testing.T) {
@@ -89,7 +91,7 @@ const conPlan = `{"type":"user","timestamp":"2026-10-31T10:00:00Z","cwd":"D:\\P"
 func TestContinuidadDesdeElTranscrito(t *testing.T) {
 	raiz := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(raiz, "P"), 0o755)
-	_ = os.WriteFile(filepath.Join(raiz, "P", "s.jsonl"), []byte(conPlan), 0o644)
+	_ = os.WriteFile(filepath.Join(raiz, "P", "s.jsonl"), []byte(pruebas.NativaJSON(conPlan)), 0o644)
 	ix := NuevoIndice(raiz)
 	if _, err := ix.Actualizar(); err != nil {
 		t.Fatal(err)

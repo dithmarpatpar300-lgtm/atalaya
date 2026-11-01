@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"atalaya/internal/secretos"
 	"atalaya/internal/trazabilidad"
@@ -272,6 +273,9 @@ func Leer(raiz string) []Fase {
 		// El texto, el plan y los hitos llegan al panel y al MCP: un token pegado por error no sale de aquí.
 		f := Parsear(secretos.Tapar(string(b)), fase, filepath.ToSlash(rel))
 		f.paquetesDelPlan(raiz)
+		if info, err := os.Stat(r); err == nil {
+			f.horaDelUltimoHito(info.ModTime())
+		}
 		out = append(out, f)
 	}
 	sort.Slice(out, func(i, j int) bool { return numFase(out[i].Fase) > numFase(out[j].Fase) })
@@ -311,6 +315,26 @@ func (f *Fase) paquetesDelPlan(raiz string) {
 	f.HorasTot, f.HorasHech, f.Calculado = 0, 0, 0
 	f.calcular()
 	f.Avisos = append([]string{"los paquetes salen del plan (" + rel + "): AVANCE.md todavía no tiene su tabla"}, f.Avisos...)
+}
+
+// horaDelUltimoHito: el último hito (van del más nuevo al más viejo) se escribe al guardar el archivo, así que su hora no
+// puede ser posterior a la de guardado. Si lo es, la hora se inventó al escribirlo y la bitácora miente sobre cuándo
+// pasó cada cosa: se avisa. Se tolera un minuto de redondeo, y una diferencia de más de 12 h se toma como un hito de
+// la víspera (los hitos solo dicen HH:MM).
+func (f *Fase) horaDelUltimoHito(guardado time.Time) {
+	if len(f.Hitos) == 0 {
+		return
+	}
+	h, err := time.ParseInLocation("15:04", f.Hitos[0].Hora, guardado.Location())
+	if err != nil {
+		return
+	}
+	hito := time.Date(guardado.Year(), guardado.Month(), guardado.Day(), h.Hour(), h.Minute(), 0, 0, guardado.Location())
+	adelanto := hito.Sub(guardado.Truncate(time.Minute))
+	if adelanto > time.Minute && adelanto <= 12*time.Hour {
+		f.Avisos = append(f.Avisos, "el último hito dice "+f.Hitos[0].Hora+" y el archivo se guardó a las "+
+			guardado.Format("15:04")+": la hora del hito es posterior y no puede ser la real")
+	}
 }
 
 func numFase(f string) int {

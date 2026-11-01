@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"atalaya/internal/pruebas"
 )
 
 // Una sesión que consulta tres veces a Atalaya: salud con respuesta, buscar con error (y un secreto en la entrada) y
@@ -31,10 +33,10 @@ func TestConsultasCentro(t *testing.T) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "ses2.jsonl"), []byte(transcritoCentro), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "ses2.jsonl"), []byte(pruebas.NativaJSON(transcritoCentro)), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "ses3.jsonl"), []byte(copiaCentro), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "ses3.jsonl"), []byte(pruebas.NativaJSON(copiaCentro)), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	ix := NuevoIndice(raiz)

@@ -64,7 +64,7 @@ func TestLugaresDelScript(t *testing.T) {
 	script := "$places = @(\n    'X:\\Algo-tmp',\n    (Join-Path $env:ATALAYA_PRUEBA 'Temp\\Algo-tmp'),\n    'F:\\Algo-tmp'\n)\n$exe = 'target\\release\\x.exe'\n"
 	_ = os.WriteFile(filepath.Join(raiz, "scripts", "ops", "retomar.ps1"), []byte(script), 0o644)
 	got := strings.Join(Lugares(raiz, r), "|")
-	if got != `X:\Algo-tmp|F:\Algo-tmp|Y:\Local\Temp\Algo-tmp` {
+	if got != `X:\Algo-tmp|F:\Algo-tmp|`+filepath.Join(`Y:\Local`, `Temp\Algo-tmp`) {
 		t.Errorf("lugares: %s", got)
 	}
 }

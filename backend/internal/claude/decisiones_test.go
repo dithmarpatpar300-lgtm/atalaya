@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"atalaya/internal/pruebas"
 )
 
 // Una sesión que pide permiso con botones, recibe primero el informe de un agente (no es tu respuesta) y luego tu
@@ -25,7 +27,7 @@ func TestDecisiones(t *testing.T) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "ses.jsonl"), []byte(sesionConDecisiones), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "ses.jsonl"), []byte(pruebas.NativaJSON(sesionConDecisiones)), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	ix := NuevoIndice(raiz)

@@ -16,6 +16,7 @@ const ejemplos = [
   "A está sin empezar pero dice 50 %", "A no dice sus horas: no pesa en el %",
   "la primera línea dice 40 % y los paquetes dan 41,5 %",
   "los paquetes salen del plan (docs/planes/fase-6.md): AVANCE.md todavía no tiene su tabla",
+  "el último hito dice 22:55 y el archivo se guardó a las 21:30: la hora del hito es posterior y no puede ser la real",
   "registrado en proyectos.json", "sin clase en el encargo", "las asignaciones de la clase",
   "no existe esa llamada", "no existe ese agente", "no existe esa sesión", "no existe esa pregunta",
   "número de paso no válido", "proyecto desconocido",

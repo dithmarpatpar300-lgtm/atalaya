@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"atalaya/internal/pruebas"
 )
 
 // Un subagente con: el encargo, un mensaje de Claude repartido en dos líneas con el mismo id
@@ -25,7 +27,7 @@ func preparar(t *testing.T) (string, string) {
 		t.Fatal(err)
 	}
 	ruta := filepath.Join(dir, "agent-abc.jsonl")
-	if err := os.WriteFile(ruta, []byte(transcrito), 0o644); err != nil {
+	if err := os.WriteFile(ruta, []byte(pruebas.NativaJSON(transcrito)), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	meta := `{"agentType":"auditor","description":"P3: auditoría E2","model":"opus","effort":"high"}`
@@ -125,7 +127,7 @@ func TestSubagente(t *testing.T) {
 		t.Errorf("tras crecer: pendiente %v, paso %+v, pasos %d", a.Pendiente, pasos[3], a.Pasos)
 	}
 	d, _ = ix.Detalle("ses1~abc", 3)
-	if !strings.HasPrefix(d.Orden, "Read C:\\Proyectos") || d.Salida != "a\nb\nc" {
+	if !strings.HasPrefix(d.Orden, pruebas.Nativa("Read C:\\Proyectos")) || d.Salida != "a\nb\nc" {
 		t.Errorf("detalle del Read: %+v", d)
 	}
 }
@@ -179,7 +181,7 @@ func TestSesionIgnoraLineasDeSubagente(t *testing.T) {
 {"type":"assistant","isSidechain":true,"timestamp":"2026-10-30T20:00:01Z","message":{"id":"m0","role":"assistant","content":[{"type":"text","text":"ajeno"}],"usage":{"input_tokens":99,"output_tokens":99}}}
 {"type":"assistant","timestamp":"2026-10-30T20:00:02Z","message":{"id":"m1","model":"claude-opus-5-5","role":"assistant","stop_reason":"end_turn","content":[{"type":"text","text":"Listo."}],"usage":{"input_tokens":5,"output_tokens":7}}}
 `
-	_ = os.WriteFile(filepath.Join(dir, "s.jsonl"), []byte(body), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, "s.jsonl"), []byte(pruebas.NativaJSON(body)), 0o644)
 	ix := NuevoIndice(raiz)
 	if _, err := ix.Actualizar(); err != nil {
 		t.Fatal(err)
@@ -197,7 +199,7 @@ func TestTituloDeLaSesion(t *testing.T) {
 	raiz := t.TempDir()
 	dir := filepath.Join(raiz, "P")
 	_ = os.MkdirAll(filepath.Join(dir, "solo-archivo"), 0o755)
-	pedido := `{"type":"user","timestamp":"2026-10-30T20:00:00Z","cwd":"C:\\Proyectos\\Atalaya","message":{"role":"user","content":"Construye el panel"}}` + "\n"
+	pedido := pruebas.NativaJSON(`{"type":"user","timestamp":"2026-10-30T20:00:00Z","cwd":"C:\\Proyectos\\Atalaya","message":{"role":"user","content":"Construye el panel"}}`) + "\n"
 	escribir := func(nombre, cuerpo string) {
 		t.Helper()
 		if err := os.WriteFile(filepath.Join(dir, nombre), []byte(cuerpo), 0o644); err != nil {

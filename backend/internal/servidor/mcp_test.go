@@ -11,6 +11,7 @@ import (
 
 	"atalaya/internal/claude"
 	"atalaya/internal/cuotas"
+	"atalaya/internal/pruebas"
 )
 
 // Un subagente auditor que corrió una orden y leyó pedidos.rs.
@@ -25,7 +26,7 @@ func conTranscrito(t *testing.T) *Servidor {
 	raiz := t.TempDir()
 	dir := filepath.Join(raiz, "C--Proyectos-Tienda-Demo", "ses1", "subagents")
 	_ = os.MkdirAll(dir, 0o755)
-	_ = os.WriteFile(filepath.Join(dir, "agent-abc.jsonl"), []byte(transcritoMCP), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, "agent-abc.jsonl"), []byte(pruebas.NativaJSON(transcritoMCP)), 0o644)
 	_ = os.WriteFile(filepath.Join(dir, "agent-abc.meta.json"), []byte(`{"agentType":"auditor","description":"P3: auditoría E2"}`), 0o644)
 	s := &Servidor{Cuotas: cuotas.NuevoLector("x", t.TempDir()), Claude: claude.NuevoIndice(raiz)}
 	if _, err := s.Claude.Actualizar(); err != nil {
@@ -133,7 +134,7 @@ func TestQueHizoSesion(t *testing.T) {
 {"type":"assistant","timestamp":"2026-10-31T10:01:00Z","message":{"id":"m1","role":"assistant","content":[{"type":"tool_use","id":"c1","name":"mcp__atalaya__salud","input":{}},{"type":"tool_use","id":"e1","name":"Edit","input":{"file_path":"C:\\x\\Proyecto\\docs\\trazabilidad\\ESTADO-para-retomar.md","old_string":"a","new_string":"b"}},{"type":"tool_use","id":"g1","name":"Bash","input":{"command":"git commit -m prueba"}},{"type":"tool_use","id":"q1","name":"AskUserQuestion","input":{"questions":[{"question":"¿Seguimos?","header":"Plan","options":[{"label":"Sí"},{"label":"No"}]}]}}]}}
 {"type":"user","timestamp":"2026-10-31T10:02:00Z","message":{"role":"user","content":[{"tool_use_id":"q1","type":"tool_result","content":"Respondida"}]},"toolUseResult":{"questions":[],"answers":{"¿Seguimos?":"Sí"}}}
 `
-	if err := os.WriteFile(filepath.Join(dir, "ses1.jsonl"), []byte(transcrito), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "ses1.jsonl"), []byte(pruebas.NativaJSON(transcrito)), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	s := nuevo(t)
