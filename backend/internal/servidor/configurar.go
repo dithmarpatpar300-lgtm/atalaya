@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -40,6 +41,11 @@ type Entorno struct {
 	Registro  string `json:"registro"`
 	// Registrados: los proyectos de proyectos.json, con lo que ya tiene cada uno (para quitarlos o ver su conexión).
 	Registrados []ProyectoRegistrado `json:"registrados"`
+	// Clientes: cuándo se conectó y consultó cada herramienta («claude», «codex») por el MCP (mcp_clientes.go).
+	Clientes map[string]ClienteMCP `json:"clientes"`
+	// Skills: la skill atalaya-proyecto en cada herramienta («al día», «distinta», «falta»; vacío si no se sabe).
+	Skills   map[string]string `json:"skills"`
+	Arranque Arranque          `json:"arranque"`
 }
 
 // ProyectoRegistrado: un proyecto del registro con sus marcas.
@@ -50,6 +56,8 @@ type ProyectoRegistrado struct {
 	Nivel  int            `json:"nivel"`
 	Existe bool           `json:"existe"`
 	Marcas entorno.Marcas `json:"marcas"`
+	// Datapedia: se indexa (falso si el dueño lo sacó).
+	Datapedia bool `json:"datapedia"`
 }
 
 // CarpetaReciente: una carpeta donde trabajaron agentes, con lo que ya tiene. El nombre es el de la carpeta, que es
@@ -193,12 +201,13 @@ func (s *Servidor) verEntorno(w http.ResponseWriter, r *http.Request) {
 		s.cacheEnt.mu.Unlock()
 	}
 	e := Entorno{Sistema: runtime.GOOS, Arquitectura: runtime.GOARCH, Version: Version, Herramientas: s.herramientas(),
-		Carpetas: s.carpetasRecientes(), Registro: s.RutaRegistro, Registrados: []ProyectoRegistrado{}}
+		Carpetas: s.carpetasRecientes(), Registro: s.RutaRegistro, Registrados: []ProyectoRegistrado{}, Clientes: s.clientesVistos(),
+		Skills: map[string]string{"claude": s.estadoSkill("claude"), "codex": s.estadoSkill("codex")}, Arranque: s.arranque()}
 	for _, p := range s.listaProyectos() {
 		if !p.Registrado {
 			continue
 		}
-		pr := ProyectoRegistrado{Nombre: p.Nombre, Ruta: p.Raiz, Sigla: p.Sigla, Nivel: p.Nivel, Existe: esCarpeta(p.Raiz)}
+		pr := ProyectoRegistrado{Nombre: p.Nombre, Ruta: p.Raiz, Sigla: p.Sigla, Nivel: p.Nivel, Existe: esCarpeta(p.Raiz), Datapedia: !p.FueraDatapedia}
 		if pr.Existe {
 			pr.Marcas = entorno.MarcasDe(p.Raiz)
 		}
@@ -226,18 +235,20 @@ func (s *Servidor) puerta() (*configurar.Puerta, error) {
 		}
 		s.puertaConf = &configurar.Puerta{
 			Dir: s.Datos,
-			// La lista cerrada: el registro de proyectos y las preferencias de Atalaya.
+			// La lista cerrada: el registro de proyectos, las preferencias de Atalaya, la skill en cada herramienta y el
+			// arranque con el sistema (kit_arranque.go).
 			Permitido: func(r string) bool {
-				return (s.RutaRegistro != "" && configurar.MismaRuta(r, s.RutaRegistro)) || configurar.MismaRuta(r, s.rutaPreferencias())
+				return (s.RutaRegistro != "" && configurar.MismaRuta(r, s.RutaRegistro)) || configurar.MismaRuta(r, s.rutaPreferencias()) ||
+					s.permitidoKitArranque(r)
 			},
-			// Los programas de la lista cerrada: Claude Code y Codex, si están instalados.
+			// Los programas de la lista cerrada: Claude Code y Codex, si están instalados, y los del sistema para el arranque.
 			Programa: func(nombre string) (string, bool) {
 				for _, h := range s.listaHerramientas() {
 					if h.ID == nombre && h.Instalada && h.Ruta != "" {
 						return h.Ruta, true
 					}
 				}
-				return "", false
+				return programaDelSistema(nombre)
 			},
 			Ahora: s.ahora,
 		}
@@ -256,6 +267,11 @@ type pedidoProyectos struct {
 		Sigla string `json:"sigla"`
 	} `json:"agregar"`
 	Quitar []string `json:"quitar"`
+	// Datapedia: sacar de la datapedia (Dentro falso) o volver a indexar proyectos ya registrados.
+	Datapedia []struct {
+		Nombre string `json:"nombre"`
+		Dentro bool   `json:"dentro"`
+	} `json:"datapedia"`
 }
 
 var reSigla = regexp.MustCompile(`^[A-Z0-9]{1,3}$`)
@@ -308,6 +324,23 @@ func cambioRegistro(actual []byte, existe bool, p pedidoProyectos) (string, stri
 		lista = append(lista, proyectos.Proyecto{Nombre: nombre, Ruta: ruta, Sigla: sigla, Nivel: a.Nivel})
 		hechos = append(hechos, fmt.Sprintf("agregar %s (nivel %d)", nombre, a.Nivel))
 	}
+	for _, d := range p.Datapedia {
+		i := slices.IndexFunc(lista, func(x proyectos.Proyecto) bool { return strings.EqualFold(x.Nombre, strings.TrimSpace(d.Nombre)) })
+		if i < 0 {
+			return "", "", fmt.Errorf("%q no está en el registro", d.Nombre)
+		}
+		if lista[i].EnDatapedia() == d.Dentro {
+			continue
+		}
+		if d.Dentro {
+			lista[i].Datapedia = nil
+			hechos = append(hechos, "volver a indexar "+lista[i].Nombre)
+		} else {
+			fuera := false
+			lista[i].Datapedia = &fuera
+			hechos = append(hechos, "sacar "+lista[i].Nombre+" de la datapedia")
+		}
+	}
 	if len(hechos) == 0 {
 		return "", "", errors.New("no hay nada que agregar ni quitar")
 	}
@@ -339,7 +372,11 @@ func formatoRegistro(l []proyectos.Proyecto) (string, error) {
 		n, _ := json.Marshal(p.Nombre)
 		r, _ := json.Marshal(p.Ruta)
 		sg, _ := json.Marshal(p.Sigla)
-		fmt.Fprintf(&b, "  { \"nombre\": %s, \"ruta\": %s, \"sigla\": %s, \"nivel\": %d }", n, r, sg, p.Nivel)
+		fuera := ""
+		if !p.EnDatapedia() {
+			fuera = `, "datapedia": false`
+		}
+		fmt.Fprintf(&b, "  { \"nombre\": %s, \"ruta\": %s, \"sigla\": %s, \"nivel\": %d%s }", n, r, sg, p.Nivel, fuera)
 		if i < len(l)-1 {
 			b.WriteString(",")
 		}
@@ -401,6 +438,8 @@ type Preferencias struct {
 	Secundario string `json:"secundario,omitempty"`
 	// Asistente: el asistente de primera vez ya se terminó o se saltó (no vuelve a abrirse solo).
 	Asistente bool `json:"asistente,omitempty"`
+	// DiarioDias: cuántos días guarda el diario; 0, todos.
+	DiarioDias int `json:"diario_dias,omitempty"`
 }
 
 func (s *Servidor) rutaPreferencias() string {
@@ -439,6 +478,10 @@ func (s *Servidor) proponerPreferencias(w http.ResponseWriter, r *http.Request) 
 		fallo(w, http.StatusBadRequest, "el principal es claude o codex, y el secundario el otro o ninguno")
 		return
 	}
+	if p.DiarioDias < 0 || p.DiarioDias > 3650 {
+		fallo(w, http.StatusBadRequest, "el diario guarda de 1 a 3650 días, o 0 para guardarlos todos")
+		return
+	}
 	pu, err := s.puerta()
 	if err != nil {
 		fallo(w, http.StatusConflict, err.Error())
@@ -451,6 +494,9 @@ func (s *Servidor) proponerPreferencias(w http.ResponseWriter, r *http.Request) 
 		resumen += ", con " + nombres[p.Secundario] + " de secundario"
 	} else {
 		resumen += ", sin secundario"
+	}
+	if p.DiarioDias > 0 {
+		resumen += fmt.Sprintf("; el diario guarda %d días", p.DiarioDias)
 	}
 	prop, err := pu.Proponer("preferencias", resumen, []configurar.Cambio{{Tipo: configurar.Archivo, Ruta: s.rutaPreferencias(), Despues: string(b) + "\n"}})
 	if err != nil {

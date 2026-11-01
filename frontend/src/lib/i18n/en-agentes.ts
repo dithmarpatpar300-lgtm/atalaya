@@ -79,8 +79,6 @@ export const EN_AGENTES: Record<string, string> = {
   // La actividad
   "Actividad": "Activity",
   "Todavía no hay pasos.": "No steps yet.",
-  "Mostrar 1 paso anterior": "Show 1 earlier step",
-  "Mostrar {n} pasos anteriores": "Show {n} earlier steps",
   "Pasos; las flechas mueven la elección": "Steps; use the arrow keys to select",
   "Etapa {n}": "Stage {n}",
   "Turno {n}": "Turn {n}",

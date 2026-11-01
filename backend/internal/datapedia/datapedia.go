@@ -64,6 +64,9 @@ type Indice struct {
 	mu        sync.Mutex // un reindexado a la vez
 	// Virtuales: documentos que no son archivos (las trazas de los agentes). Se piden en cada reindexado.
 	Virtuales func() []Virtual
+	// Fuera indica proyectos que su dueño sacó de la datapedia: no se indexan sus documentos,
+	// memoria ni trazas, y lo ya indexado sale en el siguiente reindexado. Nil no excluye ninguno.
+	Fuera func(proyecto string) bool
 }
 
 // Virtual: un documento que arma el servidor, no un archivo del disco.
@@ -196,6 +199,15 @@ func (ix *Indice) candidatos() []candidato {
 			agregar(ruta, p.Nombre, TipoDe(rel), rel)
 			return nil
 		})
+	}
+	if ix.Fuera != nil {
+		filtrados := out[:0]
+		for _, c := range out {
+			if !ix.Fuera(c.proyecto) {
+				filtrados = append(filtrados, c)
+			}
+		}
+		out = filtrados
 	}
 	return out
 }

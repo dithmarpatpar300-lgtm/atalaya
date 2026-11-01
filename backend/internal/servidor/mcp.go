@@ -109,6 +109,7 @@ func (s *Servidor) mcp(w http.ResponseWriter, r *http.Request) {
 		}
 		// `preguntar` espera la respuesta del dueño del proyecto con su propio flujo SSE (preguntas_mcp.go).
 		if esPreguntar(p) {
+			s.anotarCliente(cliente, p.Method)
 			s.mcpPreguntar(w, r, p, cliente, delProyecto)
 			return
 		}
@@ -135,6 +136,7 @@ func (s *Servidor) atender(p rpcPedido, cliente, delProyecto string) *rpcRespues
 		return nil
 	}
 	r := &rpcRespuesta{JSONRPC: "2.0", ID: p.ID}
+	s.anotarCliente(cliente, p.Method)
 	switch p.Method {
 	case "initialize":
 		var q struct {

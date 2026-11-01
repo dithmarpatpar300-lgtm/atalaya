@@ -129,6 +129,10 @@ func nombreVista(v AgenteVista, d docsAgente) string {
 	if (strings.EqualFold(v.Rol, "general-purpose") || strings.EqualFold(v.Rol, "explore")) && v.Tarea != "" {
 		return v.Tarea
 	}
+	// Una sesión lanzada por claude.ps1 (internal/delegadas), como las llamadas a Codex: la herramienta y su tema.
+	if v.Rol == "Claude" && v.Tarea != "" {
+		return "Claude · " + v.Tarea
+	}
 	return strings.TrimSpace(v.Rol + " " + v.Clase)
 }
 

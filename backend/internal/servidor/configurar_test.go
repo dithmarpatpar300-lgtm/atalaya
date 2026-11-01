@@ -188,6 +188,30 @@ func TestRegistroQueSeRechaza(t *testing.T) {
 	}
 }
 
+// Sacar un proyecto de la datapedia escribe «"datapedia": false» en su línea, y volver a indexarlo lo quita; pedir lo que
+// ya es no cambia nada.
+func TestRegistroDatapedia(t *testing.T) {
+	carpeta := filepath.Join(t.TempDir(), "Blog")
+	_ = os.MkdirAll(carpeta, 0o755)
+	actual := []byte(`[{"nombre":"Blog","ruta":` + comillas(carpeta) + `,"nivel":1}]`)
+	pedido := func(dentro bool) pedidoProyectos {
+		var p pedidoProyectos
+		_ = json.Unmarshal([]byte(fmt.Sprintf(`{"datapedia":[{"nombre":"blog","dentro":%t}]}`, dentro)), &p)
+		return p
+	}
+	fuera, resumen, err := cambioRegistro(actual, true, pedido(false))
+	if err != nil || !strings.Contains(fuera, `"nivel": 1, "datapedia": false }`) || !strings.Contains(resumen, "sacar Blog de la datapedia") {
+		t.Fatalf("sacar: %v\n%s\n%s", err, fuera, resumen)
+	}
+	dentro, _, err := cambioRegistro([]byte(fuera), true, pedido(true))
+	if err != nil || strings.Contains(dentro, "datapedia") {
+		t.Fatalf("volver: %v\n%s", err, dentro)
+	}
+	if _, _, err := cambioRegistro(actual, true, pedido(true)); err == nil {
+		t.Fatal("ya estaba dentro: no hay nada que cambiar")
+	}
+}
+
 // Las carpetas recientes: una sesión en el repositorio y otra en un worktree suyo (.claude/worktrees, con su propio
 // .git) son una sola carpeta, la del repositorio, con las dos sesiones; y no está registrada.
 func TestCarpetasRecientesJuntanLosWorktrees(t *testing.T) {

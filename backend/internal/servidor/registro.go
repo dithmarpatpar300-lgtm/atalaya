@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"atalaya/internal/datapedia"
 )
@@ -57,6 +58,16 @@ func (s *Servidor) recargarRegistro() {
 	s.leerRegistroYa(s.firmaDelRegistro())
 }
 
+// FueraDeDatapedia: el proyecto de ese nombre está registrado y su dueño lo sacó de la datapedia (datapedia.Indice.Fuera).
+func (s *Servidor) FueraDeDatapedia(nombre string) bool {
+	for _, p := range s.listaProyectos() {
+		if p.FueraDatapedia && strings.EqualFold(p.Nombre, nombre) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Servidor) firmaDelRegistro() string {
 	if fi, err := os.Stat(s.RutaRegistro); err == nil {
 		return fmt.Sprintf("%d·%d", fi.Size(), fi.ModTime().UnixNano())
@@ -76,9 +87,12 @@ func (s *Servidor) leerRegistroYa(firma string) bool {
 		return false
 	}
 	if s.Datapedia != nil {
+		// Los que el dueño sacó no se recorren; FueraDeDatapedia saca además su memoria y las trazas de sus agentes.
 		proyectos := make([]datapedia.Proyecto, 0, len(ps))
 		for _, p := range ps {
-			proyectos = append(proyectos, datapedia.Proyecto{Nombre: p.Nombre, Raiz: p.Raiz})
+			if !p.FueraDatapedia {
+				proyectos = append(proyectos, datapedia.Proyecto{Nombre: p.Nombre, Raiz: p.Raiz})
+			}
 		}
 		s.Datapedia.CambiarProyectos(proyectos)
 	}

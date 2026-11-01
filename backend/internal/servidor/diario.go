@@ -167,8 +167,29 @@ func (s *Servidor) escribirDiario() {
 	}
 	go func() {
 		defer s.diarioMu.Unlock()
+		ahora := s.ahora()
+		// Los días que el dueño eligió guardar (Configuración, «Privacidad»): lo más viejo no se vuelve a escribir desde
+		// la memoria y, una vez al día, se borra del disco.
+		dias := s.preferencias().DiarioDias
+		limite := ""
+		if dias > 0 {
+			limite = diario.Fecha(ahora.AddDate(0, 0, -dias))
+			if hoy := diario.Fecha(ahora); s.diarioRecortado != hoy {
+				if n, err := diario.Recortar(s.Diario, dias, ahora); err != nil {
+					log.Printf("diario: recortar a %d días: %v", dias, err)
+				} else {
+					s.diarioRecortado = hoy
+					if n > 0 {
+						log.Printf("diario: %d días de más de %d días borrados", n, dias)
+					}
+				}
+			}
+		}
 		escritos := 0
-		for _, d := range s.diasEnMemoria(s.ahora()) {
+		for _, d := range s.diasEnMemoria(ahora) {
+			if limite != "" && d.Fecha < limite {
+				continue
+			}
 			ok, err := diario.Guardar(s.Diario, *d)
 			if err != nil {
 				log.Printf("diario %s: %v", d.Fecha, err)

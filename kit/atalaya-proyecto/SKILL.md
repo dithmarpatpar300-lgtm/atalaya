@@ -44,6 +44,9 @@ léela del README y confírmala.
   es esa dirección. Pide `<atalaya>/api/salud` (en PowerShell, `Invoke-RestMethod`). Su campo
   `registro` es la ruta de `proyectos.json` y `proyectos` la lista ya registrada. Si no responde, Atalaya está apagado:
   dilo, y el registro queda como paso pendiente.
+- **Quién coordina:** `<atalaya>/api/configurar/preferencias` trae `principal` (`claude` o `codex`) y `secundario` (el
+  otro, o vacío si usa una sola), si el dueño ya lo eligió en el panel. Si no, lo deduces de con qué herramienta
+  trabajas tú (esta sesión) y lo confirmas en el cuestionario.
 
 ## 3. El cuestionario
 
@@ -72,7 +75,10 @@ recomendada:
     los sabe, los puertos reservados del equipo. Sin respuesta, la tabla queda «por confirmar» en el estado y los
     marcadores opcionales se quitan con su frase.
 
-En el nivel 1 no se hacen las preguntas 8, 9 y 10.
+11. Desde el nivel 2: **quién coordina** (lo del paso 2, para confirmar): Claude Code con Codex de ayuda, Codex con
+    Claude Code de ayuda, o una sola herramienta.
+
+En el nivel 1 no se hacen las preguntas 8, 9, 10 y 11.
 
 ## 4. El plan (alto: aquí te detienes)
 
@@ -86,7 +92,9 @@ Una tabla `archivo del kit → destino → crear / fusionar / omitir → por qu�
 | `comun/docs/trazabilidad/ESTADO-para-retomar.md` | igual | todos |
 | `comun/docs/trazabilidad/F0/AVANCE.md` | igual | todos |
 | `comun/scripts/hito.ps1` | `scripts/hito.ps1` | todos |
-| `nivel-2/` (`.claude/`, `docs/operacion/`, `docs/trazabilidad/`, `scripts/`) | igual | 2 y 3 |
+| `nivel-2/` (`.claude/`, `docs/operacion/`, `docs/trazabilidad/`, `scripts/avance.ps1`) | igual | 2 y 3 |
+| `nivel-2/delegar/claude-principal.md` y `nivel-2/scripts/codex.ps1`, si coordina Claude Code con Codex de ayuda | una sección de `AGENTS.md` y `scripts/codex.ps1` | 2 y 3 |
+| `nivel-2/delegar/codex-principal.md` y `nivel-2/scripts/claude.ps1`, si coordina Codex con Claude Code de ayuda | una sección de `AGENTS.md` y `scripts/claude.ps1` | 2 y 3 |
 | `nivel-3/` (`version-y-kit.md`, `ensayador`) | igual | 3 |
 | una línea en el registro de Atalaya | `proyectos.json` de Atalaya (paso 2) | todos |
 
@@ -94,6 +102,9 @@ Reglas de la fusión:
 - Si ya hay `AGENTS.md`, queda **primero** lo del dueño, tal cual; después la plantilla del nivel sin las reglas que
   repitan una suya (si chocan, gana la del dueño y el plan lo dice); al final, la sección común. Si hay `CLAUDE.md`, se
   conserva y termina con «Lee `AGENTS.md`.».
+- Con una sola herramienta no se instala ni `delegar/` ni el script de la otra. Con Codex de coordinador, Codex lee
+  `AGENTS.md` directamente: no hace falta `CLAUDE.md`, y el MCP de Atalaya va en su configuración (`codex mcp add`, o el
+  paso «Conectar» del panel), no en `.mcp.json`; `.claude/` se instala igual, porque `claude.ps1` usa sus reglas.
 - `.mcp.json` existente: se agrega el servidor `atalaya` sin tocar los demás.
 - `.claude/settings.json` existente: el hook se suma a su `PreToolUse` sin tocar permisos ni otros hooks.
 - Un agente de `.claude/agents/` con el mismo nombre no se pisa: otro nombre u omitirlo.
@@ -115,8 +126,8 @@ Cierra con los marcadores que quedarán sin respuesta, lo que te preocupa y cuá
 1. Copia o fusiona según el plan. Reemplaza **cada** `{{MARCADOR}}` (tabla en `LEEME.md`, con ejemplos); un marcador
    opcional sin respuesta se quita con su frase o su sección completa. Las notas de plantilla (los bloques `>` que
    terminan en «Esta nota se borra al instalar») se borran **todas**, también en los documentos y los roles.
-2. `AGENTS.md` = la plantilla del nivel, una línea en blanco y `comun/AGENTS-atalaya.md` entero, con su encabezado
-   `## Atalaya`. Las frases en negrita que Atalaya lee (las de esa sección y, desde el nivel 2, las de §3,
+2. `AGENTS.md` = la plantilla del nivel, una línea en blanco, la sección de `delegar/` que corresponde (niveles 2 y 3
+   con las dos herramientas), y `comun/AGENTS-atalaya.md` entero, con su encabezado `## Atalaya`. Las frases en negrita que Atalaya lee (las de esa sección y, desde el nivel 2, las de §3,
    §6 y §7 de la plantilla) se instalan **tal cual**, con sus números: Atalaya las busca por la frase y cita la línea
    donde la encuentra, así que pueden moverse de línea.
 3. `F0/AVANCE.md`: la fila de cada paquete del cuestionario (`| P1 | qué | horas | sin empezar | 0 | |`), la primera

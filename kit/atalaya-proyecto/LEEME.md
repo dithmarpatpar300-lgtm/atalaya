@@ -34,7 +34,8 @@ atalaya-proyecto/
 │  ├─ .claude/              settings.json, hooks/sin-heredoc.mjs, agents/ (cinco roles)
 │  ├─ docs/operacion/       README, AGENTES, PRIORIZACION, ENCARGO-PLANTILLA, HERRAMIENTAS(-registro), SKILLS, pruebas
 │  ├─ docs/trazabilidad/    ESTADO-historia.md, _plantillas/ACTA-PLANTILLA.md
-│  └─ scripts/avance.ps1
+│  ├─ delegar/              el reparto entre las dos herramientas, una sección de AGENTS.md según quién coordina
+│  └─ scripts/              avance.ps1; codex.ps1 (coordina Claude Code) o claude.ps1 (coordina Codex)
 └─ nivel-3/                 docs/operacion/version-y-kit.md y .claude/agents/ensayador.md
 ```
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiloFase } from "@/components/ui/hilo-fase";
+import { Paginador, RegionEstable, usePaginaViva } from "@/components/ui/paginador";
 import { api } from "@/lib/api";
 import { t, tServidor } from "@/lib/i18n";
 import { horas, horasQueFaltan, paqueteInicial, uno } from "@/lib/avance";
@@ -14,6 +15,13 @@ const TIPO = {
   pedido: { texto: "pedido", clase: "bg-acento-suave text-acento-fuerte" },
   permiso: { texto: "permiso", clase: "bg-ok-suave text-ok" },
 } as const;
+
+// Cuántos por página en cada lista: filas de 48 px en el equipo; fichas de commit (unas cuatro por línea) y rutas en
+// la tarjeta angosta; las decisiones, de 44 px, a todo el ancho.
+const TAMANOS_EQUIPO = [10, 25, 50] as const;
+const TAMANOS_COMMITS = [12, 24] as const;
+const TAMANOS_DOCS = [8, 16] as const;
+const TAMANOS_DECISIONES = [8, 25] as const;
 
 /**
  * La sesión principal: una sesión no tiene encargo ni bitácora, así que en su lugar van tus
@@ -37,6 +45,15 @@ export function VistaSesion({
   const [r, setR] = useState<ResumenSesion | null>(null);
   const [pedido, setPedido] = useState<number | null>(null);
   const [paquete, setPaquete] = useState<string | null>(null);
+
+  // Las listas que crecen con la sesión, por páginas (components/ui/paginador.tsx): lo más nuevo en la página 1.
+  // El servidor da el equipo y los commits del más viejo al más nuevo; aquí se ven al revés.
+  const equipo = useMemo(() => [...(r?.equipo ?? [])].reverse(), [r]);
+  const commits = useMemo(() => [...(r?.commits ?? [])].reverse(), [r]);
+  const pEquipo = usePaginaViva(equipo, (m) => m.id, { almacen: "equipo", opciones: TAMANOS_EQUIPO, defecto: 10, reinicio: id });
+  const pCommits = usePaginaViva(commits, (c) => String(c.paso), { almacen: "commits", opciones: TAMANOS_COMMITS, defecto: 12, reinicio: id });
+  const pDocs = usePaginaViva(r?.documentos ?? [], (d) => d.ruta, { almacen: "documentos", opciones: TAMANOS_DOCS, defecto: 8, reinicio: id });
+  const pDecisiones = usePaginaViva(r?.decisiones ?? [], (d) => d.id, { almacen: "decisiones-sesion", opciones: TAMANOS_DECISIONES, defecto: 8, reinicio: id });
 
   // Se vuelve a pedir con cada paso nuevo de la sesión; mientras llega, se queda lo anterior (nada salta).
   useEffect(() => {
@@ -162,9 +179,10 @@ export function VistaSesion({
           <span className="text-ayuda text-tenue">{r.equipo.length ? t("{n} agentes y llamadas a Codex", { n: r.equipo.length }) : t("Nadie todavía")}</span>
         </div>
         {r.equipo.length > 0 && (
+          <RegionEstable activa={pEquipo.mostrar && pEquipo.pie.paginas > 1} clave={pEquipo.claveAlto}>
           <div className="relative pl-6">
             <span aria-hidden="true" className="absolute top-0 bottom-5 left-[7px] w-px bg-borde-fuerte" />
-            {r.equipo.map((m) => (
+            {pEquipo.visibles.map((m) => (
               <button
                 key={m.id}
                 type="button"
@@ -184,7 +202,9 @@ export function VistaSesion({
               </button>
             ))}
           </div>
+          </RegionEstable>
         )}
+        {pEquipo.mostrar && <Paginador {...pEquipo.pie} nombre={t("El equipo que lanzó")} />}
       </section>
 
       <section aria-labelledby="cuota-t" className={`flex min-w-0 flex-col gap-2 ${tarjeta}`}>
@@ -202,8 +222,9 @@ export function VistaSesion({
           <dd className="dato m-0 text-right">{r.commits.length}</dd>
         </dl>
         {r.commits.length > 0 && (
+          <RegionEstable activa={pCommits.mostrar && pCommits.pie.paginas > 1} clave={pCommits.claveAlto}>
           <ul aria-label="Commits" className="m-0 flex list-none flex-wrap gap-1.5 p-0">
-            {r.commits.map((c) => (
+            {pCommits.visibles.map((c) => (
               <li key={c.paso}>
                 <button
                   type="button"
@@ -216,13 +237,16 @@ export function VistaSesion({
               </li>
             ))}
           </ul>
+          </RegionEstable>
         )}
+        {pCommits.mostrar && <Paginador {...pCommits.pie} nombre="Commits" />}
         <span className="mt-1 border-t border-borde pt-2 text-ayuda text-tenue">{t("Documentos de estado que editó")}</span>
         {r.documentos.length === 0 ? (
           <span className="text-ayuda text-suave">{t("Ninguno.")}</span>
         ) : (
+          <RegionEstable activa={pDocs.mostrar && pDocs.pie.paginas > 1} clave={pDocs.claveAlto}>
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
-            {r.documentos.map((d) => (
+            {pDocs.visibles.map((d) => (
               <li key={d.ruta} className="grid grid-cols-[minmax(0,1fr)_4.5rem] gap-2 text-[12.5px]">
                 {/* Uno del proyecto se abre aquí; uno de fuera (la memoria de Claude Code) queda como texto. */}
                 {/^[A-Za-z]:|^[~/\\]/.test(d.ruta) ? (
@@ -238,7 +262,9 @@ export function VistaSesion({
               </li>
             ))}
           </ul>
+          </RegionEstable>
         )}
+        {pDocs.mostrar && <Paginador {...pDocs.pie} nombre={t("Documentos de estado que editó")} />}
       </section>
 
       {/* Lo que la sesión te preguntó y lo que respondiste (la bandeja de Decisiones, solo de esta sesión). */}
@@ -249,8 +275,9 @@ export function VistaSesion({
           <h2 id="decisiones-t" className="m-0 text-encabezado font-semibold">
             {t("Lo que te preguntó")} <span className="dato text-ayuda font-normal text-tenue">{r.decisiones!.length}</span>
           </h2>
+          <RegionEstable activa={pDecisiones.mostrar && pDecisiones.pie.paginas > 1} clave={pDecisiones.claveAlto}>
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
-            {r.decisiones!.slice(0, 8).map((d) => {
+            {pDecisiones.visibles.map((d) => {
               const respuesta = d.estado === "pendiente" ? t("te espera") : d.preguntas.map((q) => q.respuesta).filter(Boolean).join(" · ") || t("respondida");
               return (
                 <li key={d.id}>
@@ -279,6 +306,8 @@ export function VistaSesion({
               );
             })}
           </ul>
+          </RegionEstable>
+          {pDecisiones.mostrar && <Paginador {...pDecisiones.pie} nombre={t("Lo que te preguntó")} />}
         </section>
       )}
     </>

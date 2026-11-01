@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -108,6 +109,40 @@ func Fechas(dir string) []string {
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(out)))
 	return out
+}
+
+// Recortar aplica los días que el dueño elige en Configuración; el servidor lo llama una vez al día.
+func Recortar(dir string, dias int, ahora time.Time) (int, error) {
+	if dias <= 0 {
+		return 0, nil
+	}
+	entradas, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	limite := ahora.Local().AddDate(0, 0, -dias).Format("2006-01-02")
+	borrados := 0
+	for _, entrada := range entradas {
+		nombre := entrada.Name()
+		if entrada.IsDir() || !strings.HasSuffix(nombre, ".json") {
+			continue
+		}
+		fecha := strings.TrimSuffix(nombre, ".json")
+		if !reFecha.MatchString(fecha) || fecha >= limite {
+			continue
+		}
+		if _, err := time.Parse("2006-01-02", fecha); err != nil {
+			continue
+		}
+		if err := os.Remove(filepath.Join(dir, nombre)); err != nil {
+			return borrados, err
+		}
+		borrados++
+	}
+	return borrados, nil
 }
 
 // Fusionar junta lo que había en el archivo con lo que hay ahora en memoria. Lo del archivo que la memoria ya no tiene

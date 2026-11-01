@@ -23,6 +23,7 @@ import (
 	"atalaya/internal/codexvivo"
 	"atalaya/internal/cuotas"
 	"atalaya/internal/datapedia"
+	"atalaya/internal/delegadas"
 	"atalaya/internal/demo"
 	registro "atalaya/internal/proyectos"
 	"atalaya/internal/servidor"
@@ -62,6 +63,7 @@ func main() {
 	dirCuotas := flag.String("cuotas", filepath.Join(local, "Cuotas"), "carpeta de Cuotas (cuotas.exe y sus archivos)")
 	cada := flag.Duration("cada", 2*time.Second, "cada cuánto se miran los archivos")
 	dirCodex := flag.String("codex", filepath.Join(local, "Atalaya", "codex"), "carpeta de la traza en vivo de Codex (la escribe scripts/codex.ps1)")
+	dirDelegadas := flag.String("claude-delegado", filepath.Join(local, "Atalaya", "claude"), "carpeta de las fichas de las sesiones de Claude Code lanzadas por scripts/claude.ps1")
 	estadoCodex := os.Getenv("CODEX_HOME")
 	if estadoCodex == "" {
 		estadoCodex = filepath.Join(casa, ".codex")
@@ -86,7 +88,7 @@ func main() {
 		}
 		*transcritos, *dirCodex, *rutaRegistro = m.Claude, m.Codex, m.Registro
 		*dirDiario, *rutaDB, *dirCuotas = m.Diario, m.DB, m.Cuotas
-		*conAvisos, *dirEstadoCodex = false, ""
+		*conAvisos, *dirEstadoCodex, *dirDelegadas = false, "", ""
 		proyectos = nil
 		log.Printf("mundo de demo: %s", m.Raiz)
 	}
@@ -118,18 +120,32 @@ func main() {
 	// Para la configuración desde el panel: dónde buscar Claude Code y Codex, y dónde guardar las copias y el historial
 	// de lo que cambia (junto al índice de la datapedia: la carpeta de Atalaya, o la del mundo de demo).
 	s.Casa, s.CodexHome, s.Datos = casa, estadoCodex, filepath.Dir(*rutaDB)
+	// El kit viaja junto al ejecutable (el zip, y el repositorio en desarrollo): de ahí se copia la skill.
+	if exe, err := os.Executable(); err == nil {
+		if k := filepath.Join(filepath.Dir(exe), "kit", "atalaya-proyecto"); existeCarpeta(k) {
+			s.Kit = k
+		}
+	}
 	// Las sesiones interactivas de Codex (la TUI): se cuelgan del proyecto que contiene su carpeta.
 	s.CodexVivo.Sesiones, s.CodexVivo.RaizDe = *dirEstadoCodex, s.RaizDeCarpeta
+	// Las sesiones de Claude Code que lanzó claude.ps1 (casi siempre desde Codex): su ficha dice de quién cuelgan.
+	if *dirDelegadas != "" {
+		s.Delegadas = delegadas.NuevoLector(*dirDelegadas)
+		s.Claude.Delegadas = s.Delegadas.Delegacion
+	}
 	s.Registro = func() ([]servidor.Proyecto, error) { return leerProyectos(ruta, explicito, proyectos) }
 
 	var dpProyectos []datapedia.Proyecto
 	for _, p := range s.Proyectos {
-		dpProyectos = append(dpProyectos, datapedia.Proyecto{Nombre: p.Nombre, Raiz: p.Raiz})
+		if !p.FueraDatapedia {
+			dpProyectos = append(dpProyectos, datapedia.Proyecto{Nombre: p.Nombre, Raiz: p.Raiz})
+		}
 	}
 	if dp, err := datapedia.Abrir(*rutaDB, *transcritos, dpProyectos); err != nil {
 		log.Printf("datapedia desactivada: %v", err)
 	} else {
 		dp.Virtuales = servidor.Trazas(s.Claude)
+		dp.Fuera = s.FueraDeDatapedia
 		s.Datapedia = dp
 		defer dp.Cerrar()
 	}
@@ -180,7 +196,8 @@ func leerProyectos(ruta string, explicito bool, opciones []string) ([]servidor.P
 				if registro.NombreDistinto(p) {
 					log.Printf("%s: %q no se llama como su carpeta; sus agentes se nombran %q y no se juntarán con él", ruta, p.Nombre, filepath.Base(p.Ruta))
 				}
-				out = append(out, servidor.Proyecto{Nombre: p.Nombre, Raiz: p.Ruta, Sigla: p.Sigla, Nivel: p.Nivel, Registrado: true})
+				out = append(out, servidor.Proyecto{Nombre: p.Nombre, Raiz: p.Ruta, Sigla: p.Sigla, Nivel: p.Nivel, Registrado: true,
+					FueraDatapedia: !p.EnDatapedia()})
 			}
 		case errors.Is(err, os.ErrNotExist) && !explicito:
 			// Sin registro junto al ejecutable (go run, por ejemplo): solo las opciones.
@@ -207,4 +224,10 @@ func leerProyectos(ruta string, explicito bool, opciones []string) ([]servidor.P
 	// Sin registro ni opciones, ningún proyecto: el panel igual muestra los agentes de los transcritos, y «Tus proyectos»
 	// explica cómo registrar uno (la skill atalaya-proyecto).
 	return out, nil
+}
+
+// existeCarpeta: la ruta es una carpeta.
+func existeCarpeta(r string) bool {
+	fi, err := os.Stat(r)
+	return err == nil && fi.IsDir()
 }

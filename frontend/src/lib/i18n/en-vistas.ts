@@ -278,4 +278,13 @@ export const EN_VISTAS: Record<string, string> = {
   "cambiado {cuando}": "changed {cuando}",
   "Busca en la memoria, las reglas, los ADR, los planes, las bitácoras y los informes del centro de operaciones.": "Search the memory, rules, ADRs, plans, logs and reports of the operations center.",
   "{ruta} no está en la datapedia (solo se indexan los .md de docs/, la memoria y las reglas).": "{ruta} is not in datapedia (only .md files in docs/, memory and rules are indexed).",
+  // El paginador (components/ui/paginador.tsx).
+  "{desde}–{hasta} de {total}": "{desde}–{hasta} of {total}",
+  "1 nuevo": "1 new",
+  "{n} nuevos": "{n} new",
+  "Por página": "Per page",
+  "Páginas de {lista}": "Pages of {lista}",
+  "Página anterior": "Previous page",
+  "Página siguiente": "Next page",
+  "Página {n}": "Page {n}",
 };

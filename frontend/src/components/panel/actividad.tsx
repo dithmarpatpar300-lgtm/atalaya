@@ -5,6 +5,8 @@ import { api, type DetallePaso, type Paso } from "@/lib/api";
 import { decimal, t, tServidor } from "@/lib/i18n";
 import { hora } from "@/lib/formato";
 import { ANCHO_CANALETA, armarFilas, coloresDeHilo, type Fila, geometria, metaPaso, salidaDelPaso, tokensCortos, ventana } from "@/lib/hilos";
+import { paginaDe, ventanaAnclada } from "@/lib/paginas";
+import { Paginador, RegionEstable } from "@/components/ui/paginador";
 import { CuerpoPaso, type Modo } from "./detalle-paso";
 
 // Colores por tipo, para la actividad: ejecutar y planificar en ciruela, editar y escribir en ámbar, responder en
@@ -26,7 +28,19 @@ const TIPO: Record<string, string> = {
   Atalaya: "bg-acento text-sobre-acento",
 };
 
-const VISIBLES = 60;
+// Pasos por página; el tamaño se recuerda en este navegador.
+const TAMANOS = [50, 100] as const;
+const CLAVE_TAMANO = "atalaya:por-pagina:actividad";
+
+function leerTamano(): number {
+  try {
+    const n = Number(localStorage.getItem(CLAVE_TAMANO));
+    return (TAMANOS as readonly number[]).includes(n) ? n : TAMANOS[0];
+  } catch {
+    return TAMANOS[0];
+  }
+}
+
 // Los saltos ya hechos (por su `cuando`), fuera del componente: al volver a Agentes, la actividad se monta de nuevo y
 // no debe repetir un salto viejo.
 const atendidos = new Set<number>();
@@ -114,14 +128,32 @@ export function Actividad({
   irAPaso?: { n: number; cuando: number } | null;
 }) {
   const base = useId();
-  const [cuantos, setCuantos] = useState(VISIBLES);
   const [ajustes, setAjustes] = useState(leerAjustes);
   const [elegido, setElegido] = useState<number | null>(null);
   const [detalles, setDetalles] = useState<Record<number, DetallePaso>>({});
   const [errores, setErrores] = useState<Record<number, string>>({});
   const filasRef = useRef<Map<number, HTMLButtonElement>>(new Map());
 
-  const visibles = useMemo(() => pasos.slice(-cuantos), [pasos, cuantos]);
+  // Por páginas ancladas (lib/paginas.ts, ventanaAnclada): la última es la de ahora, llena al abrir y crece por abajo
+  // con lo que llega; las anteriores no cambian. «Ancla» es cuántos pasos había al abrir o al volver a la última página;
+  // 0 = todavía no se fijó (se toma lo que haya). Al cambiar de agente se empieza de nuevo.
+  const [tamano, setTamano] = useState(leerTamano);
+  const [hoja, setHoja] = useState<{ agente: string; ancla: number; pagina: number }>({ agente: idAgente, ancla: 0, pagina: Number.MAX_SAFE_INTEGER });
+  const h = hoja.agente === idAgente && hoja.ancla > 0 ? hoja : { agente: idAgente, ancla: pasos.length, pagina: Number.MAX_SAFE_INTEGER };
+  // Con los primeros pasos (o con otro agente), el ancla se fija: desde ahí lo que llega crece por abajo y no corre nada.
+  if (h !== hoja && pasos.length > 0) setHoja(h);
+  const vista = ventanaAnclada(pasos.length, h.ancla, tamano, h.pagina);
+  /** Va a la página `p`; la última se vuelve a anclar en lo de ahora (otra vez llena, sin lo que creció de más). */
+  function irAPagina(p: number) {
+    const ultima = p >= vista.paginas;
+    setHoja({ agente: idAgente, ancla: ultima ? pasos.length : h.ancla, pagina: ultima ? Number.MAX_SAFE_INTEGER : p });
+  }
+  /** La página donde está el paso de la posición `i`, sin volver a anclar. */
+  function mostrarPosicion(i: number) {
+    setHoja({ agente: idAgente, ancla: h.ancla, pagina: paginaDe(i, pasos.length, h.ancla, tamano) });
+  }
+
+  const visibles = useMemo(() => pasos.slice(vista.inicio, vista.fin), [pasos, vista.inicio, vista.fin]);
   const filas = useMemo(() => armarFilas(visibles), [visibles]);
   const colores = useMemo(() => coloresDeHilo(visibles), [visibles]);
   const { trazos, nodos, alto } = useMemo(() => geometria(filas, colores), [filas, colores]);
@@ -159,7 +191,7 @@ export function Actividad({
     const n = pasos[i].n;
     const espera = setTimeout(() => {
       atendidos.add(cuandoPedido);
-      setCuantos((c) => Math.max(c, pasos.length - i));
+      mostrarPosicion(i);
       setElegido(n);
       requestAnimationFrame(() => filasRef.current.get(n)?.scrollIntoView({ behavior: "smooth", block: "start" }));
     }, 0);
@@ -186,12 +218,22 @@ export function Actividad({
   // animación, temporizador ni requestAnimationFrame: con la ventana oculta o minimizada el navegador los frena hasta
   // un minuto, y nadie está mirando.
   const seguir = ajustes.seguir && enVivo;
+  const bajar = useRef(false);
   useEffect(() => {
     if (!seguir || ultimo < 0 || document.hasFocus()) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- seguir es volver al último paso, como al abrir
     setElegido(null);
-    filasRef.current.get(ultimo)?.scrollIntoView({ block: "center" });
+    // A la última página, anclada en lo de ahora: llena y con el último paso (nadie mira, así que puede correrse).
+    setHoja({ agente: idAgente, ancla: pasos.length, pagina: Number.MAX_SAFE_INTEGER });
+    bajar.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo con un paso nuevo
   }, [seguir, ultimo]);
+  // La bajada, ya pintada la página con el último paso.
+  useEffect(() => {
+    if (!bajar.current) return;
+    bajar.current = false;
+    filasRef.current.get(ultimo)?.scrollIntoView({ block: "center" });
+  });
 
   function elegir(n: number, enfocar = false) {
     setElegido(n);
@@ -202,7 +244,7 @@ export function Actividad({
   function irA(n: number): boolean {
     const i = pasos.findIndex((p) => p.n === n);
     if (i < 0) return false;
-    setCuantos((c) => Math.max(c, pasos.length - i));
+    mostrarPosicion(i);
     setElegido(n);
     requestAnimationFrame(() => {
       const fila = filasRef.current.get(n);
@@ -280,15 +322,31 @@ export function Actividad({
         <div className="flex flex-wrap items-start gap-5">
           {/* Línea de tiempo */}
           <div className="min-w-0 flex-[3_1_40rem]">
-            {pasos.length > cuantos && (
-              <button
-                type="button"
-                onClick={() => setCuantos((c) => c + VISIBLES)}
-                className="mb-2 text-rotulo text-acento underline underline-offset-2 hover:text-acento-fuerte"
-              >
-                {Math.min(VISIBLES, pasos.length - cuantos) === 1 ? t("Mostrar 1 paso anterior") : t("Mostrar {n} pasos anteriores", { n: Math.min(VISIBLES, pasos.length - cuantos) })}
-              </button>
+            {/* Las páginas, arriba y no al pie: la última crece por abajo con cada paso, y un pie bajaría con ella. */}
+            {pasos.length > TAMANOS[0] && (
+                <Paginador
+                  arriba
+                  nombre={t("Actividad")}
+                  pagina={vista.pagina}
+                  paginas={vista.paginas}
+                  desde={vista.inicio + 1}
+                  hasta={vista.fin}
+                  total={pasos.length}
+                  alIr={irAPagina}
+                  porPagina={{
+                    valor: tamano,
+                    opciones: TAMANOS,
+                    alCambiar: (n) => {
+                      setTamano(n);
+                      try {
+                        localStorage.setItem(CLAVE_TAMANO, String(n));
+                      } catch {}
+                      setHoja({ agente: idAgente, ancla: pasos.length, pagina: Number.MAX_SAFE_INTEGER });
+                    },
+                  }}
+                />
             )}
+            <RegionEstable activa={vista.paginas > 1 && vista.pagina < vista.paginas} clave={`${idAgente}:${tamano}:${h.ancla}`}>
             <div role="group" aria-label={t("Pasos; las flechas mueven la elección")} onKeyDown={alTecla} className="relative">
               {filas.map((f) => {
                 const p = f.paso;
@@ -445,6 +503,7 @@ export function Actividad({
                 })}
               </svg>
             </div>
+            </RegionEstable>
           </div>
 
           {/* Inspector */}

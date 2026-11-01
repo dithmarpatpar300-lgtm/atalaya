@@ -40,7 +40,7 @@ func (ix *Indice) Trazas() []Traza {
 		if len(a.pasos) == 0 || a.agente.Proyecto == "" {
 			continue
 		}
-		c := copia{ag: *a.agente, pasos: make([]Paso, len(a.pasos)), hijos: map[string]Agente{}}
+		c := copia{ag: ix.conDelegacion(*a.agente), pasos: make([]Paso, len(a.pasos)), hijos: map[string]Agente{}}
 		for i, p := range a.pasos {
 			c.pasos[i] = *p
 		}

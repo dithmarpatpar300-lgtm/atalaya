@@ -89,7 +89,7 @@ func (ix *Indice) ConsultasCentro(desde time.Time, tope int) []LlamadaCentro {
 			if !ok || (!desde.IsZero() && p.Hora.Before(desde)) {
 				continue
 			}
-			h := hallada{a.ruta, LlamadaCentro{Agente: *a.agente, Paso: *p, Herramienta: herr, ID: p.idUso}}
+			h := hallada{a.ruta, LlamadaCentro{Agente: ix.conDelegacion(*a.agente), Paso: *p, Herramienta: herr, ID: p.idUso}}
 			if p.idUso != "" {
 				// La copia de una sesión retomada empieza después: la llamada es de la sesión que la hizo.
 				if i, ok := visto[p.idUso]; ok {

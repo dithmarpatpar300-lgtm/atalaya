@@ -39,8 +39,13 @@ The script installs the panel's dependencies the first time (`npm ci`), builds i
 .\atalaya.exe
 ```
 
-and open **http://127.0.0.1:7420**. With no projects registered, the home page explains how to register the first
-one; you will already see the agents it finds in Claude Code's transcripts.
+and open **http://127.0.0.1:7420**. The first time, **the setup assistant** opens by itself (afterwards it lives behind
+the gear in the header): it looks at what is on the computer and walks you through the language, your tools, who
+coordinates (Claude Code or Codex), your projects, the MCP connection, the kit's skill, notifications and startup, and
+privacy. Every change is shown before it is made and can be undone from its history; it never touches a file inside
+your projects. **The assistant is enough: steps 4, 5 and 7 of this guide are the same path done by hand.**
+
+Even before finishing it you will see the agents Atalaya finds in Claude Code's transcripts and in Codex's sessions.
 
 Useful options:
 
@@ -58,7 +63,7 @@ Useful options:
 | `-demo` | A demo world: made-up projects, agents, alerts and decisions, to try it without any agent | off |
 | `-demo-carpeta <folder>` | Where that world is written (wiped and rebuilt at startup) | the temp folder |
 
-To start it with Windows, add a shortcut to the Startup folder:
+To start it with Windows (the assistant does this under "Notifications and startup"), add a shortcut to the Startup folder:
 
 ```powershell
 $s = (New-Object -ComObject WScript.Shell).CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Atalaya.lnk")
@@ -146,6 +151,17 @@ Atalaya sees Codex in three ways:
   effort and tokens. It is *working* while a turn is open, *waiting* for half an hour after the turn ends (Codex leaves
   no mark when the TUI closes) and then *ended*. Sessions from the last 30 days are read; compressed ones (`.jsonl.zst`)
   and `auth.json` are never read.
+
+**With Codex as coordinator**, the kit installs `scripts\claude.ps1`, the mirror of `codex.ps1`: Codex hands Claude
+Code a task (design, hard debugging) that runs headless (`claude -p`) on a separate copy. By default it only reads
+(`Read`, `Grep`, `Glob` and Atalaya's MCP); with `-Escribe` it also edits, only in the copy, and leaves a patch that is
+never applied on its own; it has no shell or web except the commands named with `-Ordenes 'npm test'`. It never skips
+permissions and does not use your Claude Code settings (no hooks, plugins or other MCP servers); it does use the session
+you already signed in with. Atalaya shows each task under the Codex session that launched it, with all its steps.
+
+```powershell
+.\scripts\claude.ps1 -Encargo .\encargo.md -Tema design-queue -Clase I2
+```
 
 ## 7. Notifications, decisions and quota
 

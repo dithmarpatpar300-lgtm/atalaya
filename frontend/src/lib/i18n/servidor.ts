@@ -8,17 +8,32 @@ type Reemplazo = string | ((traducir: (s: string) => string, ...grupos: string[]
 const partesRegistro = (resto: string) =>
   resto
     .split(", ")
-    .map((p) => p.replace(/^agregar (.+) \(nivel (\d)\)$/, "add $1 (level $2)").replace(/^quitar (.+)$/, "remove $1"))
+    .map((p) =>
+      p
+        .replace(/^agregar (.+) \(nivel (\d)\)$/, "add $1 (level $2)")
+        .replace(/^quitar (.+)$/, "remove $1")
+        .replace(/^sacar (.+) de la datapedia$/, "leave $1 out of the datapedia")
+        .replace(/^volver a indexar (.+)$/, "index $1 again"),
+    )
     .join(", ");
 
 export const PATRONES_SERVIDOR: [RegExp, Reemplazo][] = [
   // La configuración desde el panel (servidor/configurar.go e internal/configurar): resúmenes y errores.
   [/^Deshacer: (.+)$/, (traducir, resto) => `Undo: ${traducir(resto)}`],
   [/^Registro de proyectos: (.+)$/, (_, resto) => `Project registry: ${partesRegistro(resto)}`],
-  [/^Preferencias: coordina (Claude Code|Codex), con (Claude Code|Codex) de secundario$/, "Preferences: $1 coordinates, with $2 as secondary"],
-  [/^Preferencias: coordina (Claude Code|Codex), sin secundario$/, "Preferences: $1 coordinates, no secondary"],
+  [
+    /^Preferencias: coordina (Claude Code|Codex), con (Claude Code|Codex) de secundario(?:; el diario guarda (\d+) días)?$/,
+    (_, a, b, dias) => `Preferences: ${a} coordinates, with ${b} as secondary${dias ? `; the diary keeps ${dias} days` : ""}`,
+  ],
+  [
+    /^Preferencias: coordina (Claude Code|Codex), sin secundario(?:; el diario guarda (\d+) días)?$/,
+    (_, a, dias) => `Preferences: ${a} coordinates, no secondary${dias ? `; the diary keeps ${dias} days` : ""}`,
+  ],
   [/^Conectar (Claude Code|Codex) a Atalaya por MCP$/, "Connect $1 to Atalaya over MCP"],
   [/^Desconectar (Claude Code|Codex) de Atalaya$/, "Disconnect $1 from Atalaya"],
+  [/^Skill atalaya-proyecto para (Claude Code|Codex) \((.+)\)$/, "atalaya-proyecto skill for $1 ($2)"],
+  [/^Arrancar Atalaya con el sistema$/, "Start Atalaya with the system"],
+  [/^No arrancar Atalaya con el sistema$/, "Stop starting Atalaya with the system"],
   [/^solo el panel puede cambiar la configuración$/, "only the panel can change the setup"],
   [/^la herramienta es claude o codex, y la acción conectar o desconectar$/, "the tool is claude or codex, and the action connect or disconnect"],
   [/^la dirección de Atalaya no es la de este equipo: (.+)$/, "Atalaya's address is not on this computer: $1"],
@@ -41,6 +56,14 @@ export const PATRONES_SERVIDOR: [RegExp, Reemplazo][] = [
   [/^ese cambio no está en el historial$/, "that change is not in the history"],
   [/^Atalaya corre sin carpeta de datos: no puede guardar copias ni el historial de cambios$/, "Atalaya runs without a data folder: it cannot keep backups or the change history"],
   [/^Atalaya corre sin registro de proyectos \(-proyectos\)$/, "Atalaya runs without a project registry (-proyectos)"],
+  [/^el diario guarda de 1 a 3650 días, o 0 para guardarlos todos$/, "the diary keeps 1 to 3650 days, or 0 to keep them all"],
+  [/^la herramienta es claude o codex$/, "the tool is claude or codex"],
+  [/^Atalaya no encuentra el kit \(la carpeta (.+) junto a atalaya\.exe\)$/, "Atalaya cannot find the kit (the $1 folder next to atalaya.exe)"],
+  [/^no se pudo leer el kit(?:: (.+))?$/, (_, rel) => (rel ? `could not read the kit: ${rel}` : "could not read the kit")],
+  [/^la skill ya está al día$/, "the skill is already up to date"],
+  [/^en este sistema Atalaya no sabe arrancar solo; mira la guía de instalación$/, "on this system Atalaya cannot start on its own; see the install guide"],
+  [/^Atalaya ya arranca con el sistema$/, "Atalaya already starts with the system"],
+  [/^Atalaya no arranca con el sistema$/, "Atalaya does not start with the system"],
   [/^Aviso a los (\d+) min y alerta al cumplirse\. El presupuesto del encargo manda si lo trae\.$/, "Warning at $1 min and alert at the limit. The brief's budget takes precedence if specified."],
   [/^De la ventana que se infiere de las peticiones del agente\.$/, "From the window inferred from the agent's requests."],
   [/^Trabajando, pero sin pasos nuevos: suele ser una orden larga que no termina\.$/, "Working without new steps: usually a long-running command."],

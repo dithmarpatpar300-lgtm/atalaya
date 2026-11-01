@@ -30,7 +30,13 @@ type Proyecto struct {
 	Sigla string `json:"sigla,omitempty"`
 	// Nivel del contrato de trazabilidad que el proyecto se compromete a cumplir: 0 (sin contrato) a 3.
 	Nivel int `json:"nivel"`
+	// Datapedia: false si el dueño lo sacó de la datapedia (ni sus documentos ni las trazas de sus agentes se indexan,
+	// y no salen en las búsquedas); sin el campo, dentro.
+	Datapedia *bool `json:"datapedia,omitempty"`
 }
+
+// EnDatapedia: el proyecto se indexa (lo de fábrica).
+func (p Proyecto) EnDatapedia() bool { return p.Datapedia == nil || *p.Datapedia }
 
 // Leer el registro. Un archivo que no existe devuelve un error que cumple errors.Is(err, os.ErrNotExist).
 func Leer(ruta string) ([]Proyecto, error) {

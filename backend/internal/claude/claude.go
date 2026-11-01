@@ -183,8 +183,10 @@ type archivo struct {
 // Indice guarda todos los transcritos leídos.
 type Indice struct {
 	Raiz string
-	mu   sync.RWMutex
-	arch map[string]*archivo
+	// Delegadas: la ficha de scripts/claude.ps1 de una sesión, si la tiene (delegadas.go); nil, ninguna.
+	Delegadas func(id string) (Delegacion, bool)
+	mu        sync.RWMutex
+	arch      map[string]*archivo
 }
 
 func NuevoIndice(raiz string) *Indice { return &Indice{Raiz: raiz, arch: map[string]*archivo{}} }
@@ -983,7 +985,7 @@ func (ix *Indice) Agentes() []Agente {
 		if a.agente.Pasos == 0 {
 			continue
 		}
-		out = append(out, *a.agente)
+		out = append(out, ix.conDelegacion(*a.agente))
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Ultimo.After(out[j].Ultimo) })
 	return out
@@ -1024,7 +1026,7 @@ func (ix *Indice) Agente(id string, tope int) (Agente, []Paso, bool) {
 	if tope > 0 && len(pasos) > tope {
 		pasos = pasos[len(pasos)-tope:]
 	}
-	return *a.agente, pasos, true
+	return ix.conDelegacion(*a.agente), pasos, true
 }
 
 // LimiteSalida: lo más que se devuelve de la salida de un paso.

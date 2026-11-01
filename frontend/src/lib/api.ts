@@ -349,6 +349,12 @@ export interface Entorno {
   registro: string;
   /** Los proyectos de proyectos.json, con lo que tiene cada uno. */
   registrados: ProyectoRegistrado[];
+  /** Cuándo se conectó y consultó cada herramienta por el MCP (ISO; ausente si nunca). */
+  clientes: Partial<Record<HerramientaId, { conexion?: string; consulta?: string }>>;
+  /** La skill atalaya-proyecto en cada herramienta; vacío si Atalaya no tiene el kit. */
+  skills: Record<HerramientaId, "" | "al día" | "distinta" | "falta">;
+  /** Si Atalaya arranca con el sistema. */
+  arranque: { disponible: boolean; activo: boolean; archivo?: string; programa?: string };
 }
 
 /** Un proyecto del registro, con sus marcas. */
@@ -359,6 +365,8 @@ export interface ProyectoRegistrado {
   nivel: number;
   existe: boolean;
   marcas: Marcas;
+  /** Se indexa en la datapedia (falso si su dueño lo sacó). */
+  datapedia: boolean;
 }
 
 /** Una de las cosas que hace un cambio de configuración. */
@@ -402,6 +410,8 @@ export interface Preferencias {
   principal?: HerramientaId;
   secundario?: HerramientaId;
   asistente?: boolean;
+  /** Cuántos días guarda el diario; 0 o ausente, todos. */
+  diario_dias?: number;
 }
 
 /** Lanza el error que manda el servidor (`{ error }`) o, si no trae uno, el código. */
@@ -487,9 +497,11 @@ export const api = {
   entorno: (senal?: AbortSignal) => pedir<Entorno>("/api/entorno", senal),
   preferencias: (senal?: AbortSignal) => pedir<Preferencias>("/api/configurar/preferencias", senal),
   historialCambios: (senal?: AbortSignal) => pedir<EntradaCambio[]>("/api/configurar/historial", senal),
-  proponerProyectos: (p: { agregar?: { ruta: string; nivel: number; sigla?: string }[]; quitar?: string[] }) =>
+  proponerProyectos: (p: { agregar?: { ruta: string; nivel: number; sigla?: string }[]; quitar?: string[]; datapedia?: { nombre: string; dentro: boolean }[] }) =>
     escribirPanel<Propuesta>("/api/configurar/proyectos", p),
   proponerPreferencias: (p: Preferencias) => escribirPanel<Propuesta>("/api/configurar/preferencias", p),
+  proponerSkill: (herramienta: HerramientaId) => escribirPanel<Propuesta>("/api/configurar/skill", { herramienta }),
+  proponerArranque: (activar: boolean) => escribirPanel<Propuesta>("/api/configurar/arranque", { activar }),
   /** Conectar o desconectar Claude Code o Codex del MCP de Atalaya, con su orden oficial. */
   proponerMCP: (herramienta: HerramientaId, accion: "conectar" | "desconectar") => escribirPanel<Propuesta>("/api/configurar/mcp", { herramienta, accion }),
   aplicarCambio: (id: string) => escribirPanel<EntradaCambio>("/api/configurar/aplicar", { id }),

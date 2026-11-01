@@ -6,6 +6,7 @@ import {
   api,
   type CarpetaReciente,
   type EntradaCambio,
+  type EstadoAvisos,
   type Entorno,
   type Herramienta,
   type HerramientaId,
@@ -29,8 +30,8 @@ const CLAVE_PASO = "atalaya:asistente-paso";
 /** El asistente se saltó en este navegador: no se abre solo otra vez (panel.tsx). */
 export const CLAVE_SALTADO = "atalaya:asistente-saltado";
 
-type Paso = "idioma" | "herramientas" | "coordina" | "proyectos" | "conectar" | "listo";
-const PASOS: Paso[] = ["idioma", "herramientas", "coordina", "proyectos", "conectar", "listo"];
+type Paso = "idioma" | "herramientas" | "coordina" | "proyectos" | "conectar" | "kit" | "avisos" | "privacidad" | "listo";
+const PASOS: Paso[] = ["idioma", "herramientas", "coordina", "proyectos", "conectar", "kit", "avisos", "privacidad", "listo"];
 
 const NOMBRE_PASO: Record<Paso, string> = {
   idioma: "Idioma",
@@ -38,6 +39,9 @@ const NOMBRE_PASO: Record<Paso, string> = {
   coordina: "Quién coordina",
   proyectos: "Tus proyectos",
   conectar: "Conectar por MCP",
+  kit: "El kit en cada proyecto",
+  avisos: "Avisos y arranque",
+  privacidad: "Privacidad y datos",
   listo: "Listo",
 };
 
@@ -231,7 +235,11 @@ export function Configurar({ alTerminar }: { alTerminar: () => void }) {
       herramientas: !!e && e.herramientas.some((h) => h.instalada),
       coordina: !!prefs?.principal,
       proyectos: !!e && e.registrados.length > 0,
-      conectar: !!e && (e.herramientas.some((h) => h.mcp) || e.registrados.some((r) => r.marcas.mcp_atalaya)),
+      // En verde cuando Atalaya vio llegar una consulta por MCP, no solo cuando la configuración dice que debería.
+      conectar: !!e && Object.values(e.clientes ?? {}).some((c) => !!c?.consulta),
+      kit: !!e && !!prefs?.principal && e.skills?.[prefs.principal] === "al día",
+      avisos: !!e && e.arranque?.activo,
+      privacidad: false,
       listo: !!prefs?.asistente,
     };
   }, [entorno, prefs]);
@@ -306,6 +314,12 @@ export function Configurar({ alTerminar }: { alTerminar: () => void }) {
             <PasoProyectos entorno={entorno} alCambio={() => cargar()} />
           ) : paso === "conectar" ? (
             <PasoConectar entorno={entorno} prefs={prefs} comprobando={comprobando} alComprobar={comprobar} alCambio={() => cargar(true)} />
+          ) : paso === "kit" ? (
+            <PasoKit entorno={entorno} prefs={prefs} alCambio={() => cargar()} />
+          ) : paso === "avisos" ? (
+            <PasoAvisos entorno={entorno} alCambio={() => cargar()} />
+          ) : paso === "privacidad" ? (
+            <PasoPrivacidad entorno={entorno} prefs={prefs} alCambio={() => cargar()} />
           ) : (
             <PasoListo entorno={entorno} prefs={prefs} alTerminar={alTerminar} alGuardado={() => cargar()} />
           )}
@@ -361,6 +375,9 @@ function PasoHerramientas({ entorno, comprobando, alComprobar }: { entorno: Ento
           <TarjetaHerramienta key={h.id} h={h} />
         ))}
       </div>
+      <p className="m-0 text-ayuda text-suave">
+        {t("Para comprobarlo, abre una sesión nueva y pídele: «pregúntale a Atalaya cómo vamos». El paso se pone en verde cuando llega esa consulta.")}
+      </p>
       <div>
         <button type="button" className={botonSecundario} disabled={comprobando} onClick={alComprobar}>
           {comprobando ? t("Comprobando…") : t("Comprobar de nuevo")}
@@ -419,7 +436,7 @@ function PasoCoordina({ entorno, prefs, alGuardado }: { entorno: Entorno; prefs:
       </div>
       {elegido.principal === "codex" && elegido.secundario && (
         <p className="m-0 text-ayuda text-suave">
-          {t("Con Codex de principal, Atalaya ya sigue sus sesiones; que Codex le pase trabajo a Claude Code con su traza (claude.ps1) llega en la próxima entrega.")}
+          {t("Con Codex de principal, Codex le pasa a Claude Code el diseño y la depuración con scripts/claude.ps1, que corre sin pantalla, solo lee salvo que se le pida escribir y nunca aplica su parche solo. Atalaya lo muestra colgado de la sesión de Codex que lo lanzó.")}
         </p>
       )}
       <div className="flex items-center gap-3">
@@ -696,10 +713,10 @@ function PasoConectar({
         <ConexionHerramienta
           h={claude}
           estado={
-            <Estado
-              ok={claude.mcp || entorno.registrados.some((r) => r.marcas.mcp_atalaya)}
+            <EstadoConexion
+              configurada={claude.mcp || entorno.registrados.some((r) => r.marcas.mcp_atalaya)}
+              cliente={entorno.clientes?.claude}
               si={claude.mcp ? t("conectada para todos los proyectos") : t("conectada en algunos proyectos (.mcp.json)")}
-              no={t("sin conectar")}
             />
           }
           nota={t("Para todos tus proyectos, una vez (en un proyecto con el kit, su .mcp.json ya lo hace y además le dice a Atalaya de qué proyecto se trata):")}
@@ -710,7 +727,7 @@ function PasoConectar({
       {usa("codex") && codex && (
         <ConexionHerramienta
           h={codex}
-          estado={<Estado ok={codex.mcp} si={t("conectada")} no={t("sin conectar")} />}
+          estado={<EstadoConexion configurada={codex.mcp} cliente={entorno.clientes?.codex} si={t("conectada")} />}
           nota={t("Una vez, para todos tus proyectos:")}
           orden={`codex mcp add atalaya --url ${url}`}
           alCambio={alCambio}
@@ -778,6 +795,248 @@ function PasoListo({ entorno, prefs, alTerminar, alGuardado }: { entorno: Entorn
         </button>
         {error && <span className="text-rotulo text-error">{error}</span>}
       </div>
+    </div>
+  );
+}
+
+/** La conexión de una herramienta: verde cuando Atalaya vio su consulta; si solo está configurada, qué falta. */
+function EstadoConexion({ configurada, cliente, si }: { configurada: boolean; cliente?: { conexion?: string; consulta?: string }; si: string }) {
+  if (cliente?.consulta) return <Estado ok si={t("consultó a Atalaya {cuando}", { cuando: cuando(new Date(cliente.consulta)) })} no="" />;
+  if (cliente?.conexion) return <Estado ok={false} si="" no={t("se conectó {cuando}; falta su primera consulta", { cuando: cuando(new Date(cliente.conexion)) })} />;
+  return <Estado ok={false} si="" no={configurada ? t("{estado}; falta su primera consulta", { estado: si }) : t("sin conectar")} />;
+}
+
+/**
+ * Un cambio por la puerta con su botón: pide la vista previa, la muestra y la aplica. El mismo recorrido que «Conectar
+ * por mí», para la skill, el arranque, la datapedia o el diario.
+ */
+function ConPropuesta({ texto, primario = true, proponer, alCambio, deshabilitado }: { texto: string; primario?: boolean; proponer: () => Promise<Propuesta>; alCambio: () => void; deshabilitado?: boolean }) {
+  const [propuesta, setPropuesta] = useState<Propuesta | null>(null);
+  const [aplicando, setAplicando] = useState(false);
+  const [mensaje, setMensaje] = useState<{ ok?: string; error?: string }>({});
+  // Armar la vista previa puede tardar (la skill compara cada archivo del kit): el botón lo dice mientras tanto.
+  const [pidiendo, setPidiendo] = useState(false);
+  const pedir = async () => {
+    setMensaje({});
+    setPidiendo(true);
+    try {
+      setPropuesta(await proponer());
+    } catch (e) {
+      setMensaje({ error: e instanceof Error ? e.message : String(e) });
+    }
+    setPidiendo(false);
+  };
+  const aplicar = async () => {
+    if (!propuesta) return;
+    setAplicando(true);
+    try {
+      const e = await api.aplicarCambio(propuesta.id);
+      setMensaje(e.error ? { error: tServidor(e.error) } : { ok: tServidor(e.resumen) });
+      setPropuesta(null);
+      alCambio();
+    } catch (e) {
+      setMensaje({ error: e instanceof Error ? e.message : String(e) });
+    }
+    setAplicando(false);
+  };
+  if (propuesta) return <VistaPrevia propuesta={propuesta} aplicando={aplicando} alAplicar={aplicar} alCancelar={() => setPropuesta(null)} />;
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <button type="button" className={primario ? botonPrimario : botonSecundario} disabled={deshabilitado || pidiendo} onClick={pedir}>
+        {pidiendo ? t("Preparando la vista previa…") : texto}
+      </button>
+      {mensaje.ok && <span className="text-rotulo text-ok">{mensaje.ok}</span>}
+      {mensaje.error && <span className="text-rotulo text-error">{mensaje.error}</span>}
+    </div>
+  );
+}
+
+const NOMBRE_HERRAMIENTA: Record<HerramientaId, string> = { claude: "Claude Code", codex: "Codex" };
+
+/** El paso 5 del diseño: la skill en cada herramienta y, por proyecto, el pedido para el agente que coordina. */
+function PasoKit({ entorno, prefs, alCambio }: { entorno: Entorno; prefs: Preferencias; alCambio: () => void }) {
+  const usadas = ([prefs.principal, prefs.secundario].filter(Boolean) as HerramientaId[]).filter((id) => entorno.herramientas.some((h) => h.id === id && h.instalada));
+  const principal = prefs.principal ? NOMBRE_HERRAMIENTA[prefs.principal] : "";
+  const origen = typeof window === "undefined" ? "http://127.0.0.1:7420" : window.location.origin;
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="m-0 text-suave">
+        {t("Atalaya no toca tus proyectos: el kit (reglas, roles, avance por fase) lo instala tu agente con la skill atalaya-proyecto, que funde los textos con lo que el proyecto ya tiene. Aquí Atalaya copia la skill a tu herramienta y te da el pedido para cada proyecto.")}
+      </p>
+      {!prefs.principal && <p className="m-0 text-ayuda text-aviso">{t("Elige primero quién coordina: la skill va a esa herramienta.")}</p>}
+      {usadas.map((id) => {
+        const estado = entorno.skills?.[id] ?? "";
+        return (
+          <div key={id} className="flex flex-col gap-2">
+            <h3 className="m-0 flex items-center gap-3 text-rotulo font-semibold">
+              {t("La skill en {nombre}", { nombre: NOMBRE_HERRAMIENTA[id] })}
+              <Estado ok={estado === "al día"} si={t("al día")} no={estado === "distinta" ? t("otra versión") : estado === "falta" ? t("no está") : t("sin el kit junto a atalaya.exe")} />
+            </h3>
+            {(estado === "falta" || estado === "distinta") && (
+              <ConPropuesta texto={estado === "falta" ? t("Copiar la skill") : t("Poner la skill al día")} proponer={() => api.proponerSkill(id)} alCambio={alCambio} />
+            )}
+          </div>
+        );
+      })}
+      <h3 className="m-0 text-rotulo font-semibold">{t("Tus proyectos")}</h3>
+      {entorno.registrados.length === 0 ? (
+        <p className="m-0 text-ayuda text-suave">{t("Todavía no hay proyectos registrados.")}</p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col gap-3 p-0">
+          {entorno.registrados.map((r) => {
+            const listo = r.nivel <= 1 ? r.marcas.agents_md : r.marcas.agents_md && r.marcas.trazabilidad;
+            const pedido = t("Usa la skill atalaya-proyecto para preparar el proyecto {ruta} en el nivel {nivel}. Atalaya está en {origen}.", { ruta: r.ruta, nivel: r.nivel, origen });
+            return (
+              <li key={r.nombre} className="flex flex-col gap-1.5">
+                <span className="flex flex-wrap items-center gap-3">
+                  <span className="font-medium">{r.nombre}</span>
+                  <span className="text-ayuda text-suave">{t("nivel {n}", { n: r.nivel })}</span>
+                  <Estado ok={listo} si={t("kit instalado")} no={r.nivel <= 1 ? t("sin AGENTS.md") : t("falta el kit")} />
+                </span>
+                {!listo && r.existe && (
+                  <details className="text-ayuda text-suave">
+                    <summary className="cursor-pointer select-none hover:text-texto">{t("El pedido para {agente}", { agente: principal || t("tu agente") })}</summary>
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <span>{t("Ábrelo en una sesión nueva en esa carpeta. Atalaya lo pone en verde cuando ve AGENTS.md y el avance de la fase 0.")}</span>
+                      <Orden texto={pedido} />
+                    </div>
+                  </details>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** El paso 6: los avisos del sistema y arrancar Atalaya con él. */
+function PasoAvisos({ entorno, alCambio }: { entorno: Entorno; alCambio: () => void }) {
+  const [avisos, setAvisos] = useState<EstadoAvisos | null>(null);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  useEffect(() => {
+    api.avisos().then(setAvisos, () => setAvisos(null));
+  }, []);
+  const cambiar = async (c: { decisiones?: boolean; alertas?: boolean }) => {
+    try {
+      setAvisos(await api.configurarAvisos(c));
+    } catch (e) {
+      setMensaje(e instanceof Error ? e.message : String(e));
+    }
+  };
+  const probar = async () => {
+    try {
+      setAvisos(await api.probarAviso());
+      setMensaje(t("Aviso de prueba enviado: debería verse en la esquina de la pantalla."));
+    } catch (e) {
+      setMensaje(e instanceof Error ? e.message : String(e));
+    }
+  };
+  const a = entorno.arranque;
+  return (
+    <div className="flex flex-col gap-4">
+      <h3 className="m-0 text-rotulo font-semibold">{t("Avisos")}</h3>
+      {!avisos?.activos ? (
+        <p className="m-0 text-ayuda text-suave">{t("Los avisos del sistema están apagados en este equipo (por ahora solo hay en Windows); lo que te espera se ve igual en la campana del panel.")}</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2.5">
+            <input type="checkbox" checked={avisos.decisiones} onChange={(e) => void cambiar({ decisiones: e.target.checked })} />
+            {t("Cuando un agente te espera con una decisión")}
+          </label>
+          <label className="flex items-center gap-2.5">
+            <input type="checkbox" checked={avisos.alertas} onChange={(e) => void cambiar({ alertas: e.target.checked })} />
+            {t("Cuando salta una alerta de error")}
+          </label>
+          <div>
+            <button type="button" className={botonSecundario} onClick={probar}>
+              {t("Enviar un aviso de prueba")}
+            </button>
+          </div>
+        </div>
+      )}
+      {mensaje && <p className="m-0 text-ayuda text-suave">{mensaje}</p>}
+      <h3 className="m-0 flex items-center gap-3 text-rotulo font-semibold">
+        {t("Arrancar con el sistema")}
+        {a?.disponible && <Estado ok={a.activo} si={t("arranca al iniciar sesión")} no={t("no arranca solo")} />}
+      </h3>
+      {!a?.disponible ? (
+        <p className="m-0 text-ayuda text-suave">{t("En este sistema Atalaya no sabe arrancar solo; la guía de instalación dice cómo.")}</p>
+      ) : (
+        <>
+          <p className="m-0 text-ayuda text-suave">
+            {entorno.sistema === "windows"
+              ? t("Un acceso directo a {programa} en tu carpeta de inicio de Windows.", { programa: a.programa ?? "atalaya.exe" })
+              : t("Una unidad de systemd de tu usuario que corre {programa} al iniciar sesión.", { programa: a.programa ?? "atalaya" })}
+          </p>
+          <ConPropuesta
+            texto={a.activo ? t("Que no arranque solo") : t("Arrancar con el sistema")}
+            primario={!a.activo}
+            proponer={() => api.proponerArranque(!a.activo)}
+            alCambio={alCambio}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+const DIAS_DIARIO = [30, 90, 365, 0];
+
+/** El paso 7: qué proyectos entran en la datapedia y cuántos días guarda el diario. */
+function PasoPrivacidad({ entorno, prefs, alCambio }: { entorno: Entorno; prefs: Preferencias; alCambio: () => void }) {
+  const dias = prefs.diario_dias ?? 0;
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="m-0 text-suave">
+        {t("Todo queda en este equipo: Atalaya no manda nada afuera. Aquí eliges qué proyectos se indexan para buscar y cuánto recuerda el diario.")}
+      </p>
+      <h3 className="m-0 text-rotulo font-semibold">{t("La datapedia")}</h3>
+      <p className="m-0 text-ayuda text-suave">
+        {t("Un proyecto fuera de la datapedia se sigue igual en el panel, pero sus documentos, su memoria y las trazas de sus agentes no se indexan ni salen en las búsquedas.")}
+      </p>
+      {entorno.registrados.length === 0 ? (
+        <p className="m-0 text-ayuda text-suave">{t("Todavía no hay proyectos registrados.")}</p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+          {entorno.registrados.map((r) => (
+            <li key={r.nombre} className="flex flex-wrap items-center gap-3">
+              <span className="min-w-40 font-medium">{r.nombre}</span>
+              <Estado ok={r.datapedia} si={t("en la datapedia")} no={t("fuera de la datapedia")} />
+              <ConPropuesta
+                texto={r.datapedia ? t("Sacar") : t("Volver a indexar")}
+                primario={false}
+                proponer={() => api.proponerProyectos({ datapedia: [{ nombre: r.nombre, dentro: !r.datapedia }] })}
+                alCambio={alCambio}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+      <h3 className="m-0 text-rotulo font-semibold">{t("El diario")}</h3>
+      <p className="m-0 text-ayuda text-suave">{t("Un archivo por día con lo que hicieron tus agentes, para las estadísticas y la línea de lo que los transcritos ya no tienen.")}</p>
+      {!prefs.principal ? (
+        <p className="m-0 text-ayuda text-aviso">{t("Elige primero quién coordina: esta preferencia se guarda junto a esa.")}</p>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("Días que guarda el diario")}>
+          {DIAS_DIARIO.map((d) =>
+            d === dias ? (
+              <span key={d} className="rounded-control bg-seleccion px-3 py-1 text-rotulo font-medium">
+                {d ? t("{n} días", { n: d }) : t("Siempre")}
+              </span>
+            ) : (
+              <ConPropuesta
+                key={d}
+                texto={d ? t("{n} días", { n: d }) : t("Siempre")}
+                primario={false}
+                proponer={() => api.proponerPreferencias({ ...prefs, diario_dias: d })}
+                alCambio={alCambio}
+              />
+            ),
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -25,6 +25,7 @@ import (
 	"atalaya/internal/configurar"
 	"atalaya/internal/cuotas"
 	"atalaya/internal/datapedia"
+	"atalaya/internal/delegadas"
 	"atalaya/internal/entorno"
 	"atalaya/internal/trazabilidad"
 )
@@ -41,6 +42,8 @@ type Proyecto struct {
 	Sigla      string `json:"sigla,omitempty"`
 	Nivel      int    `json:"nivel"`
 	Registrado bool   `json:"registrado,omitempty"`
+	// FueraDatapedia: el dueño lo sacó de la datapedia (proyectos.json, «"datapedia": false»).
+	FueraDatapedia bool `json:"fuera_datapedia,omitempty"`
 }
 
 // Servidor reúne los lectores y la difusión de cambios.
@@ -54,6 +57,9 @@ type Servidor struct {
 	Datapedia *datapedia.Indice
 	// CodexVivo: la traza en vivo de las llamadas a Codex; nil si no se usa.
 	CodexVivo *codexvivo.Lector
+	// Delegadas: las fichas de scripts/claude.ps1, que cuelgan cada sesión de Claude Code de quien la lanzó (la
+	// aplica el índice de Claude); nil si no se usa.
+	Delegadas *delegadas.Lector
 	// Avisos y Notificador: las notificaciones de lo que te espera (avisos.go, avisos); nil si están apagados. Base
 	// es la dirección del panel, para que un clic lo abra en su sección.
 	Avisos      *avisos.Vigia
@@ -62,9 +68,11 @@ type Servidor struct {
 	// RutaAvisos: avisos.json, qué tipos están encendidos; vacía, todos y sin guardar.
 	RutaAvisos string
 	// Diario: la carpeta del diario (diario.go, avisos); vacía, sin diario.
-	Diario     string
-	diarioMu   sync.Mutex
-	confAvisos struct {
+	Diario   string
+	diarioMu sync.Mutex
+	// diarioRecortado: el día en que el diario se recortó por última vez a los días elegidos (con diarioMu).
+	diarioRecortado string
+	confAvisos      struct {
 		mu    sync.Mutex
 		c     avisos.Config
 		leida bool
@@ -78,6 +86,10 @@ type Servidor struct {
 	// Datos: la carpeta propia de Atalaya, con las copias y el historial de la puerta de escritura (configurar.go).
 	Datos    string
 	cacheEnt cacheEntorno
+	// clientes: cuándo llegó y consultó cada herramienta por el MCP (mcp_clientes.go).
+	clientes clientesMCP
+	// Kit: la carpeta del kit atalaya-proyecto (junto a atalaya.exe), de donde se copia la skill; vacía si no está.
+	Kit string
 	// herramientasPrueba: en las pruebas, las herramientas en lugar de buscarlas en el equipo.
 	herramientasPrueba []entorno.Herramienta
 	puertaUna          sync.Once
@@ -141,10 +153,13 @@ func (s *Servidor) vuelta(ctx context.Context, primera bool) {
 			s.difusion.enviar(Evento{Tipo: "cuotas"})
 		}()
 	}
+	// Las fichas antes que los transcritos: una sesión delegada nueva sale ya colgada de quien la lanzó.
+	delegadasCambiadas := s.Delegadas.Actualizar()
 	ids, err := s.Claude.Actualizar()
 	if err != nil {
 		log.Printf("transcritos: %v", err)
 	}
+	ids = append(ids, delegadasCambiadas...)
 	cambioDocs := s.releerRegistro()
 	cambioDocs = s.releerTrazabilidad() || cambioDocs
 	if s.CodexVivo != nil {
@@ -268,6 +283,8 @@ func (s *Servidor) Handler() http.Handler {
 	mux.HandleFunc("POST /api/configurar/proyectos", s.proponerProyectos)
 	mux.HandleFunc("GET /api/configurar/preferencias", s.verPreferencias)
 	mux.HandleFunc("POST /api/configurar/preferencias", s.proponerPreferencias)
+	mux.HandleFunc("POST /api/configurar/skill", s.proponerSkill)
+	mux.HandleFunc("POST /api/configurar/arranque", s.proponerArranque)
 	mux.HandleFunc("POST /api/configurar/mcp", s.proponerMCP)
 	mux.HandleFunc("POST /api/configurar/aplicar", s.aplicarConfiguracion)
 	mux.HandleFunc("POST /api/configurar/deshacer", s.deshacerConfiguracion)

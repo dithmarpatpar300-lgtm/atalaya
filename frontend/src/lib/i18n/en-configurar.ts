@@ -45,8 +45,8 @@ export const EN_CONFIGURAR: Record<string, string> = {
   "Sin Codex: Atalaya sigue a tus sesiones y subagentes de Claude Code.": "Without Codex: Atalaya follows your Claude Code sessions and subagents.",
   "Sin Claude Code: Atalaya sigue a tus sesiones de Codex, de la terminal y de la app.":
     "Without Claude Code: Atalaya follows your Codex sessions, from the terminal and from the app.",
-  "Con Codex de principal, Atalaya ya sigue sus sesiones; que Codex le pase trabajo a Claude Code con su traza (claude.ps1) llega en la próxima entrega.":
-    "With Codex as primary, Atalaya already follows its sessions; Codex handing work to Claude Code with its own trace (claude.ps1) comes in the next release.",
+  "Con Codex de principal, Codex le pasa a Claude Code el diseño y la depuración con scripts/claude.ps1, que corre sin pantalla, solo lee salvo que se le pida escribir y nunca aplica su parche solo. Atalaya lo muestra colgado de la sesión de Codex que lo lanzó.":
+    "With Codex as primary, Codex hands Claude Code the design and debugging through scripts/claude.ps1, which runs headless, only reads unless asked to write, and never applies its own patch. Atalaya shows it under the Codex session that launched it.",
   guardado: "saved",
   Guardar: "Save",
   "Guardando…": "Saving…",
@@ -108,6 +108,73 @@ export const EN_CONFIGURAR: Record<string, string> = {
   "Prefiero hacerlo yo": "I would rather do it myself",
   "No está instalada en este equipo.": "It is not installed on this computer.",
   Copiada: "Copied",
+
+  "Para comprobarlo, abre una sesión nueva y pídele: «pregúntale a Atalaya cómo vamos». El paso se pone en verde cuando llega esa consulta.":
+    "To check it, open a new session and ask it: \"ask Atalaya how we are doing\". The step turns green when that query arrives.",
+  "consultó a Atalaya {cuando}": "queried Atalaya {cuando}",
+  "se conectó {cuando}; falta su primera consulta": "connected {cuando}; its first query is still missing",
+  "{estado}; falta su primera consulta": "{estado}; its first query is still missing",
+
+  // El kit en cada proyecto
+  "El kit en cada proyecto": "The kit in each project",
+  "Atalaya no toca tus proyectos: el kit (reglas, roles, avance por fase) lo instala tu agente con la skill atalaya-proyecto, que funde los textos con lo que el proyecto ya tiene. Aquí Atalaya copia la skill a tu herramienta y te da el pedido para cada proyecto.":
+    "Atalaya does not touch your projects: your agent installs the kit (rules, roles, progress per phase) with the atalaya-proyecto skill, which merges the texts with what the project already has. Here Atalaya copies the skill into your tool and gives you the request for each project.",
+  "Elige primero quién coordina: la skill va a esa herramienta.": "Choose who coordinates first: the skill goes to that tool.",
+  "La skill en {nombre}": "The skill in {nombre}",
+  "al día": "up to date",
+  "otra versión": "another version",
+  "no está": "missing",
+  "sin el kit junto a atalaya.exe": "no kit next to atalaya.exe",
+  "Copiar la skill": "Copy the skill",
+  "Preparando la vista previa…": "Preparing the preview…",
+  "Poner la skill al día": "Update the skill",
+  "Todavía no hay proyectos registrados.": "No projects registered yet.",
+  "Usa la skill atalaya-proyecto para preparar el proyecto {ruta} en el nivel {nivel}. Atalaya está en {origen}.":
+    "Use the atalaya-proyecto skill to prepare the project {ruta} at level {nivel}. Atalaya is at {origen}.",
+  "kit instalado": "kit installed",
+  "sin AGENTS.md": "no AGENTS.md",
+  "falta el kit": "kit missing",
+  "El pedido para {agente}": "The request for {agente}",
+  "tu agente": "your agent",
+  "Ábrelo en una sesión nueva en esa carpeta. Atalaya lo pone en verde cuando ve AGENTS.md y el avance de la fase 0.":
+    "Open it in a new session in that folder. Atalaya turns it green when it sees AGENTS.md and the phase 0 progress.",
+
+  // Avisos y arranque
+  "Avisos y arranque": "Notifications and startup",
+  Avisos: "Notifications",
+  "Aviso de prueba enviado: debería verse en la esquina de la pantalla.": "Test notification sent: it should show in the corner of the screen.",
+  "Los avisos del sistema están apagados en este equipo (por ahora solo hay en Windows); lo que te espera se ve igual en la campana del panel.":
+    "System notifications are off on this computer (for now they only exist on Windows); what is waiting for you still shows in the panel's bell.",
+  "Cuando un agente te espera con una decisión": "When an agent is waiting on a decision from you",
+  "Cuando salta una alerta de error": "When an error alert fires",
+  "Enviar un aviso de prueba": "Send a test notification",
+  "Arrancar con el sistema": "Start with the system",
+  "arranca al iniciar sesión": "starts when you sign in",
+  "no arranca solo": "does not start on its own",
+  "En este sistema Atalaya no sabe arrancar solo; la guía de instalación dice cómo.":
+    "On this system Atalaya cannot start on its own; the install guide explains how.",
+  "Un acceso directo a {programa} en tu carpeta de inicio de Windows.": "A shortcut to {programa} in your Windows Startup folder.",
+  "Una unidad de systemd de tu usuario que corre {programa} al iniciar sesión.": "A systemd user unit that runs {programa} when you sign in.",
+  "Que no arranque solo": "Stop starting on its own",
+
+  // Privacidad y datos
+  "Privacidad y datos": "Privacy and data",
+  "Todo queda en este equipo: Atalaya no manda nada afuera. Aquí eliges qué proyectos se indexan para buscar y cuánto recuerda el diario.":
+    "Everything stays on this computer: Atalaya sends nothing out. Here you choose which projects are indexed for search and how much the diary remembers.",
+  "La datapedia": "The datapedia",
+  "Un proyecto fuera de la datapedia se sigue igual en el panel, pero sus documentos, su memoria y las trazas de sus agentes no se indexan ni salen en las búsquedas.":
+    "A project left out of the datapedia is still followed in the panel, but its documents, its memory and its agents' traces are not indexed and do not show up in searches.",
+  "en la datapedia": "in the datapedia",
+  "fuera de la datapedia": "left out of the datapedia",
+  Sacar: "Leave out",
+  "Volver a indexar": "Index again",
+  "El diario": "The diary",
+  "Un archivo por día con lo que hicieron tus agentes, para las estadísticas y la línea de lo que los transcritos ya no tienen.":
+    "One file per day with what your agents did, for the statistics and the timeline of what the transcripts no longer have.",
+  "Elige primero quién coordina: esta preferencia se guarda junto a esa.": "Choose who coordinates first: this preference is saved together with that one.",
+  "Días que guarda el diario": "Days the diary keeps",
+  "{n} días": "{n} days",
+  Siempre: "Forever",
 
   // Listo
   "Ni Claude Code ni Codex están instalados todavía": "Neither Claude Code nor Codex is installed yet",
