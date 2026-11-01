@@ -46,7 +46,7 @@ Taken from the demo (`atalaya.exe -demo`): the projects, agents and decisions ar
 
 ## Status
 
-**Version 1.0.0, stable.** Tested and validated on **Windows 11** with **Claude Code** (CLI and desktop app) and
+**Version 1.1.0, stable.** Tested and validated on **Windows 11** with **Claude Code** (CLI and desktop app) and
 **Codex CLI**. The Linux and macOS builds compile but have not been tested, and they have no notifications. The UI is in
 English and Spanish; the kit is in Spanish.
 

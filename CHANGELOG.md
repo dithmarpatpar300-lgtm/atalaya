@@ -1,5 +1,40 @@
 # Changelog · Novedades
 
+## 1.1.0 — 2026-10-31
+
+The panel in English, a demo mode and CI. · El panel en inglés, un modo demo y CI.
+
+**English.**
+
+- **English panel.** An ES/EN button in the header switches the whole panel; it is remembered per browser and, until
+  you choose, follows the browser's language. Numbers use a decimal point in English and a comma in Spanish, and the
+  messages the server builds (alerts, health checks, progress warnings) are translated too. Your projects' own text
+  (names, briefs, plans, decisions) stays as written.
+- **Progress reads the plan.** While a new phase's `AVANCE.md` table has no packages yet, Atalaya takes them from
+  the package table of the document on its `Plan:` line, all not started, and says so. A row with only a name is a
+  placeholder, not a package, and long package names no longer break the layout.
+- **Demo mode.** `atalaya.exe -demo` fills a throwaway folder with sample projects and agents, so you can try the panel
+  without your own; the README screenshots come from it.
+- The Cuotas strip is hidden when the Cuotas tool is not installed, and a level 1 project is asked for its 5 files.
+- CI on GitHub Actions builds and checks every push and pull request on a clean Windows machine; every clone gets LF
+  line endings.
+
+**Español.**
+
+- **El panel en inglés.** Un botón ES/EN en la cabecera cambia todo el panel; se recuerda en cada navegador y, hasta
+  que eliges, sigue el idioma del navegador. Las cifras van con punto decimal en inglés y con coma en español, y los
+  mensajes que arma el servidor (alertas, chequeos de salud, avisos del avance) también se traducen. El texto de tus
+  proyectos (nombres, encargos, planes, decisiones) queda como se escribió.
+- **El avance lee el plan.** Mientras la tabla de `AVANCE.md` de una fase nueva no tiene paquetes, Atalaya los
+  toma de la tabla de paquetes del documento de su línea `Plan:`, todos sin empezar, y lo avisa. Una fila con solo el nombre es
+  un marcador, no un paquete, y los nombres largos ya no rompen la vista.
+- **Modo demo.** `atalaya.exe -demo` llena una carpeta desechable con proyectos y agentes de muestra, para probar el
+  panel sin los tuyos; de ahí salen las capturas del README.
+- La franja de Cuotas se oculta si la herramienta Cuotas no está instalada, y a un proyecto de nivel 1 se le piden sus
+  5 archivos.
+- CI en GitHub Actions compila y revisa cada push y pull request en un Windows limpio; todo clon recibe finales de línea
+  LF.
+
 ## 1.0.0 — 2026-10-31
 
 First stable release. · Primera versión estable.
