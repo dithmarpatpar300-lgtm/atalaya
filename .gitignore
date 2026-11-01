@@ -1,0 +1,19 @@
+# Compilados
+/atalaya.exe
+/backend/internal/web/dist/*
+!/backend/internal/web/dist/LEEME.txt
+/frontend/.next/
+/frontend/out/
+/frontend/node_modules/
+/frontend/next-env.d.ts
+*.tsbuildinfo
+/atalaya.exe~
+
+# El registro de proyectos es de cada equipo (rutas locales); el ejemplo está en proyectos.ejemplo.json.
+/proyectos.json
+
+# Términos privados que scripts/publicar.ps1 no deja pasar a la copia pública (no va a git).
+/.publicar-excluir.txt
+
+# Los zip de cada versión (scripts/empaquetar.ps1).
+/dist/

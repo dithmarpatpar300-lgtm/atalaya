@@ -1,0 +1,312 @@
+@import "tailwindcss";
+
+/* `oscuro:` aplica según el `data-tema` de <html>, que el script de arranque fija antes del primer pintado. */
+@custom-variant oscuro (&:where([data-tema="oscuro"], [data-tema="oscuro"] *));
+
+/*
+ * Identidad «Grafito con hilos».
+ * Los grises con función y un solo acento, el ciruela, para la acción, el foco y lo elegido.
+ * De Camaleón: las capas de vidrio (cabecera, menús, paleta), la luz de estado con brillo y un halo tenue en oscuro.
+ * Lo propio: el hilo. Cinco tonos de igual luminosidad para los hilos (archivos) y un riel neutro que los une.
+ * Claude es ciruela y Codex es celeste (`opcional`). Los estados nunca van solo con color: siempre con palabra.
+ */
+:root {
+  color-scheme: light;
+  --fondo: #fafafa;
+  --fondo-hundido: #f7f7f8; /* el inspector y lo que va «dentro» de una tarjeta */
+  --superficie: #ffffff;
+  --elevado: #f1f1f3;
+  --borde: #e5e5e8;
+  --borde-realce: #d8d8dc;
+  --borde-fuerte: #cfcfd4;
+  --borde-campo: #8a8a90;
+  --texto-tenue: #6b6b72;
+  --texto-suave: #55555c;
+  --texto: #171717;
+
+  /* Vidrio: cabecera, menús y paleta. Opacos casi del todo, para leerse sobre cualquier fondo. */
+  --vidrio: rgb(250 250 250 / 0.82);
+  --capa: rgb(255 255 255 / 0.94);
+  --sombra-capa: 0 24px 64px rgb(0 0 0 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --velo: rgb(0 0 0 / 0.18);
+  --seleccion: #f4effe; /* la fila elegida de una lista */
+
+  /* Hilos */
+  --riel: #a1a1a8;
+  --hilo-1: #a15c00;
+  --hilo-2: #b4316f;
+  --hilo-3: #6d28d9;
+  --hilo-4: #4d7c0f;
+  --hilo-5: #0369a1;
+  --diff-mas: #e6f4ea;
+  --diff-menos: #fdecec;
+  --brillo-ok: rgb(21 122 58 / 0.35);
+
+  --acento: #5b21b6;
+  --acento-fuerte: #4c1d95;
+  --sobre-acento: #ffffff;
+  --acento-suave: #f1eafe;
+
+  --ok: #157a3a;
+  --ok-suave: #e6f4ea;
+  --aviso: #8a5a00;
+  --aviso-suave: #fdf6e3;
+  --error: #b91c1c;
+  --error-suave: #fdecec;
+
+  --opcional: #0f5f7a;
+  --opcional-suave: #e3f1f6;
+  /* Colores de serie para gráficos (Claude y Codex), validados con el script de dataviz: ΔE 13,9 con daltonismo
+     deután y 21,4 con visión normal sobre blanco. El acento y `opcional` quedan para texto y acciones. */
+  --serie-claude: #6b3fd4;
+  --serie-codex: #0a8db3;
+
+  --alto-control-compacto: 2rem;
+  --alto-control: 2.5rem;
+}
+
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+  --fondo: #0e0e10;
+  --fondo-hundido: #121214;
+  --superficie: #161618;
+  --elevado: #202023;
+  --borde: #2a2a2e;
+  --borde-realce: #35353a;
+  --borde-fuerte: #3f3f45;
+  --borde-campo: #6e6e76;
+  --texto-tenue: #8d8d95;
+  --texto-suave: #a6a6ad;
+  --texto: #ededef;
+
+  --vidrio: rgb(14 14 16 / 0.8);
+  --capa: rgb(24 24 27 / 0.92);
+  --sombra-capa: 0 24px 64px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --velo: rgb(0 0 0 / 0.45);
+  --seleccion: #1f1a2e;
+
+  --riel: #5b5b63;
+  --hilo-1: #f2b84b;
+  --hilo-2: #f49ac1;
+  --hilo-3: #a78bfa;
+  --hilo-4: #a3d977;
+  --hilo-5: #7dd3fc;
+  --diff-mas: rgb(74 222 128 / 0.12);
+  --diff-menos: rgb(248 113 113 / 0.13);
+  --brillo-ok: rgb(74 222 128 / 0.55);
+
+  --acento: #c4b5fd;
+  --acento-fuerte: #ddd6fe;
+  --sobre-acento: #111111;
+  --acento-suave: #2a1f47;
+
+  --ok: #4ade80;
+  --ok-suave: #12301e;
+  --aviso: #facc15;
+  --aviso-suave: #2a230d;
+  --error: #f87171;
+  --error-suave: #3a1717;
+
+  --opcional: #67c1d9;
+  --opcional-suave: #0f2e38;
+  /* En oscuro: ΔE 8,2 con daltonismo y 18,1 con visión normal sobre #161618 (el ciruela y el celeste de la marca
+     se separan solo 5,2 para un protán: sirven para texto, no para distinguir series). */
+  --serie-claude: #9a7bf5;
+  --serie-codex: #0fa3c4;
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-elevado: var(--elevado);
+  --color-borde: var(--borde);
+  --color-borde-realce: var(--borde-realce);
+  --color-borde-fuerte: var(--borde-fuerte);
+  --color-borde-campo: var(--borde-campo);
+  --color-tenue: var(--texto-tenue);
+  --color-suave: var(--texto-suave);
+  --color-texto: var(--texto);
+  --color-acento: var(--acento);
+  --color-acento-fuerte: var(--acento-fuerte);
+  --color-sobre-acento: var(--sobre-acento);
+  --color-acento-suave: var(--acento-suave);
+  --color-ok: var(--ok);
+  --color-ok-suave: var(--ok-suave);
+  --color-aviso: var(--aviso);
+  --color-aviso-suave: var(--aviso-suave);
+  --color-error: var(--error);
+  --color-error-suave: var(--error-suave);
+  --color-opcional: var(--opcional);
+  --color-opcional-suave: var(--opcional-suave);
+  --color-serie-claude: var(--serie-claude);
+  --color-serie-codex: var(--serie-codex);
+  --color-hundido: var(--fondo-hundido);
+  --color-vidrio: var(--vidrio);
+  --color-capa: var(--capa);
+  --color-velo: var(--velo);
+  --color-seleccion: var(--seleccion);
+  --color-riel: var(--riel);
+  --color-hilo-1: var(--hilo-1);
+  --color-hilo-2: var(--hilo-2);
+  --color-hilo-3: var(--hilo-3);
+  --color-hilo-4: var(--hilo-4);
+  --color-hilo-5: var(--hilo-5);
+  --color-diff-mas: var(--diff-mas);
+  --color-diff-menos: var(--diff-menos);
+
+  --font-sans: var(--font-geist-sans), system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+@theme {
+  /* Escala del panel: cuerpo 14 px, encabezados 15, título 22, cifra 40. */
+  --text-titulo: 1.375rem;
+  --text-titulo--line-height: 1.75rem;
+  --text-titulo--letter-spacing: -0.01em;
+  --text-encabezado: 0.9375rem;
+  --text-encabezado--line-height: 1.375rem;
+  --text-cuerpo: 0.875rem;
+  --text-cuerpo--line-height: 1.3125rem;
+  --text-rotulo: 0.8125rem;
+  --text-rotulo--line-height: 1.125rem;
+  --text-ayuda: 0.75rem;
+  --text-ayuda--line-height: 1rem;
+  --text-cifra-grande: 2.5rem;
+  --text-cifra-grande--line-height: 2.5rem;
+
+  /* Radios: chip 6, control 8, panel 12, tarjeta 14. */
+  --radius-chip: 0.375rem;
+  --radius-control: 0.5rem;
+  --radius-panel: 0.75rem;
+  --radius-tarjeta: 0.875rem;
+
+  --animate-icono-tema: icono-tema 460ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+@keyframes icono-tema {
+  from {
+    opacity: 0;
+    rotate: -100deg;
+    scale: 0.4;
+  }
+  to {
+    opacity: 1;
+    rotate: 0deg;
+    scale: 1;
+  }
+}
+
+/* Dato: códigos, horas y cifras, de ancho fijo. */
+@utility dato {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cabecera de vidrio (de Camaleón): translúcida con desenfoque, opaca casi del todo para leerse siempre. */
+@utility vidrio {
+  background-color: var(--vidrio);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+}
+
+/* Lo que flota: menús, la paleta de órdenes. */
+@utility capa {
+  background-color: var(--capa);
+  border: 1px solid var(--borde-fuerte);
+  box-shadow: var(--sombra-capa);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* La luz de estado: un punto con brillo de su propio color (`text-*` fija el color del brillo). */
+@utility brillo {
+  box-shadow:
+    0 0 4px currentColor,
+    0 0 10px currentColor;
+}
+
+/* Lo vivo late, despacio. */
+@utility pulso {
+  animation: pulso 1.8s ease-in-out infinite;
+}
+
+@keyframes pulso {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes menu-abrir {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@utility aparecer-menu {
+  animation: menu-abrir 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility scroll-interno {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--texto-suave) 45%, transparent) transparent;
+}
+
+@utility esqueleto {
+  animation: var(--animate-pulse);
+  background-color: var(--borde);
+}
+
+@layer base {
+  body {
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--acento);
+    outline-offset: 2px;
+  }
+
+  [tabindex="-1"]:focus-visible {
+    outline: none;
+  }
+
+  ::selection {
+    background: var(--acento);
+    color: var(--sobre-acento);
+  }
+}
+
+/* Cambio de tema: todo cambia en el mismo cuadro y el navegador funde la página (lib/tema.ts). */
+.tema-cambio,
+.tema-cambio *,
+.tema-cambio *::before,
+.tema-cambio *::after {
+  transition: none !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-delay: 0s !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

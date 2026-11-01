@@ -1,0 +1,1 @@
+Aquí copia scripts/compilar.ps1 la exportación de frontend/out. Solo este archivo va al repositorio.
