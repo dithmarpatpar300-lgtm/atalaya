@@ -85,6 +85,7 @@ Una tabla `archivo del kit → destino → crear / fusionar / omitir → por qu�
 | `comun/.mcp.json` | `.mcp.json` | todos |
 | `comun/docs/trazabilidad/ESTADO-para-retomar.md` | igual | todos |
 | `comun/docs/trazabilidad/F0/AVANCE.md` | igual | todos |
+| `comun/scripts/hito.ps1` | `scripts/hito.ps1` | todos |
 | `nivel-2/` (`.claude/`, `docs/operacion/`, `docs/trazabilidad/`, `scripts/`) | igual | 2 y 3 |
 | `nivel-3/` (`version-y-kit.md`, `ensayador`) | igual | 3 |
 | una línea en el registro de Atalaya | `proyectos.json` de Atalaya (paso 2) | todos |

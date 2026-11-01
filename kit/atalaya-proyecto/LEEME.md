@@ -26,6 +26,7 @@ atalaya-proyecto/
 ├─ comun/                   los tres niveles
 │  ├─ AGENTS-atalaya.md      la sección de Atalaya, al final de AGENTS.md
 │  ├─ .mcp.json
+│  ├─ scripts/hito.ps1      anota un hito en AVANCE.md con la hora del reloj
 │  └─ docs/trazabilidad/    ESTADO-para-retomar.md y F0/AVANCE.md
 ├─ nivel-1/AGENTS.plantilla.md
 ├─ nivel-2/                 el centro de operaciones neutro v1 (sin versiones ni ensayador)

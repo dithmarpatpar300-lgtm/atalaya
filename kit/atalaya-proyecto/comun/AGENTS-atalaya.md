@@ -8,7 +8,9 @@
   avance de la fase en curso, y dile a {{DUENO}} qué cambió y **qué falta**.
 - **El coordinador lleva el avance de la fase** en `docs/trazabilidad/<fase>/AVANCE.md`: primera línea
   `Avance: NN % — qué pasa ahora`, la línea `Plan:` y la tabla `| Paquete | Qué | Horas | Estado | % | Evidencia |`,
-  con hitos `- HH:MM · texto`. Lo actualiza al mover un paquete, en el mismo paso que el estado. El % lo calcula el
+  con hitos `- HH:MM · texto`, que se anotan con `scripts/hito.ps1 'texto'`: la hora sale del reloj, nunca de memoria
+  (un agente no tiene reloj, y Atalaya avisa si un hito es posterior al guardado). Lo actualiza al mover un paquete, en
+  el mismo paso que el estado. El % lo calcula el
   Atalaya pesando por horas: la primera línea copia ese número, no se suma a mano.
 - **El estado vigente**, corto, en `docs/trazabilidad/ESTADO-para-retomar.md`.
 - **Antes de leer documentos o transcritos para saber algo, se le pregunta a Atalaya** (MCP `atalaya`): `estado`,
