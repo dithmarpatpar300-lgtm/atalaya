@@ -57,6 +57,18 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
   const [elegida, setElegida] = useState<string | null>(null);
   const [cursor, setCursor] = useState<number | null>(null);
   const plot = useRef<HTMLDivElement>(null);
+  // Las filas tienen alto máximo y se desplazan solas: con muchos agentes el reloj no empuja todo hacia abajo. El ancho
+  // de su barra de desplazamiento (0 si no la hay, o si el sistema la superpone) se descuenta del reloj, las horas,
+  // «A la vez» y el cursor, para que las barras sigan alineadas con las horas.
+  const lista = useRef<HTMLUListElement>(null);
+  const [barra, setBarra] = useState(0);
+  useEffect(() => {
+    const el = lista.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setBarra(el.offsetWidth - el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- el ajuste guardado se lee después de hidratar
@@ -199,7 +211,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
         <div className="overflow-x-auto">
           <div className="relative min-w-[52rem] overflow-x-clip" onPointerMove={mover} onPointerLeave={() => setCursor(null)}>
             {/* La cuota de 5 h. */}
-            <div className="grid h-[72px] grid-cols-[14rem_minmax(0,1fr)] items-end gap-3">
+            <div className="grid h-[72px] grid-cols-[14rem_minmax(0,1fr)] items-end gap-3" style={{ paddingRight: barra }}>
               <span className="flex flex-col pb-1 text-ayuda text-suave">
                 <span>{t("Cuota, ventana de 5 h")}</span>
                 {!hayCuota && resp && <span className="text-tenue">{t("sin lecturas de Cuotas este día")}</span>}
@@ -215,7 +227,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
             </div>
 
             {/* Las horas. */}
-            <div className="grid h-6 grid-cols-[14rem_minmax(0,1fr)] gap-3">
+            <div className="grid h-6 grid-cols-[14rem_minmax(0,1fr)] gap-3" style={{ paddingRight: barra }}>
               <span />
               <div className="relative">
                 {ticks.map((tk, i) => (
@@ -233,7 +245,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
             {resp && filas.length === 0 && <p className="m-0 border-t border-borde px-1 py-6 text-suave">{t("Ningún agente este día en {proyecto}.", { proyecto: resp.proyecto })}</p>}
             {!resp && !error && [0, 1, 2, 3].map((i) => <div key={i} className="esqueleto my-1 h-[30px] rounded-control" aria-hidden="true" />)}
 
-            <ul className="m-0 list-none p-0">
+            <ul ref={lista} className="m-0 max-h-[min(34rem,65vh)] list-none overflow-y-auto overscroll-contain p-0">
               {filas.map((f) => {
                 const on = sel?.id === f.id;
                 const color = tipoColor(f);
@@ -300,7 +312,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
 
             {/* A la vez. */}
             {filas.length > 0 && (
-              <div className="grid grid-cols-[14rem_minmax(0,1fr)] items-end gap-3 border-t border-borde-fuerte pt-1.5">
+              <div className="grid grid-cols-[14rem_minmax(0,1fr)] items-end gap-3 border-t border-borde-fuerte pt-1.5" style={{ paddingRight: barra }}>
                 <span className="pb-1 text-ayuda text-suave">{t("A la vez (sin las sesiones)")}</span>
                 <div aria-hidden="true" className="relative" style={{ height: ALTO_PARALELO }}>
                   {vez.map((v) =>
@@ -319,7 +331,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
 
             {/* La hora del puntero, sobre todo el reloj. */}
             {cursor !== null && (
-              <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-[calc(14rem+0.75rem)] right-0">
+              <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-[calc(14rem+0.75rem)]" style={{ right: barra }}>
                 <span className="absolute inset-y-0 w-px bg-texto/50" style={{ left: p(cursor) }} />
               </span>
             )}

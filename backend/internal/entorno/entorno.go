@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"time"
 )
 
@@ -33,10 +34,30 @@ type Opciones struct {
 	Version   func(ruta string) string
 }
 
+// reMontajeWindows: una carpeta de Windows vista desde WSL («/mnt/c/…»).
+var reMontajeWindows = regexp.MustCompile(`^/mnt/[a-zA-Z](/|$)`)
+
+// buscarEnEsteSistema: como exec.LookPath, pero en Linux sin las carpetas de Windows que WSL suma al PATH. El Claude
+// Code o el Codex de Windows no son de este sistema: conectarlos desde aquí escribiría en la configuración de Windows.
+func buscarEnEsteSistema(nombre string) (string, error) {
+	if runtime.GOOS != "linux" {
+		return exec.LookPath(nombre)
+	}
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		if dir == "" || reMontajeWindows.MatchString(dir) {
+			continue
+		}
+		if r, err := exec.LookPath(filepath.Join(dir, nombre)); err == nil {
+			return r, nil
+		}
+	}
+	return "", exec.ErrNotFound
+}
+
 // Herramientas devuelve Claude Code y Codex, en ese orden.
 func Herramientas(o Opciones) []Herramienta {
 	if o.Buscar == nil {
-		o.Buscar = exec.LookPath
+		o.Buscar = buscarEnEsteSistema
 	}
 	if o.Version == nil {
 		o.Version = versionEjecutable

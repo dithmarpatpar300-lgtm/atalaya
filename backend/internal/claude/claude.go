@@ -994,6 +994,12 @@ func (ix *Indice) Agentes() []Agente {
 // Agente devuelve uno y sus últimos `tope` pasos, ya enlazados (continuidad.go). La continuidad se calcula
 // sobre todos los pasos, para que un desvío que empezó antes del corte cuente igual.
 func (ix *Indice) Agente(id string, tope int) (Agente, []Paso, bool) {
+	return ix.AgenteAntes(id, -1, tope)
+}
+
+// AgenteAntes: como Agente, pero los `tope` pasos que van justo antes del paso `antes` (el panel pide así las páginas
+// viejas de una actividad que ya no caben en la primera respuesta). Con antes < 0, los últimos.
+func (ix *Indice) AgenteAntes(id string, antes, tope int) (Agente, []Paso, bool) {
 	ix.mu.RLock()
 	defer ix.mu.RUnlock()
 	var a *archivo
@@ -1022,6 +1028,10 @@ func (ix *Indice) Agente(id string, tope int) (Agente, []Paso, bool) {
 		if id, ok := lanzados[pasos[i].idUso]; ok {
 			pasos[i].Subagente = id
 		}
+	}
+	// El paso N está en la posición N (agregar numera en orden).
+	if antes >= 0 && antes < len(pasos) {
+		pasos = pasos[:antes]
 	}
 	if tope > 0 && len(pasos) > tope {
 		pasos = pasos[len(pasos)-tope:]

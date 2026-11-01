@@ -74,6 +74,18 @@ type Entrada struct {
 	// Deshace: el id de la entrada que esta deshace; Deshecha: la que ya se deshizo.
 	Deshace  string `json:"deshace,omitempty"`
 	Deshecha bool   `json:"deshecha,omitempty"`
+	// Hechos: cuántos de Cambios llegaron a hacerse, en orden (si uno falla, los de después no). Deshacer revierte solo
+	// esos: la inversa de una orden que nunca corrió fallaría (y pararía lo demás). Sin el campo (el historial de
+	// antes), todos.
+	Hechos *int `json:"hechos,omitempty"`
+}
+
+// hechos: cuántos cambios de la entrada se hicieron.
+func (e Entrada) hechos() int {
+	if e.Hechos == nil || *e.Hechos > len(e.Cambios) {
+		return len(e.Cambios)
+	}
+	return *e.Hechos
 }
 
 // Puerta: la lista cerrada, dónde guarda las copias y el historial, y cómo corre un programa.
@@ -210,7 +222,8 @@ func (p *Puerta) Aplicar(ctx context.Context, id string) (Entrada, error) {
 
 func (p *Puerta) hacer(ctx context.Context, e *Entrada) error {
 	var salidas []string
-	defer func() { e.Salida = strings.Join(salidas, "\n") }()
+	hechos := 0
+	defer func() { e.Salida, e.Hechos = strings.Join(salidas, "\n"), &hechos }()
 	for _, c := range e.Cambios {
 		switch c.Tipo {
 		case Archivo:
@@ -234,6 +247,7 @@ func (p *Puerta) hacer(ctx context.Context, e *Entrada) error {
 				return fmt.Errorf("%s %s: %w", c.Programa, strings.Join(c.Argumentos, " "), err)
 			}
 		}
+		hechos++
 	}
 	return nil
 }
@@ -262,8 +276,9 @@ func CorrerSinShell(ctx context.Context, exe string, args []string) (string, err
 	return strings.TrimSpace(buf.String()), err
 }
 
-// Deshacer revierte el cambio `id` del historial: cada archivo vuelve a su copia (o se borra si no existía), y cada
-// orden corre su inversa, en orden contrario. Queda anotado como una entrada nueva.
+// Deshacer revierte el cambio `id` del historial: cada archivo que se llegó a escribir vuelve a su copia (o se borra si
+// no existía), y cada orden que llegó a correr corre su inversa, en orden contrario. Queda anotado como una entrada
+// nueva. Un deshacer que falló se puede reintentar: lo que ya volvió a como estaba no se toca otra vez.
 func (p *Puerta) Deshacer(ctx context.Context, id string) (Entrada, error) {
 	hist, err := p.Historial(0)
 	if err != nil {
@@ -274,7 +289,7 @@ func (p *Puerta) Deshacer(ctx context.Context, id string) (Entrada, error) {
 		if hist[i].ID == id {
 			orig = &hist[i]
 		}
-		if hist[i].Deshace == id {
+		if hist[i].Deshace == id && hist[i].Error == "" {
 			return Entrada{}, ErrYaDeshecho
 		}
 	}
@@ -284,7 +299,7 @@ func (p *Puerta) Deshacer(ctx context.Context, id string) (Entrada, error) {
 	e := Entrada{ID: nuevoID(), Hora: p.ahora(), Operacion: orig.Operacion, Resumen: "Deshacer: " + orig.Resumen, Deshace: id, Copias: map[string]string{}}
 	var salidas []string
 	var errD error
-	for i := len(orig.Cambios) - 1; i >= 0 && errD == nil; i-- {
+	for i := orig.hechos() - 1; i >= 0 && errD == nil; i-- {
 		c := orig.Cambios[i]
 		switch c.Tipo {
 		case Archivo:
@@ -292,8 +307,13 @@ func (p *Puerta) Deshacer(ctx context.Context, id string) (Entrada, error) {
 			if !hecha {
 				continue // no llegó a escribirse
 			}
+			b, errL := os.ReadFile(c.Ruta)
+			// Ya está como antes (un deshacer anterior que falló más adelante): nada que hacer con este.
+			if (copia == "" && errors.Is(errL, os.ErrNotExist)) || (copia != "" && errL == nil && string(b) == c.Antes) {
+				continue
+			}
 			// Si alguien lo cambió después, deshacer pisaría ese trabajo: no se hace.
-			if b, err := os.ReadFile(c.Ruta); err != nil || string(b) != c.Despues {
+			if errL != nil || string(b) != c.Despues {
 				errD = fmt.Errorf("%w (%s)", ErrCambiadoDespues, c.Ruta)
 				break
 			}

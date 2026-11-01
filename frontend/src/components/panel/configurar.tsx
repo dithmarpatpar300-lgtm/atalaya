@@ -870,7 +870,7 @@ function PasoKit({ entorno, prefs, alCambio }: { entorno: Entorno; prefs: Prefer
           <div key={id} className="flex flex-col gap-2">
             <h3 className="m-0 flex items-center gap-3 text-rotulo font-semibold">
               {t("La skill en {nombre}", { nombre: NOMBRE_HERRAMIENTA[id] })}
-              <Estado ok={estado === "al día"} si={t("al día")} no={estado === "distinta" ? t("otra versión") : estado === "falta" ? t("no está") : t("sin el kit junto a atalaya.exe")} />
+              <Estado ok={estado === "al día"} si={t("al día")} no={estado === "distinta" ? t("otra versión") : estado === "falta" ? t("no está") : t("sin el kit junto al ejecutable")} />
             </h3>
             {(estado === "falta" || estado === "distinta") && (
               <ConPropuesta texto={estado === "falta" ? t("Copiar la skill") : t("Poner la skill al día")} proponer={() => api.proponerSkill(id)} alCambio={alCambio} />

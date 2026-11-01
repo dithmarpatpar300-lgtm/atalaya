@@ -124,7 +124,7 @@ export const EN_CONFIGURAR: Record<string, string> = {
   "al día": "up to date",
   "otra versión": "another version",
   "no está": "missing",
-  "sin el kit junto a atalaya.exe": "no kit next to atalaya.exe",
+  "sin el kit junto al ejecutable": "no kit next to the executable",
   "Copiar la skill": "Copy the skill",
   "Preparando la vista previa…": "Preparing the preview…",
   "Poner la skill al día": "Update the skill",

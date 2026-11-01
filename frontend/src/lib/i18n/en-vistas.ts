@@ -287,4 +287,6 @@ export const EN_VISTAS: Record<string, string> = {
   "Página anterior": "Previous page",
   "Página siguiente": "Next page",
   "Página {n}": "Page {n}",
+  "Trayendo los pasos {desde}–{hasta}…": "Fetching steps {desde}–{hasta}…",
+  "No se pudieron traer esos pasos: {error}": "Those steps could not be fetched: {error}",
 };

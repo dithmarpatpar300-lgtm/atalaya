@@ -243,6 +243,9 @@ func (s *Servidor) puerta() (*configurar.Puerta, error) {
 			},
 			// Los programas de la lista cerrada: Claude Code y Codex, si están instalados, y los del sistema para el arranque.
 			Programa: func(nombre string) (string, bool) {
+				if s.Demo {
+					return "", false // el mundo de demo no cambia nada del equipo
+				}
 				for _, h := range s.listaHerramientas() {
 					if h.ID == nombre && h.Instalada && h.Ruta != "" {
 						return h.Ruta, true

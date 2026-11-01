@@ -94,6 +94,13 @@ func TestSubagente(t *testing.T) {
 	if strings.Join(tipos, ",") != "Pide,Responde,Ejecuta,Lee" {
 		t.Errorf("pasos %v", tipos)
 	}
+	// Una página vieja: los dos pasos de antes del paso 3 (1 y 2); los últimos dos, sin «antes».
+	if _, viejos, _ := ix.AgenteAntes("ses1~abc", 3, 2); len(viejos) != 2 || viejos[0].N != 1 || viejos[1].N != 2 {
+		t.Errorf("antes de 3: %+v", viejos)
+	}
+	if _, ultimos, _ := ix.Agente("ses1~abc", 2); len(ultimos) != 2 || ultimos[0].N != 2 {
+		t.Errorf("los últimos dos: %+v", ultimos)
+	}
 	if !a.Pendiente || pasos[3].Hecho {
 		t.Error("el Read sin resultado debería estar pendiente")
 	}

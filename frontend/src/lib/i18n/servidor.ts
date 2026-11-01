@@ -58,7 +58,7 @@ export const PATRONES_SERVIDOR: [RegExp, Reemplazo][] = [
   [/^Atalaya corre sin registro de proyectos \(-proyectos\)$/, "Atalaya runs without a project registry (-proyectos)"],
   [/^el diario guarda de 1 a 3650 días, o 0 para guardarlos todos$/, "the diary keeps 1 to 3650 days, or 0 to keep them all"],
   [/^la herramienta es claude o codex$/, "the tool is claude or codex"],
-  [/^Atalaya no encuentra el kit \(la carpeta (.+) junto a atalaya\.exe\)$/, "Atalaya cannot find the kit (the $1 folder next to atalaya.exe)"],
+  [/^Atalaya no encuentra el kit \(la carpeta (.+) junto a su ejecutable\)$/, "Atalaya cannot find the kit (the $1 folder next to its executable)"],
   [/^no se pudo leer el kit(?:: (.+))?$/, (_, rel) => (rel ? `could not read the kit: ${rel}` : "could not read the kit")],
   [/^la skill ya está al día$/, "the skill is already up to date"],
   [/^en este sistema Atalaya no sabe arrancar solo; mira la guía de instalación$/, "on this system Atalaya cannot start on its own; see the install guide"],

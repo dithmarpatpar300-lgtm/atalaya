@@ -197,6 +197,67 @@ func TestOrdenYSuInversa(t *testing.T) {
 	}
 }
 
+// Aplicar que se corta a medias (el archivo se escribió, la orden falló): deshacer borra el archivo y no corre la
+// inversa de la orden que nunca se hizo. Y un deshacer que falló se puede reintentar (el arranque de Linux en una WSL
+// sin systemd, que encontró la prueba de S8).
+func TestFallaAMediasYDeshacer(t *testing.T) {
+	unidad := filepath.Join(t.TempDir(), "atalaya.service")
+	p := puerta(t, unidad)
+	var corridas []string
+	falla := true
+	p.Correr = func(_ context.Context, _ string, args []string) (string, error) {
+		corridas = append(corridas, strings.Join(args, " "))
+		if falla {
+			return "sin systemd", errors.New("salida 1")
+		}
+		return "", nil
+	}
+	prop, err := p.Proponer("arranque", "Arrancar", []Cambio{
+		{Tipo: Archivo, Ruta: unidad, Despues: "[Unit]\n"},
+		{Tipo: Orden, Programa: "codex", Argumentos: []string{"enable"}, Deshacer: []string{"disable"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := p.Aplicar(context.Background(), prop.ID)
+	if err == nil || e.hechos() != 1 {
+		t.Fatalf("a medias: hechos %d, err %v", e.hechos(), err)
+	}
+	if _, err := p.Deshacer(context.Background(), prop.ID); err != nil {
+		t.Fatalf("deshacer: %v", err)
+	}
+	if _, err := os.Stat(unidad); !os.IsNotExist(err) {
+		t.Error("la unidad sigue ahí")
+	}
+	if strings.Join(corridas, "|") != "enable" {
+		t.Errorf("corrió la inversa de lo que nunca se hizo: %q", corridas)
+	}
+
+	// Un deshacer que falla (la inversa de una orden que sí corrió) se puede reintentar, y lo ya revertido se salta.
+	falla = false
+	prop, _ = p.Proponer("arranque", "Arrancar", []Cambio{
+		{Tipo: Archivo, Ruta: unidad, Despues: "[Unit]\n"},
+		{Tipo: Orden, Programa: "codex", Argumentos: []string{"enable"}, Deshacer: []string{"disable"}},
+	})
+	if _, err := p.Aplicar(context.Background(), prop.ID); err != nil {
+		t.Fatal(err)
+	}
+	falla = true
+	if _, err := p.Deshacer(context.Background(), prop.ID); err == nil {
+		t.Fatal("el disable falló y no lo dijo")
+	}
+	falla = false
+	if _, err := p.Deshacer(context.Background(), prop.ID); err != nil {
+		t.Fatalf("reintento: %v", err)
+	}
+	if _, err := os.Stat(unidad); !os.IsNotExist(err) {
+		t.Error("tras reintentar, la unidad sigue ahí")
+	}
+	if _, err := p.Deshacer(context.Background(), prop.ID); !errors.Is(err, ErrYaDeshecho) {
+		t.Errorf("tercera vez: %v", err)
+	}
+}
+
 // Una orden que falla queda anotada con su error, y la vista previa vence a los 10 min.
 func TestFallaYVencimiento(t *testing.T) {
 	p := puerta(t)

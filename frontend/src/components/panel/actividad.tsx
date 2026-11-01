@@ -113,13 +113,17 @@ function Leyenda() {
 export function Actividad({
   idAgente,
   pasos,
+  desde = 0,
   enVivo,
   alAbrirAgente,
   irATurno,
   irAPaso,
 }: {
   idAgente: string;
+  /** Los pasos que mandó el servidor: los últimos (hasta 3000). */
   pasos: Paso[];
+  /** El número del primero de `pasos`; los anteriores se piden por página (api.pasosAntes). */
+  desde?: number;
   enVivo: boolean;
   alAbrirAgente: (id: string) => void;
   /** Llegando desde una traza de la datapedia: el turno que hay que mostrar. */
@@ -135,29 +139,54 @@ export function Actividad({
   const filasRef = useRef<Map<number, HTMLButtonElement>>(new Map());
 
   // Por páginas ancladas (lib/paginas.ts, ventanaAnclada): la última es la de ahora, llena al abrir y crece por abajo
-  // con lo que llega; las anteriores no cambian. «Ancla» es cuántos pasos había al abrir o al volver a la última página;
-  // 0 = todavía no se fijó (se toma lo que haya). Al cambiar de agente se empieza de nuevo.
+  // con lo que llega; las anteriores no cambian. «Ancla» es cuántos pasos tenía el agente (todos, no solo los que
+  // llegaron) al abrir o al volver a la última página; 0 = todavía no se fijó (se toma lo que haya). Al cambiar de
+  // agente se empieza de nuevo.
   const [tamano, setTamano] = useState(leerTamano);
   const [hoja, setHoja] = useState<{ agente: string; ancla: number; pagina: number }>({ agente: idAgente, ancla: 0, pagina: Number.MAX_SAFE_INTEGER });
-  const h = hoja.agente === idAgente && hoja.ancla > 0 ? hoja : { agente: idAgente, ancla: pasos.length, pagina: Number.MAX_SAFE_INTEGER };
+  const h = hoja.agente === idAgente && hoja.ancla > 0 ? hoja : { agente: idAgente, ancla: desde + pasos.length, pagina: Number.MAX_SAFE_INTEGER };
   // Con los primeros pasos (o con otro agente), el ancla se fija: desde ahí lo que llega crece por abajo y no corre nada.
   if (h !== hoja && pasos.length > 0) setHoja(h);
-  const vista = ventanaAnclada(pasos.length, h.ancla, tamano, h.pagina);
+  // Las páginas se cuentan sobre todos los pasos del agente, no solo los que llegaron: el paso N está en la posición N.
+  // Las de antes de `desde` se piden al servidor al abrirlas, de a una; así la lista nunca crece de más.
+  const total = desde + pasos.length;
+  const vista = ventanaAnclada(total, h.ancla, tamano, h.pagina);
   /** Va a la página `p`; la última se vuelve a anclar en lo de ahora (otra vez llena, sin lo que creció de más). */
   function irAPagina(p: number) {
     const ultima = p >= vista.paginas;
-    setHoja({ agente: idAgente, ancla: ultima ? pasos.length : h.ancla, pagina: ultima ? Number.MAX_SAFE_INTEGER : p });
+    setHoja({ agente: idAgente, ancla: ultima ? total : h.ancla, pagina: ultima ? Number.MAX_SAFE_INTEGER : p });
   }
-  /** La página donde está el paso de la posición `i`, sin volver a anclar. */
+  /** La página donde está el paso de la posición `i` de `pasos`, sin volver a anclar. */
   function mostrarPosicion(i: number) {
-    setHoja({ agente: idAgente, ancla: h.ancla, pagina: paginaDe(i, pasos.length, h.ancla, tamano) });
+    setHoja({ agente: idAgente, ancla: h.ancla, pagina: paginaDe(desde + i, total, h.ancla, tamano) });
   }
 
-  const visibles = useMemo(() => pasos.slice(vista.inicio, vista.fin), [pasos, vista.inicio, vista.fin]);
+  // Una página vieja, de antes de lo que llegó: la pide y la guarda por su tramo («inicio-fin»).
+  const vieja = vista.inicio < desde;
+  const tramo = `${idAgente}:${vista.inicio}-${vista.fin}`;
+  const [viejas, setViejas] = useState<Record<string, Paso[]>>({});
+  const [errorVieja, setErrorVieja] = useState<string | null>(null);
+  useEffect(() => {
+    if (!vieja || viejas[tramo]) return;
+    const ctl = new AbortController();
+    api
+      .pasosAntes(idAgente, vista.fin, vista.fin - vista.inicio, ctl.signal)
+      .then((d) => {
+        setErrorVieja(null);
+        setViejas((m) => ({ ...m, [tramo]: d.pasos }));
+      })
+      .catch((e: Error) => e.name !== "AbortError" && setErrorVieja(e.message));
+    return () => ctl.abort();
+  }, [vieja, tramo, viejas, idAgente, vista.inicio, vista.fin]);
+
+  const visibles = useMemo(
+    () => (vieja ? (viejas[tramo] ?? []) : pasos.slice(vista.inicio - desde, vista.fin - desde)),
+    [vieja, viejas, tramo, pasos, vista.inicio, vista.fin, desde],
+  );
   const filas = useMemo(() => armarFilas(visibles), [visibles]);
   const colores = useMemo(() => coloresDeHilo(visibles), [visibles]);
   const { trazos, nodos, alto } = useMemo(() => geometria(filas, colores), [filas, colores]);
-  const porN = useMemo(() => new Map(pasos.map((p) => [p.n, p])), [pasos]);
+  const porN = useMemo(() => new Map([...pasos, ...(vieja ? visibles : [])].map((p) => [p.n, p])), [pasos, vieja, visibles]);
   const ultimo = pasos.length ? pasos[pasos.length - 1].n : -1;
   const actual = elegido !== null && porN.has(elegido) ? elegido : ultimo;
   const paso = porN.get(actual);
@@ -224,7 +253,7 @@ export function Actividad({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- seguir es volver al último paso, como al abrir
     setElegido(null);
     // A la última página, anclada en lo de ahora: llena y con el último paso (nadie mira, así que puede correrse).
-    setHoja({ agente: idAgente, ancla: pasos.length, pagina: Number.MAX_SAFE_INTEGER });
+    setHoja({ agente: idAgente, ancla: total, pagina: Number.MAX_SAFE_INTEGER });
     bajar.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo con un paso nuevo
   }, [seguir, ultimo]);
@@ -286,7 +315,7 @@ export function Actividad({
     <section aria-labelledby={`${base}-t`} className="flex flex-col gap-4 rounded-tarjeta border border-borde bg-superficie px-6 py-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={`${base}-t`} className="m-0 text-encabezado font-semibold">
-          {t("Actividad")} <span className="dato text-ayuda font-normal text-tenue">{pasos.length === 1 ? t("1 paso") : t("{n} pasos", { n: pasos.length })}</span>
+          {t("Actividad")} <span className="dato text-ayuda font-normal text-tenue">{total === 1 ? t("1 paso") : t("{n} pasos", { n: total })}</span>
         </h2>
         <div className="flex flex-wrap items-center gap-3">
           <Leyenda />
@@ -323,7 +352,7 @@ export function Actividad({
           {/* Línea de tiempo */}
           <div className="min-w-0 flex-[3_1_40rem]">
             {/* Las páginas, arriba y no al pie: la última crece por abajo con cada paso, y un pie bajaría con ella. */}
-            {pasos.length > TAMANOS[0] && (
+            {total > TAMANOS[0] && (
                 <Paginador
                   arriba
                   nombre={t("Actividad")}
@@ -331,7 +360,7 @@ export function Actividad({
                   paginas={vista.paginas}
                   desde={vista.inicio + 1}
                   hasta={vista.fin}
-                  total={pasos.length}
+                  total={total}
                   alIr={irAPagina}
                   porPagina={{
                     valor: tamano,
@@ -341,12 +370,17 @@ export function Actividad({
                       try {
                         localStorage.setItem(CLAVE_TAMANO, String(n));
                       } catch {}
-                      setHoja({ agente: idAgente, ancla: pasos.length, pagina: Number.MAX_SAFE_INTEGER });
+                      setHoja({ agente: idAgente, ancla: total, pagina: Number.MAX_SAFE_INTEGER });
                     },
                   }}
                 />
             )}
             <RegionEstable activa={vista.paginas > 1 && vista.pagina < vista.paginas} clave={`${idAgente}:${tamano}:${h.ancla}`}>
+            {vieja && !viejas[tramo] && (
+              <p className={`m-0 py-3 text-rotulo ${errorVieja ? "text-error" : "text-suave"}`} aria-live="polite">
+                {errorVieja ? t("No se pudieron traer esos pasos: {error}", { error: errorVieja }) : t("Trayendo los pasos {desde}–{hasta}…", { desde: vista.inicio + 1, hasta: vista.fin })}
+              </p>
+            )}
             <div role="group" aria-label={t("Pasos; las flechas mueven la elección")} onKeyDown={alTecla} className="relative">
               {filas.map((f) => {
                 const p = f.paso;

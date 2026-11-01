@@ -90,6 +90,8 @@ type Servidor struct {
 	clientes clientesMCP
 	// Kit: la carpeta del kit atalaya-proyecto (junto a atalaya.exe), de donde se copia la skill; vacía si no está.
 	Kit string
+	// Demo: corre el mundo de -demo; la puerta no corre programas ni toca el arranque del equipo.
+	Demo bool
 	// herramientasPrueba: en las pruebas, las herramientas en lugar de buscarlas en el equipo.
 	herramientasPrueba []entorno.Herramienta
 	puertaUna          sync.Once
@@ -691,7 +693,12 @@ func (s *Servidor) agente(w http.ResponseWriter, r *http.Request) {
 		escribir(w, detalle{Agente: v, Pasos: []claude.Paso{paso}})
 		return
 	}
-	a, pasos, ok := s.Claude.Agente(id, max)
+	// ?antes=n: los `max` pasos de antes del paso n (una página vieja de la actividad); sin él, los últimos.
+	antes := -1
+	if n, err := strconv.Atoi(r.URL.Query().Get("antes")); err == nil && n >= 0 {
+		antes = n
+	}
+	a, pasos, ok := s.Claude.AgenteAntes(id, antes, max)
 	if !ok {
 		fallo(w, http.StatusNotFound, "no existe ese agente")
 		return

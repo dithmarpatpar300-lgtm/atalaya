@@ -128,7 +128,7 @@ func (s *Servidor) proponerSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.Kit == "" {
-		fallo(w, http.StatusConflict, "Atalaya no encuentra el kit (la carpeta kit\\atalaya-proyecto junto a atalaya.exe)")
+		fallo(w, http.StatusConflict, "Atalaya no encuentra el kit (la carpeta kit/atalaya-proyecto junto a su ejecutable)")
 		return
 	}
 	rels, err := archivosKit(s.Kit)
@@ -187,12 +187,24 @@ func (s *Servidor) arranque() Arranque {
 			a.Archivo = filepath.Join(ad, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "Atalaya.lnk")
 		}
 	case "linux":
-		if s.Casa != "" {
+		// Solo con systemctl (una WSL sin systemd no lo tiene en marcha, y enable fallaría).
+		if _, ok := programaDelSistema("systemctl"); ok && s.Casa != "" {
 			a.Archivo = filepath.Join(s.Casa, ".config", "systemd", "user", "atalaya.service")
 		}
 	}
+	if s.Demo {
+		a.Archivo = "" // el mundo de demo no toca el arranque del equipo
+	}
 	a.Disponible = a.Archivo != ""
-	if a.Disponible {
+	if !a.Disponible {
+		return a
+	}
+	if runtime.GOOS == "linux" {
+		// Arranca solo si está habilitada (el enlace de `enable`), no si el archivo existe: tras un enable que falló, la
+		// unidad queda escrita pero no arranca, y el panel tiene que volver a ofrecer «Arrancar».
+		_, err := os.Lstat(filepath.Join(filepath.Dir(a.Archivo), "default.target.wants", "atalaya.service"))
+		a.Activo = err == nil
+	} else {
 		_, err := os.Stat(a.Archivo)
 		a.Activo = err == nil
 	}

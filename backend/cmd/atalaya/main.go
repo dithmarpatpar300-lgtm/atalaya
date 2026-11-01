@@ -89,6 +89,8 @@ func main() {
 		*transcritos, *dirCodex, *rutaRegistro = m.Claude, m.Codex, m.Registro
 		*dirDiario, *rutaDB, *dirCuotas = m.Diario, m.DB, m.Cuotas
 		*conAvisos, *dirEstadoCodex, *dirDelegadas = false, "", ""
+		// La configuración del asistente, dentro del mundo de demo: ni el ~/.claude ni el ~/.codex de verdad.
+		casa, estadoCodex = filepath.Join(m.Raiz, "casa"), filepath.Join(m.Raiz, "casa", ".codex")
 		proyectos = nil
 		log.Printf("mundo de demo: %s", m.Raiz)
 	}
@@ -119,7 +121,7 @@ func main() {
 	s.RutaRegistro = ruta
 	// Para la configuración desde el panel: dónde buscar Claude Code y Codex, y dónde guardar las copias y el historial
 	// de lo que cambia (junto al índice de la datapedia: la carpeta de Atalaya, o la del mundo de demo).
-	s.Casa, s.CodexHome, s.Datos = casa, estadoCodex, filepath.Dir(*rutaDB)
+	s.Casa, s.CodexHome, s.Datos, s.Demo = casa, estadoCodex, filepath.Dir(*rutaDB), *modoDemo
 	// El kit viaja junto al ejecutable (el zip, y el repositorio en desarrollo): de ahí se copia la skill.
 	if exe, err := os.Executable(); err == nil {
 		if k := filepath.Join(filepath.Dir(exe), "kit", "atalaya-proyecto"); existeCarpeta(k) {

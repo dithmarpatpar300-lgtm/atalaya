@@ -486,6 +486,7 @@ export function Panel() {
                 key={visible.agente.id}
                 idAgente={visible.agente.id}
                 pasos={visible.pasos}
+                desde={visible.desde ?? 0}
                 enVivo={visible.agente.estado === "Trabajando"}
                 alAbrirAgente={abrirSubagente}
                 irATurno={irATurno && irATurno.agente === visible.agente.id ? irATurno : null}

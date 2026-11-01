@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Paginador, RegionEstable, usePaginaViva } from "@/components/ui/paginador";
 import { api } from "@/lib/api";
 import { agrupar, type Decision, eleccion, elegida, hace, type RespuestaDecisiones, tituloDecision } from "@/lib/decisiones";
 import { cuando } from "@/lib/formato";
@@ -9,6 +10,8 @@ import { useAhora } from "@/lib/vivo";
 import { Responder } from "./responder";
 
 // «Tienda Demo» → TD; «Atalaya» → AT; «Cuotas» → CU.
+const TAMANOS_RESPONDIDAS = [10, 25] as const;
+
 function sigla(proyecto: string): string {
   const ps = proyecto.split(/[\s_-]+/).filter(Boolean);
   return (ps.length > 1 ? ps[0][0] + ps[1][0] : proyecto.slice(0, 2)).toUpperCase();
@@ -88,6 +91,8 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
     if (!elegida_ && primera) setElegida(primera);
   }, [elegida_, primera]);
   const sel = todas.find((d) => d.id === elegida_) ?? todas[0];
+  // Las respondidas se juntan (14 días de todas las sesiones): por páginas, con las nuevas en la primera.
+  const pResp = usePaginaViva(g.respondidas, (d) => d.id, { almacen: "decisiones-respondidas", opciones: TAMANOS_RESPONDIDAS, defecto: 10, reinicio: "todas" });
 
   const lista = (titulo: string, ds: Decision[]) =>
     ds.length > 0 && (
@@ -120,7 +125,21 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
             {g.esperando.length === 0 && <p className="m-0 rounded-panel bg-ok-suave px-4 py-3 text-ok">{t("Nada te espera ahora.")}</p>}
             {lista(t("Esperándote"), g.esperando)}
             {lista(t("Sin respuesta, de hace más de un día"), g.sinRespuesta)}
-            {lista(t("Respondidas"), g.respondidas)}
+            {g.respondidas.length > 0 && (
+              <section aria-label={t("Respondidas")} className="flex flex-col gap-2">
+                <h2 className="m-0 text-rotulo font-semibold text-suave">
+                  {t("Respondidas")} · <span className="dato">{g.respondidas.length}</span>
+                </h2>
+                <RegionEstable activa={pResp.mostrar && pResp.pie.paginas > 1} clave={pResp.claveAlto}>
+                  <div className="flex flex-col gap-2">
+                    {pResp.visibles.map((d) => (
+                      <Fila key={d.id} d={d} on={sel?.id === d.id} alElegir={() => setElegida(d.id)} ahora={ahora} />
+                    ))}
+                  </div>
+                </RegionEstable>
+                {pResp.mostrar && <Paginador {...pResp.pie} nombre={t("Respondidas")} />}
+              </section>
+            )}
           </div>
 
           {sel && (

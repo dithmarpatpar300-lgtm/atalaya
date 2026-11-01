@@ -449,6 +449,9 @@ export const api = {
   proyectos: () => pedir<ProyectoResumen[]>("/api/proyectos"),
   agentes: (proyecto: string) => pedir<Agente[]>(`/api/agentes?filtro=todos&proyecto=${encodeURIComponent(proyecto)}`),
   agente: (id: string, senal?: AbortSignal) => pedir<Detalle>(`/api/agentes/${encodeURIComponent(id)}?max=3000`, senal),
+  /** Los `n` pasos de antes del paso `antes`: una página vieja de la actividad, fuera de los 3000 últimos. */
+  pasosAntes: (id: string, antes: number, n: number, senal?: AbortSignal) =>
+    pedir<Detalle>(`/api/agentes/${encodeURIComponent(id)}?antes=${antes}&max=${n}`, senal),
   contexto: (id: string, senal?: AbortSignal) => pedir<ContextoAgente>(`/api/agentes/${encodeURIComponent(id)}/contexto`, senal),
   paso: (id: string, n: number) => pedir<DetallePaso>(`/api/agentes/${encodeURIComponent(id)}/pasos/${n}`),
   doc: (proyecto: string, ruta: string) =>

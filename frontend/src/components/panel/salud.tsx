@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Paginador, usePaginaViva } from "@/components/ui/paginador";
 import { api } from "@/lib/api";
 import { hora } from "@/lib/formato";
 import { t, tServidor } from "@/lib/i18n";
@@ -28,6 +29,7 @@ const PERIODOS: { id: Periodo; nombre: (fase?: string) => string }[] = [
 ];
 
 const CLAVE = "atalaya:salud";
+const TAMANOS_SALUD = [25, 50] as const;
 
 function leerPeriodo(): Periodo {
   try {
@@ -88,9 +90,12 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
     } catch {}
   }
 
-  const filas = inf?.filas ?? [];
-  const actual = filaInicial(filas, elegida);
-  const sel = filas.find((f) => f.id === actual) ?? null;
+  const todas = inf?.filas ?? [];
+  // Con «Todo» son cientos: por páginas, como las listas de la sesión (lo que llega en vivo no corre la página que miras).
+  const pSalud = usePaginaViva(todas, (f) => f.id, { almacen: "salud", opciones: TAMANOS_SALUD, defecto: 25, reinicio: `${proyecto}:${periodo}` });
+  const filas = pSalud.visibles;
+  const actual = filaInicial(todas, elegida);
+  const sel = todas.find((f) => f.id === actual) ?? null;
   const r = inf ? resumen(inf) : null;
   const titulo = {
     hoy: t("hoy"),
@@ -235,6 +240,11 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
               </tbody>
             </table>
           </div>
+          {pSalud.mostrar && (
+            <div className="px-4 pb-2.5">
+              <Paginador {...pSalud.pie} nombre={t("Agentes y reglas")} />
+            </div>
+          )}
           <p className="m-0 border-t border-borde px-4 py-2.5 text-ayuda text-tenue">
             {t("✓ cumple · ✕ falta · ! a medias · ? sin dato (los archivos no lo dicen) · — no aplica (Codex no lleva bitácora ni acta: su informe y REGISTRO.md hacen ese papel)")}
           </p>

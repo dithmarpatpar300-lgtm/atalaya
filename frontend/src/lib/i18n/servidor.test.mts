@@ -38,7 +38,7 @@ const ejemplos = [
   "Atalaya corre sin registro de proyectos (-proyectos)",
   "el diario guarda de 1 a 3650 días, o 0 para guardarlos todos",
   "la herramienta es claude o codex",
-  "Atalaya no encuentra el kit (la carpeta kit\\atalaya-proyecto junto a atalaya.exe)",
+  "Atalaya no encuentra el kit (la carpeta kit/atalaya-proyecto junto a su ejecutable)",
   "no se pudo leer el kit: SKILL.md",
   "la skill ya está al día",
   "en este sistema Atalaya no sabe arrancar solo; mira la guía de instalación",
