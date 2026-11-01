@@ -91,7 +91,8 @@ export function VistaSesion({
           <p className="m-0 text-suave">{t("Todavía ningún pedido en esta sesión.")}</p>
         ) : (
           <div role="listbox" aria-label={t("Pedidos")} className="flex max-h-[18rem] flex-col gap-0.5 overflow-y-auto">
-            {r.pedidos.map((p) => {
+            {/* Lo más nuevo arriba, como las demás listas: el servidor los da en el orden en que llegaron. */}
+            {[...r.pedidos].reverse().map((p) => {
               const on = sel?.n === p.n;
               return (
                 <button
