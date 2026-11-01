@@ -8,7 +8,8 @@ Windows 11; everything you type is PowerShell. The panel is in English and Spani
 
 ## 1. Requirements
 
-- **Windows 10 or 11.** (It builds for Linux and macOS and should work there, without notifications, but is untested.)
+- **Windows 10 or 11.** (On Linux the whole test suite passes in CI, but the panel has not been tried by hand; macOS
+  compiles, untested. Neither has notifications.)
 - **Claude Code** (CLI or desktop app) and/or **Codex CLI**: Atalaya follows the agents they launch.
 - To build: **Go 1.27 or newer** and **Node.js 20 or newer**, with `npm`. Git to clone.
 

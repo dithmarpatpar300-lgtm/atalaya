@@ -7,7 +7,8 @@ Windows 11; todo lo que se teclea es PowerShell.
 
 ## 1. Lo que hace falta
 
-- **Windows 10 u 11.** (En Linux y macOS compila y debería andar, sin notificaciones, pero no se probó.)
+- **Windows 10 u 11.** (En Linux pasan todas las pruebas en CI, pero el panel no se probó a mano; macOS compila,
+  sin probar. En ninguno de los dos hay notificaciones.)
 - **Claude Code** (la CLI o la app de escritorio) y/o **Codex CLI**: Atalaya sigue a los agentes que ellos lanzan.
 - Para compilar: **Go 1.27 o más nuevo** y **Node.js 20 o más nuevo**, con `npm`. Git para clonar.
 
