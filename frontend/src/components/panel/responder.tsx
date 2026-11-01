@@ -199,11 +199,11 @@ export function Responder({ id, alCerrar }: { id: string; alCerrar: () => void }
             <legend className="sr-only">{q.texto}</legend>
             <p className="m-0 text-[17px] leading-snug font-semibold">{q.texto}</p>
             {q.multiple && <span className="text-ayuda text-suave">{t("Puedes elegir varias.")}</span>}
-            {q.opciones.map((o) => {
+            {q.opciones.map((o, j) => {
               const on = (b.elecciones[q.id] ?? []).includes(o.etiqueta);
               return (
                 <button
-                  key={o.etiqueta}
+                  key={`${j}:${o.etiqueta}`}
                   type="button"
                   role={q.multiple ? "checkbox" : "radio"}
                   aria-checked={on}

@@ -9,6 +9,9 @@ import type { RespuestaLinea } from "./linea.ts";
 import type { ProyectoPortafolio } from "./portafolio.ts";
 import type { ResumenSesion } from "./sesion.ts";
 import type { InformeProceso, Periodo } from "./salud.ts";
+import type { UsoClaude } from "./uso-claude.ts";
+
+export type { UsoClaude, VentanaUsoClaude, PuntoUsoClaude, EstadoUsoClaude } from "./uso-claude.ts";
 
 export interface Ritmo {
   full_at: number;
@@ -414,14 +417,41 @@ export interface Preferencias {
   diario_dias?: number;
 }
 
+/** Un error del servidor con su código HTTP y su cuerpo (por ejemplo, el `proxima_en` de un 429). */
+export class ErrorServidor extends Error {
+  constructor(
+    mensaje: string,
+    readonly codigo: number,
+    readonly cuerpo: unknown,
+  ) {
+    super(mensaje);
+  }
+}
+
 /** Lanza el error que manda el servidor (`{ error }`) o, si no trae uno, el código. */
 async function siFallo(r: Response) {
   if (r.ok) return;
   let msg = `${r.status}`;
+  let cuerpo: unknown = null;
   try {
-    msg = ((await r.json()) as { error?: string }).error ?? msg;
+    cuerpo = await r.json();
+    msg = (cuerpo as { error?: string } | null)?.error ?? msg;
   } catch {}
-  throw new Error(tServidor(msg));
+  throw new ErrorServidor(tServidor(msg), r.status, cuerpo);
+}
+
+/**
+ * Pide una lectura de la cuota de Claude con /usage. Un 429 no es un error: el servidor dice desde cuándo se puede
+ * volver a pedir (`proxima_en`) y, si lo manda, el mismo cuerpo de siempre.
+ */
+async function leerUsoClaude(): Promise<{ uso: UsoClaude | null; proximaEn: number }> {
+  try {
+    return { uso: await escribirPanel<UsoClaude>("/api/uso-claude/leer"), proximaEn: 0 };
+  } catch (e) {
+    if (!(e instanceof ErrorServidor) || e.codigo !== 429) throw e;
+    const c = (e.cuerpo ?? {}) as Partial<UsoClaude>;
+    return { uso: typeof c.estado === "string" ? (c as UsoClaude) : null, proximaEn: Number(c.proxima_en) || 0 };
+  }
 }
 
 async function pedir<T>(ruta: string, senal?: AbortSignal): Promise<T> {
@@ -446,6 +476,9 @@ async function escribirPanel<T>(ruta: string, cuerpo?: unknown): Promise<T> {
 
 export const api = {
   cuotas: (leer = false) => pedir<EstadoCuotas>(`/api/cuotas${leer ? "?leer=1" : ""}`),
+  /** La cuota de Claude según /usage, con el historial de las últimas `horas` (1 a 720). */
+  usoClaude: (horas: number, senal?: AbortSignal) => pedir<UsoClaude>(`/api/uso-claude?horas=${Math.min(720, Math.max(1, Math.round(horas)))}`, senal),
+  leerUsoClaude,
   proyectos: () => pedir<ProyectoResumen[]>("/api/proyectos"),
   agentes: (proyecto: string) => pedir<Agente[]>(`/api/agentes?filtro=todos&proyecto=${encodeURIComponent(proyecto)}`),
   agente: (id: string, senal?: AbortSignal) => pedir<Detalle>(`/api/agentes/${encodeURIComponent(id)}?max=3000`, senal),

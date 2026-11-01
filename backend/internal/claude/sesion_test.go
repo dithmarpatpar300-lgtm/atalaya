@@ -33,6 +33,35 @@ func TestTipoPedidoYSistema(t *testing.T) {
 	}
 }
 
+// Dos copias de un proyecto dan la misma ruta corta: son dos documentos, con su id cada uno, y las ediciones de uno
+// mismo se suman en su fila (el panel paginaba por la ruta corta y repetía filas).
+func TestSesionDocumentosConRutaCortaIgual(t *testing.T) {
+	h := time.Date(2026, 11, 1, 10, 0, 0, 0, time.UTC)
+	corta := "docs/trazabilidad/F5/AVANCE.md"
+	ses := &archivo{agente: &Agente{ID: "s", Tipo: "sesion"}}
+	ses.pasos = []*Paso{
+		{N: 0, Hora: h, Tipo: "Pide", Resumen: "Sigue"},
+		{N: 1, Hora: h, Tipo: "Edita", editado: "d:/projects/a/docs/trazabilidad/f5/avance.md", Hilo: corta},
+		{N: 2, Hora: h, Tipo: "Edita", editado: "d:/projects/a-copia/docs/trazabilidad/f5/avance.md", Hilo: corta},
+		{N: 3, Hora: h, Tipo: "Edita", editado: "d:/projects/a/docs/trazabilidad/f5/avance.md", Hilo: corta},
+	}
+	ix := &Indice{arch: map[string]*archivo{"s": ses}}
+	r, _ := ix.Sesion("s")
+	if len(r.Documentos) != 2 {
+		t.Fatalf("documentos: %+v", r.Documentos)
+	}
+	vistos := map[string]bool{}
+	for _, d := range r.Documentos {
+		if d.Ruta != corta || vistos[d.ID] {
+			t.Errorf("documento %+v: la ruta corta se muestra y el id no se repite", d)
+		}
+		vistos[d.ID] = true
+	}
+	if r.Documentos[0].Ediciones+r.Documentos[1].Ediciones != 3 {
+		t.Errorf("ediciones: %+v", r.Documentos)
+	}
+}
+
 func TestSesionResume(t *testing.T) {
 	h := time.Date(2026, 10, 31, 12, 20, 0, 0, time.UTC)
 	ses := &archivo{agente: &Agente{ID: "s", Tipo: "sesion"}}
@@ -63,6 +92,9 @@ func TestSesionResume(t *testing.T) {
 	}
 	if len(r.Documentos) != 1 || r.Documentos[0].Ediciones != 1 || len(r.Commits) != 1 || r.Lecturas != 1 || r.Consultas != 1 {
 		t.Errorf("resumen: %+v", r)
+	}
+	if r.Documentos[0].ID != "c:/proyectos/tienda demo/docs/trazabilidad/estado-para-retomar.md" {
+		t.Errorf("el id del documento es su ruta completa: %q", r.Documentos[0].ID)
 	}
 	if _, ok := ix.Sesion("s~a"); ok {
 		t.Error("un subagente no es una sesión")

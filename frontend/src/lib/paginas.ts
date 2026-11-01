@@ -46,13 +46,16 @@ export function ventanaViva<T>(
   porPagina: number,
   foto: readonly string[] | null,
 ): { visibles: T[]; desde: number; hasta: number; total: number; paginas: number; pagina: number; nuevos: number } {
-  let orden: T[] = elementos as T[];
+  // Defensa: una clave repetida no multiplica filas (cada clave sale una vez, la primera). Con claves repetidas la foto
+  // devolvía el mismo elemento por cada aparición y React, con dos hijos de igual `key`, dejaba nodos huérfanos.
+  const unicos = sinRepetir(elementos, clave);
+  let orden: T[] = unicos;
   let nuevos = 0;
   if (pagina > 1 && foto) {
-    const porClave = new Map(elementos.map((e) => [clave(e), e]));
+    const porClave = new Map(unicos.map((e) => [clave(e), e]));
     const enFoto = new Set(foto);
-    orden = foto.map((k) => porClave.get(k)).filter((e): e is T => e !== undefined);
-    nuevos = elementos.reduce((n, e) => n + (enFoto.has(clave(e)) ? 0 : 1), 0);
+    orden = [...enFoto].map((k) => porClave.get(k)).filter((e): e is T => e !== undefined);
+    nuevos = unicos.reduce((n, e) => n + (enFoto.has(clave(e)) ? 0 : 1), 0);
   }
   const total = orden.length;
   const paginas = cuantasPaginas(total, porPagina);
@@ -60,6 +63,26 @@ export function ventanaViva<T>(
   const inicio = (p - 1) * porPagina;
   const visibles = orden.slice(inicio, inicio + porPagina);
   return { visibles, desde: visibles.length ? inicio + 1 : 0, hasta: inicio + visibles.length, total, paginas, pagina: p, nuevos };
+}
+
+/** Cada clave una vez, en el orden de llegada (se queda la primera). Sin repetidas devuelve la misma lista. */
+export function sinRepetir<T>(elementos: readonly T[], clave: (e: T) => string): T[] {
+  const vistas = new Set<string>();
+  const out = elementos.filter((e) => {
+    const k = clave(e);
+    if (vistas.has(k)) return false;
+    vistas.add(k);
+    return true;
+  });
+  return out.length === elementos.length ? (elementos as T[]) : out;
+}
+
+/**
+ * Cuántas filas fantasma completan una página corta: con varias páginas, toda página mide `porPagina` filas y el pie no
+ * se mueve nunca (ni en la última, ni en la primera de la actividad, ni mientras carga). Con una sola, nada.
+ */
+export function relleno(visibles: number, porPagina: number, paginas: number): number {
+  return paginas > 1 ? Math.max(0, porPagina - visibles) : 0;
 }
 
 /**

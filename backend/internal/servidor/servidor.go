@@ -28,6 +28,7 @@ import (
 	"atalaya/internal/delegadas"
 	"atalaya/internal/entorno"
 	"atalaya/internal/trazabilidad"
+	"atalaya/internal/usoclaude"
 )
 
 // Version del servidor.
@@ -49,6 +50,7 @@ type Proyecto struct {
 // Servidor reúne los lectores y la difusión de cambios.
 type Servidor struct {
 	Cuotas    *cuotas.Lector
+	UsoClaude *usoclaude.Lector
 	Claude    *claude.Indice
 	Proyectos []Proyecto
 	Web       fs.FS // el frontend exportado; nil si no se compiló
@@ -153,6 +155,9 @@ func (s *Servidor) Vigilar(ctx context.Context, cada time.Duration) {
 }
 
 func (s *Servidor) vuelta(ctx context.Context, primera bool) {
+	if s.UsoClaude != nil && s.UsoClaude.Toca() {
+		go s.UsoClaude.Leer(ctx, false)
+	}
 	if !primera && s.Cuotas.Toca() {
 		go func() {
 			s.Cuotas.Leer(ctx)
@@ -254,6 +259,8 @@ func (s *Servidor) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/salud", s.salud)
 	mux.HandleFunc("GET /api/cuotas", s.cuotas)
+	mux.HandleFunc("GET /api/uso-claude", s.verUsoClaude)
+	mux.HandleFunc("POST /api/uso-claude/leer", s.leerUsoClaude)
 	mux.HandleFunc("GET /api/proyectos", s.proyectos)
 	mux.HandleFunc("GET /api/agentes", s.agentes)
 	mux.HandleFunc("GET /api/agentes/{id}", s.agente)

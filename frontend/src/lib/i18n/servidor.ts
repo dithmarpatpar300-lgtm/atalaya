@@ -215,4 +215,16 @@ export const PATRONES_SERVIDOR: [RegExp, Reemplazo][] = [
   [/^el tope de por omisión$/, "the default limit"],
   [/^el tope de (.+?)$/, "the limit from $1"],
   [/^(\d+) min · por omisión$/, "$1 min · default"],
+  // La cuota de Claude por /usage (internal/usoclaude y servidor/uso_claude.go): el `detalle` del estado.
+  [/^No se pudo cargar el historial$/, "Could not load the history"],
+  [/^La última lectura tiene más de 20 minutos$/, "The last reading is more than 20 minutes old"],
+  [/^La lectura de Claude está desactivada en demo$/, "Reading Claude is off in demo mode"],
+  [/^No se encontró Claude Code$/, "Claude Code was not found"],
+  [/^Leyendo el uso de Claude$/, "Reading Claude usage"],
+  [/^Esperando la primera lectura$/, "Waiting for the first reading"],
+  [/^No se pudo leer el uso de Claude$/, "Could not read Claude usage"],
+  [/^Claude limita temporalmente la lectura del uso$/, "Claude is temporarily rate-limiting the usage reading"],
+  [/^Claude no devolvió un informe de suscripción$/, "Claude returned no subscription report"],
+  [/^No se pudo guardar el historial$/, "Could not save the history"],
+  [/^solo el panel puede solicitar la lectura$/, "only the panel can request a reading"],
 ];

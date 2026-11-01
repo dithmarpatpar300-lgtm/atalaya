@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Paginador, usePaginaViva } from "@/components/ui/paginador";
+import { FantasmasDeTabla, Paginador, usePaginaViva } from "@/components/ui/paginador";
 import { api } from "@/lib/api";
 import { hora } from "@/lib/formato";
 import { t, tServidor } from "@/lib/i18n";
@@ -238,7 +238,11 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                     </td>
                   </tr>
                 ) : (
-                  filas.map((f) => <FilaSalud key={f.id} f={f} elegida={f.id === actual} foco={f.id === foco} alElegir={() => setElegida(f.id)} registrar={registrar} />)
+                  <>
+                    {filas.map((f) => <FilaSalud key={f.id} f={f} elegida={f.id === actual} foco={f.id === foco} alElegir={() => setElegida(f.id)} registrar={registrar} />)}
+                    {/* La última página se completa con filas vacías de 52 px: el pie no sube. */}
+                    <FantasmasDeTabla n={pSalud.faltan} columnas={8} className="h-[52px]" />
+                  </>
                 )}
               </tbody>
             </table>

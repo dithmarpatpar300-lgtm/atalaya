@@ -29,6 +29,9 @@ type PedidoSesion struct {
 
 // DocEstado: un documento de estado que la sesión editó.
 type DocEstado struct {
+	// ID: la ruta completa normalizada, la misma con que se agrupa. Dos documentos de proyectos o copias distintas
+	// pueden dar la misma ruta corta: el panel pagina y dibuja por el ID, y la ruta solo se muestra.
+	ID        string    `json:"id"`
 	Ruta      string    `json:"ruta"`
 	Ediciones int       `json:"ediciones"`
 	Ultima    time.Time `json:"ultima"`
@@ -136,7 +139,7 @@ func (ix *Indice) Sesion(id string) (ResumenSesion, bool) {
 		if p.editado != "" && !p.Error && reDocEstado.MatchString(p.editado) {
 			d := docs[p.editado]
 			if d == nil {
-				d = &DocEstado{Ruta: p.Hilo}
+				d = &DocEstado{ID: p.editado, Ruta: p.Hilo}
 				docs[p.editado] = d
 				orden = append(orden, p.editado)
 			}

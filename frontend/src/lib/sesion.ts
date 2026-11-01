@@ -34,7 +34,8 @@ export interface MiembroSesion {
 
 export interface ResumenSesion {
   pedidos: PedidoSesion[];
-  documentos: { ruta: string; ediciones: number; ultima: string }[];
+  /** `id`: la ruta completa normalizada, única (la clave de la lista); `ruta`: la corta, solo para mostrar. */
+  documentos: { id: string; ruta: string; ediciones: number; ultima: string }[];
   commits: { hora: string; paso: number; orden: string }[];
   consultas: number;
   lecturas_cuota: number;

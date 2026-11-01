@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cuantasPaginas, paginaDe, paginasVisibles, ventanaAnclada, ventanaViva } from "./paginas.ts";
+import { cuantasPaginas, paginaDe, paginasVisibles, relleno, sinRepetir, ventanaAnclada, ventanaViva } from "./paginas.ts";
 
 const dibujo = (actual: number, total: number) =>
   paginasVisibles(actual, total)
@@ -71,4 +71,47 @@ test("anclada: la página de cada posición", () => {
       assert.ok(v.inicio <= i && i < v.fin, `${i} en la página ${p} (${v.inicio}–${v.fin}) con ${total}/${ancla}`);
     }
   }
+});
+
+// El recorrido que medió el Validador en «Documentos de estado que editó» (23, de a 8): 1 → 2 → 3 → 2 → 1 → 3. La
+// foto se toma al salir de la 1, como en usePaginaViva.
+function recorrido<T>(elementos: T[], clave: (e: T) => string, porPagina: number, paginas: number[]) {
+  let foto: string[] | null = null;
+  return paginas.map((p) => {
+    foto = p === 1 ? null : (foto ?? elementos.map(clave));
+    return ventanaViva(elementos, clave, p, porPagina, foto).visibles.map(clave);
+  });
+}
+
+test("documentos: 23 con rutas cortas repetidas pero id propio dan 8, 8, 7, 8, 8, 7 filas sin claves repetidas", () => {
+  const cortas = ["docs/trazabilidad/F5/AVANCE.md", "docs/trazabilidad/ESTADO-para-retomar.md", "docs/trazabilidad/F0/AVANCE.md"];
+  const docs = Array.from({ length: 23 }, (_, i) => ({ id: `d:/copia-${i}/doc-${i}.md`, ruta: cortas[i % 3] }));
+  const vistas = recorrido(docs, (d) => d.id, 8, [1, 2, 3, 2, 1, 3]);
+  assert.deepEqual(vistas.map((v) => v.length), [8, 8, 7, 8, 8, 7]);
+  for (const v of vistas) assert.equal(new Set(v).size, v.length);
+  assert.equal(new Set(vistas.slice(0, 3).flat()).size, 23, "las tres páginas cubren los 23, sin repetir");
+});
+
+test("defensa: claves repetidas no multiplican filas en ninguna página ni en la foto", () => {
+  // 23 elementos con 3 claves repetidas (como cuando la clave era la ruta corta): 20 claves distintas.
+  const ids = Array.from({ length: 20 }, (_, i) => `k${i}`);
+  const datos = [...ids.slice(0, 5), "k1", ...ids.slice(5, 12), "k7", "k1", ...ids.slice(12)].map((id, i) => ({ id, v: i }));
+  assert.equal(datos.length, 23);
+  const vistas = recorrido(datos, k, 8, [1, 2, 3, 2, 1, 3]);
+  assert.deepEqual(vistas.map((v) => v.length), [8, 8, 4, 8, 8, 4]);
+  for (const v of vistas) assert.equal(new Set(v).size, v.length, `sin claves repetidas: ${v.join(" ")}`);
+  // La primera aparición manda: k1 conserva su dato y su lugar.
+  assert.equal(ventanaViva(datos, k, 1, 8, null).visibles[1].v, 1);
+  const v2 = ventanaViva(datos, k, 2, 8, datos.map(k));
+  assert.deepEqual([v2.total, v2.paginas, v2.nuevos], [20, 3, 0]);
+});
+
+test("sinRepetir y relleno", () => {
+  const l = lista("a", "b");
+  assert.equal(sinRepetir(l, k), l, "sin repetidas es la misma lista");
+  assert.deepEqual(sinRepetir(lista("a", "b", "a"), k).map(k), ["a", "b"]);
+  assert.equal(relleno(7, 8, 3), 1);
+  assert.equal(relleno(8, 8, 3), 0);
+  assert.equal(relleno(0, 50, 2), 50, "mientras carga, la página entera");
+  assert.equal(relleno(3, 8, 1), 0, "con una sola página no se reserva nada");
 });

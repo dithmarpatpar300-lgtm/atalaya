@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { HiloFase } from "@/components/ui/hilo-fase";
-import { Paginador, RegionEstable, usePaginaViva } from "@/components/ui/paginador";
+import { Fantasmas, Paginador, usePaginaViva } from "@/components/ui/paginador";
 import { api } from "@/lib/api";
 import { t, tServidor } from "@/lib/i18n";
 import { horas, horasQueFaltan, paqueteInicial, uno } from "@/lib/avance";
@@ -54,7 +54,7 @@ export function VistaSesion({
   const commits = useMemo(() => [...(r?.commits ?? [])].reverse(), [r]);
   const pEquipo = usePaginaViva(equipo, (m) => m.id, { almacen: "equipo", opciones: TAMANOS_EQUIPO, defecto: 10, reinicio: id });
   const pCommits = usePaginaViva(commits, (c) => String(c.paso), { almacen: "commits", opciones: TAMANOS_COMMITS, defecto: 16, reinicio: id });
-  const pDocs = usePaginaViva(r?.documentos ?? [], (d) => d.ruta, { almacen: "documentos", opciones: TAMANOS_DOCS, defecto: 8, reinicio: id });
+  const pDocs = usePaginaViva(r?.documentos ?? [], (d) => d.id, { almacen: "documentos", opciones: TAMANOS_DOCS, defecto: 8, reinicio: id });
   const pDecisiones = usePaginaViva(r?.decisiones ?? [], (d) => d.id, { almacen: "decisiones-sesion", opciones: TAMANOS_DECISIONES, defecto: 8, reinicio: id });
 
   // Se vuelve a pedir con cada paso nuevo de la sesión; mientras llega, se queda lo anterior (nada salta).
@@ -181,9 +181,10 @@ export function VistaSesion({
           <span className="text-ayuda text-tenue">{r.equipo.length ? t("{n} agentes y llamadas a Codex", { n: r.equipo.length }) : t("Nadie todavía")}</span>
         </div>
         {r.equipo.length > 0 && (
-          <RegionEstable activa={pEquipo.mostrar && pEquipo.pie.paginas > 1} clave={pEquipo.claveAlto}>
-          <div className="relative pl-6">
-            <span aria-hidden="true" className="absolute top-0 bottom-5 left-[7px] w-px bg-borde-fuerte" />
+          <div className="pl-6">
+          {/* El riel solo une las filas reales; las fantasma completan la página debajo (el pie no se mueve). */}
+          <div className="relative">
+            <span aria-hidden="true" className="absolute top-0 bottom-5 -left-[17px] w-px bg-borde-fuerte" />
             {pEquipo.visibles.map((m) => (
               <button
                 key={m.id}
@@ -204,7 +205,8 @@ export function VistaSesion({
               </button>
             ))}
           </div>
-          </RegionEstable>
+          <Fantasmas n={pEquipo.faltan} className="mt-1 h-11 rounded-control bg-hundido" />
+          </div>
         )}
         {/* Pegado al fondo: queda en la misma línea que el último pie de la tarjeta de al lado. */}
         {pEquipo.mostrar && (
@@ -229,8 +231,7 @@ export function VistaSesion({
           <dd className="dato m-0 text-right">{r.commits.length}</dd>
         </dl>
         {r.commits.length > 0 && (
-          <RegionEstable activa={pCommits.mostrar && pCommits.pie.paginas > 1} clave={pCommits.claveAlto}>
-          {/* Cuatro por línea, de ancho fijo: la cifra «Commits» de arriba ya dice qué son, la ficha solo su hora. */}
+          // Cuatro por línea, de ancho fijo: la cifra «Commits» de arriba ya dice qué son, la ficha solo su hora.
           <ul aria-label="Commits" className="m-0 grid list-none grid-cols-4 gap-1.5 p-0">
             {pCommits.visibles.map((c) => (
               <li key={c.paso}>
@@ -245,33 +246,34 @@ export function VistaSesion({
                 </button>
               </li>
             ))}
+            <Fantasmas como="li" n={pCommits.faltan} className="h-7 rounded-control border border-borde" />
           </ul>
-          </RegionEstable>
         )}
         {pCommits.mostrar && <Paginador {...pCommits.pie} nombre="Commits" />}
         <span className="mt-1 border-t border-borde pt-2 text-ayuda text-tenue">{t("Documentos de estado que editó")}</span>
         {r.documentos.length === 0 ? (
           <span className="text-ayuda text-suave">{t("Ninguno.")}</span>
         ) : (
-          <RegionEstable activa={pDocs.mostrar && pDocs.pie.paginas > 1} clave={pDocs.claveAlto}>
+          // Filas de 20 px fijos: las fantasma de la última página miden lo mismo. La clave es el id (la ruta completa):
+          // dos documentos pueden mostrar la misma ruta corta, y su `title` dice cuál es cada uno.
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
             {pDocs.visibles.map((d) => (
-              <li key={d.ruta} className="grid grid-cols-[minmax(0,1fr)_4.5rem] gap-2 text-[12.5px]">
+              <li key={d.id} className="grid h-5 grid-cols-[minmax(0,1fr)_4.5rem] items-center gap-2 text-[12.5px]">
                 {/* Uno del proyecto se abre aquí; uno de fuera (la memoria de Claude Code) queda como texto. */}
                 {/^[A-Za-z]:|^[~/\\]/.test(d.ruta) ? (
-                  <span className="dato truncate" title={d.ruta}>
+                  <span className="dato truncate" title={d.id}>
                     {d.ruta}
                   </span>
                 ) : (
-                  <button type="button" onClick={() => alAbrirDoc(d.ruta)} title={d.ruta} className="dato truncate text-left text-acento underline-offset-2 hover:underline">
+                  <button type="button" onClick={() => alAbrirDoc(d.ruta)} title={d.id} className="dato truncate text-left text-acento underline-offset-2 hover:underline">
                     {d.ruta}
                   </button>
                 )}
                 <span className="text-right text-suave">{d.ediciones === 1 ? t("1 vez") : t("{n} veces", { n: d.ediciones })}</span>
               </li>
             ))}
+            <Fantasmas como="li" n={pDocs.faltan} className="h-5 rounded-control bg-hundido" />
           </ul>
-          </RegionEstable>
         )}
         {pDocs.mostrar && (
           <div className="mt-auto">
@@ -288,7 +290,6 @@ export function VistaSesion({
           <h2 id="decisiones-t" className="m-0 text-encabezado font-semibold">
             {t("Lo que te preguntó")} <span className="dato text-ayuda font-normal text-tenue">{r.decisiones!.length}</span>
           </h2>
-          <RegionEstable activa={pDecisiones.mostrar && pDecisiones.pie.paginas > 1} clave={pDecisiones.claveAlto}>
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
             {pDecisiones.visibles.map((d) => {
               const respuesta = d.estado === "pendiente" ? t("te espera") : d.preguntas.map((q) => q.respuesta).filter(Boolean).join(" · ") || t("respondida");
@@ -318,8 +319,8 @@ export function VistaSesion({
                 </li>
               );
             })}
+            <Fantasmas como="li" n={pDecisiones.faltan} className="h-10 rounded-control bg-hundido" />
           </ul>
-          </RegionEstable>
           {pDecisiones.mostrar && <Paginador {...pDecisiones.pie} nombre={t("Lo que te preguntó")} />}
         </section>
       )}

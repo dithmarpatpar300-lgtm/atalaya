@@ -4,9 +4,9 @@ import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 
 import { api, type DetallePaso, type Paso } from "@/lib/api";
 import { decimal, t, tServidor } from "@/lib/i18n";
 import { hora } from "@/lib/formato";
-import { ANCHO_CANALETA, armarFilas, coloresDeHilo, type Fila, geometria, metaPaso, salidaDelPaso, tokensCortos, ventana } from "@/lib/hilos";
-import { paginaDe, ventanaAnclada } from "@/lib/paginas";
-import { Paginador, RegionEstable } from "@/components/ui/paginador";
+import { ANCHO_CANALETA, armarFilas, coloresDeHilo, type Fila, geometria, metaPaso, nombreEtapa, salidaDelPaso, tokensCortos, ventana } from "@/lib/hilos";
+import { paginaDe, relleno, ventanaAnclada } from "@/lib/paginas";
+import { Fantasmas, Paginador } from "@/components/ui/paginador";
 import { CuerpoPaso, type Modo } from "./detalle-paso";
 
 // Colores por tipo, para la actividad: ejecutar y planificar en ciruela, editar y escribir en ámbar, responder en
@@ -151,7 +151,9 @@ export function Actividad({
   // Las de antes de `desde` se piden al servidor al abrirlas, de a una; así la lista nunca crece de más.
   const total = desde + pasos.length;
   const vista = ventanaAnclada(total, h.ancla, tamano, h.pagina);
-  const finVisible = Math.min(vista.fin, vista.inicio + 2 * tamano);
+  // Cada página muestra a lo más `tamano` pasos: lo que llega después en la última se cuenta en «nuevos» (un clic, o
+  // «Seguir» sin foco, vuelve a anclar). Así la página no crece en vivo y lo de abajo no se corre.
+  const finVisible = Math.min(vista.fin, vista.inicio + tamano);
   const nuevos = vista.fin - finVisible;
   /** Va a la página `p`; la última se vuelve a anclar en lo de ahora (otra vez llena, sin lo que creció de más). */
   function irAPagina(p: number) {
@@ -186,13 +188,14 @@ export function Actividad({
     () => (vieja ? (viejas[tramo] ?? []).slice(0, finVisible - vista.inicio) : pasos.slice(vista.inicio - desde, finVisible - desde)),
     [vieja, viejas, tramo, pasos, vista.inicio, finVisible, desde],
   );
-  const filas = useMemo(() => armarFilas(visibles), [visibles]);
+  // Los pasos de antes de la página numeran sus etapas; de una página vieja no se tienen (null).
+  const filas = useMemo(() => armarFilas(visibles, vieja ? null : pasos.slice(0, vista.inicio - desde)), [visibles, vieja, pasos, vista.inicio, desde]);
   const colores = useMemo(() => coloresDeHilo(visibles), [visibles]);
   const { trazos, nodos, alto } = useMemo(() => geometria(filas, colores), [filas, colores]);
   const porN = useMemo(() => new Map([...pasos, ...(vieja ? visibles : [])].map((p) => [p.n, p])), [pasos, vieja, visibles]);
   const ultimo = pasos.length ? pasos[pasos.length - 1].n : -1;
   const actual = elegido !== null && porN.has(elegido) ? elegido : ultimo;
-  const foco = visibles.some((p) => p.n === actual) ? actual : filas.find((f) => f.tipo !== "etapa")?.paso.n;
+  const foco = visibles.some((p) => p.n === actual) ? actual : filas[0]?.paso.n;
   const paso = porN.get(actual);
   const max = Math.max(1, ...visibles.map((p) => tokDominante(p).valor));
   const vent = useMemo(() => ventana(pasos), [pasos]);
@@ -288,7 +291,7 @@ export function Actividad({
   }
 
   function alTecla(e: KeyboardEvent<HTMLDivElement>) {
-    const ns = filas.filter((f) => f.tipo !== "etapa").map((f) => f.paso.n);
+    const ns = filas.map((f) => f.paso.n);
     const i = ns.indexOf(foco ?? actual);
     let j: number;
     if (e.key === "ArrowDown") j = Math.min(ns.length - 1, i + 1);
@@ -312,7 +315,9 @@ export function Actividad({
     if (q) marcas.push(t("vuelve a {hilo} de las {hora}", { hilo: p.hilo, hora: hora(new Date(q.hora)) }));
     if (p.paralelo > 1 && p.herramienta !== "Respuesta") marcas.push(t("en paralelo con {n} más", { n: p.paralelo - 1 }));
     if (p.subagente) marcas.push(t("delega en un subagente"));
-    return `${hora(new Date(p.hora))}, ${t(p.tipo)}, ${p.resumen || p.herramienta}${marcas.length ? ". " + marcas.join(". ") : ""}`;
+    // La etapa va primero: el lector de pantalla la oye donde empieza, como se ve su marca.
+    const etapa = f.marca ? `${nombreEtapa(f.marca)}. ` : "";
+    return `${etapa}${hora(new Date(p.hora))}, ${t(p.tipo)}, ${p.resumen || p.herramienta}${marcas.length ? ". " + marcas.join(". ") : ""}`;
   };
 
   return (
@@ -381,28 +386,16 @@ export function Actividad({
                   }}
                 />
             )}
-            <RegionEstable activa={vista.paginas > 1 && vista.pagina < vista.paginas} clave={`${idAgente}:${tamano}:${h.ancla}`}>
-            {vieja && !viejas[tramo] && (
-              <p className={`m-0 py-3 text-rotulo ${errorVieja ? "text-error" : "text-suave"}`} aria-live="polite">
-                {errorVieja ? t("No se pudieron traer esos pasos: {error}", { error: errorVieja }) : t("Trayendo los pasos {desde}–{hasta}…", { desde: vista.inicio + 1, hasta: vista.fin })}
-              </p>
-            )}
+            {/* Toda página mide `tamano` filas de 40 px: la corta (la primera) y la que se está trayendo se completan con
+                fantasma, y el aviso de carga va encima de ellas, sin sumar alto. */}
             <div role="group" aria-label={t("Pasos; las flechas mueven la elección")} onKeyDown={alTecla} className="relative">
+              {vieja && !viejas[tramo] && (
+                <p className={`absolute inset-x-0 top-0 z-10 m-0 py-3 text-rotulo ${errorVieja ? "text-error" : "text-suave"}`} aria-live="polite">
+                  {errorVieja ? t("No se pudieron traer esos pasos: {error}", { error: errorVieja }) : t("Trayendo los pasos {desde}–{hasta}…", { desde: vista.inicio + 1, hasta: vista.fin })}
+                </p>
+              )}
               {filas.map((f) => {
                 const p = f.paso;
-                if (f.tipo === "etapa") {
-                  return (
-                    <div key={`e-${p.n}`} aria-hidden="true" className="grid h-[30px] grid-cols-[3.5rem_7.5rem_minmax(0,1fr)] items-center">
-                      <span />
-                      <span />
-                      <span className="flex min-w-0 items-center gap-2 text-ayuda text-acento-fuerte">
-                        <span className="shrink-0 text-[10.5px] font-semibold tracking-[0.06em] uppercase">{t("Etapa {n}", { n: f.nEtapa })}</span>
-                        <span className="truncate">{f.etapa}</span>
-                        <span className="h-px flex-1 bg-borde" />
-                      </span>
-                    </div>
-                  );
-                }
                 const esElegido = p.n === actual;
                 const vivo = p.n === ultimo && enVivo;
                 const tok = tokDominante(p);
@@ -446,6 +439,18 @@ export function Actividad({
                       </span>
                     ) : (
                       <span className="flex min-w-0 items-center gap-2 pr-2.5">
+                        {/* La etapa, dentro de su primera fila (y de la primera de la página): una marca de ancho tope que
+                            se recorta, con el nombre entero en el title; la etiqueta de la fila también la dice. */}
+                        {f.marca && (
+                          <span
+                            aria-hidden="true"
+                            title={nombreEtapa(f.marca)}
+                            className="max-w-[14rem] shrink-0 truncate rounded-chip border border-acento px-1.5 text-[10.5px] leading-[18px] font-semibold text-acento-fuerte max-sm:max-w-[6rem]"
+                          >
+                            {f.marca.sigue ? "↳ " : ""}
+                            {nombreEtapa(f.marca)}
+                          </span>
+                        )}
                         <span className={`shrink-0 rounded-chip px-2 py-px text-ayuda font-medium ${TIPO[p.tipo] ?? "bg-elevado text-suave"}`}>{t(p.tipo)}</span>
                         <span className={`min-w-0 flex-1 truncate ${esElegido || vivo ? "text-texto" : "text-suave"}`}>{p.resumen || p.herramienta}</span>
                         {q && (
@@ -542,8 +547,8 @@ export function Actividad({
                   );
                 })}
               </svg>
+              <Fantasmas n={relleno(filas.length, tamano, vista.paginas)} className="h-10 rounded-control bg-hundido" />
             </div>
-            </RegionEstable>
           </div>
 
           {/* Inspector */}

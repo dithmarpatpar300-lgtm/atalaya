@@ -4,55 +4,72 @@ import { decimal, t } from "./i18n.ts";
 // se prueba con `node --test` (hilos.test.mts) y el componente solo pinta lo que devuelve.
 import type { Paso } from "./api.ts";
 
-export const ALTO = { turno: 40, etapa: 30, paso: 40 } as const;
+/** Toda fila mide 40 px: una página de N pasos mide N × 40, sin importar sus etapas (la etapa es una marca dentro de
+ * la fila, no una fila aparte de 30 px que hacía variar el alto de una página a otra). */
+export const ALTO_FILA = 40;
 /** Columna del primer nivel y separación entre niveles, en px dentro de la canaleta. */
 export const X0 = 34;
 export const NIVEL = 22;
 export const ANCHO_CANALETA = 120;
 export const x = (nivel: number) => X0 + nivel * NIVEL;
 
-export interface Fila {
-  tipo: "turno" | "etapa" | "paso";
-  /** El paso de la fila (en una etapa, el primero de la etapa). */
-  paso: Paso;
+/** La etapa que marca una fila: la primera de cada etapa, y la primera de la página si su etapa empezó antes. */
+export interface MarcaEtapa {
   etapa: string;
-  /** Número de etapa dentro del turno (1, 2…). */
-  nEtapa: number;
+  /** Número de etapa dentro del turno (1, 2…); null si no se sabe (una página vieja, sin los pasos de antes). */
+  n: number | null;
+  /** La etapa empezó en una página anterior. */
+  sigue: boolean;
+}
+
+export interface Fila {
+  tipo: "turno" | "paso";
+  paso: Paso;
+  marca: MarcaEtapa | null;
   y: number;
   alto: number;
   cy: number;
 }
 
-/** Arma las filas: cada pedido es la fila de su turno; antes del primer paso de cada etapa va su rótulo. */
-export function armarFilas(pasos: Paso[]): Fila[] {
+/**
+ * Arma las filas, todas de 40 px: cada pedido es la fila de su turno y cada paso la suya; la etapa va como marca en su
+ * primera fila. `previos` son los pasos anteriores al primero de `pasos` (para numerar las etapas y saber si la de la
+ * primera fila ya venía de antes); null si no se tienen.
+ */
+export function armarFilas(pasos: readonly Paso[], previos: readonly Paso[] | null = []): Fila[] {
   const filas: Fila[] = [];
-  let y = 0;
   let etapaPrevia = "";
   let turnoPrevio = -1;
   let nEtapa = 0;
-  const agregar = (tipo: Fila["tipo"], paso: Paso, etapa = "") => {
-    const alto = ALTO[tipo];
-    filas.push({ tipo, paso, etapa, nEtapa, y, alto, cy: y + alto / 2 });
-    y += alto;
-  };
-  for (const p of pasos) {
+  // Sin los pasos de antes, el número de etapa se sabe recién desde el próximo turno.
+  let conocido = previos !== null;
+  const avanzar = (p: Paso): MarcaEtapa | null => {
     if (p.turno !== turnoPrevio) {
+      if (turnoPrevio !== -1 || p.tipo === "Pide") conocido = true;
       turnoPrevio = p.turno;
       etapaPrevia = "";
       nEtapa = 0;
     }
-    if (p.tipo === "Pide") {
-      agregar("turno", p);
-      continue;
-    }
-    if (p.etapa && p.etapa !== etapaPrevia) {
-      etapaPrevia = p.etapa;
-      nEtapa++;
-      agregar("etapa", p, p.etapa);
-    }
-    agregar("paso", p);
+    if (p.tipo === "Pide" || !p.etapa || p.etapa === etapaPrevia) return null;
+    etapaPrevia = p.etapa;
+    nEtapa++;
+    return { etapa: p.etapa, n: conocido ? nEtapa : null, sigue: false };
+  };
+  for (const p of previos ?? []) avanzar(p);
+  for (const p of pasos) {
+    let marca = avanzar(p);
+    // La primera fila de la página dice su etapa aunque haya empezado antes (mismo turno y misma etapa que el último
+    // de `previos`). Sin `previos` no se sabe si empezó antes: se marca como nueva, sin número.
+    if (filas.length === 0 && !marca && p.tipo !== "Pide" && p.etapa) marca = { etapa: p.etapa, n: conocido ? nEtapa : null, sigue: true };
+    const y = filas.length * ALTO_FILA;
+    filas.push({ tipo: p.tipo === "Pide" ? "turno" : "paso", paso: p, marca, y, alto: ALTO_FILA, cy: y + ALTO_FILA / 2 });
   }
   return filas;
+}
+
+/** El nombre de la marca, el mismo a la vista, en su `title` y en la etiqueta de la fila: «Etapa 2 · sigue · Corregir». */
+export function nombreEtapa(m: MarcaEtapa): string {
+  return [m.n ? t("Etapa {n}", { n: m.n }) : t("Etapa"), m.sigue ? t("sigue") : "", m.etapa].filter(Boolean).join(" · ");
 }
 
 export interface Trazo {
@@ -81,7 +98,7 @@ export function coloresDeHilo(pasos: Paso[]): Map<string, string> {
 export function geometria(filas: Fila[], colores: Map<string, string>): { trazos: Trazo[]; nodos: Nodo[]; alto: number } {
   const trazos: Trazo[] = [];
   const nodos: Nodo[] = [];
-  const conPaso = filas.filter((f) => f.tipo !== "etapa");
+  const conPaso = filas;
   const alto = filas.length ? filas[filas.length - 1].y + filas[filas.length - 1].alto : 0;
   if (conPaso.length === 0) return { trazos, nodos, alto };
   const porN = new Map(conPaso.map((f) => [f.paso.n, f]));
@@ -139,8 +156,8 @@ export function geometria(filas: Fila[], colores: Map<string, string>): { trazos
   // Delegación: un trazo discontinuo hacia el borde de la canaleta.
   for (const f of conPaso) if (f.paso.subagente) trazos.push({ d: `M ${x(nivel(f)) + 7} ${f.cy} H ${ANCHO_CANALETA}`, clase: "delega" });
 
-  // Cada etapa cruza el riel con una marca corta.
-  for (const f of filas) if (f.tipo === "etapa") trazos.push({ d: `M ${x(0) - 5} ${f.cy} H ${x(0) + 5}`, clase: "etapa" });
+  // Donde empieza una etapa, una marca corta cruza el riel en el borde de arriba de su fila (no tapa el nodo).
+  for (const f of filas) if (f.marca && !f.marca.sigue) trazos.push({ d: `M ${x(0) - 5} ${f.y + 1} H ${x(0) + 5}`, clase: "etapa" });
 
   for (const f of conPaso) nodos.push({ n: f.paso.n, cx: x(nivel(f)), cy: f.cy });
   return { trazos, nodos, alto };

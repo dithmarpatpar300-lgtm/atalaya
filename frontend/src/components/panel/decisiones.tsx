@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Paginador, RegionEstable, usePaginaViva } from "@/components/ui/paginador";
+import { Fantasmas, Paginador, usePaginaViva } from "@/components/ui/paginador";
 import { api } from "@/lib/api";
 import { agrupar, type Decision, eleccion, elegida, hace, type RespuestaDecisiones, tituloDecision } from "@/lib/decisiones";
 import { cuando } from "@/lib/formato";
@@ -130,13 +130,13 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
                 <h2 className="m-0 text-rotulo font-semibold text-suave">
                   {t("Respondidas")} · <span className="dato">{g.respondidas.length}</span>
                 </h2>
-                <RegionEstable activa={pResp.mostrar && pResp.pie.paginas > 1} clave={pResp.claveAlto}>
-                  <div className="flex flex-col gap-2">
-                    {pResp.visibles.map((d) => (
-                      <Fila key={d.id} d={d} on={sel?.id === d.id} alElegir={() => setElegida(d.id)} ahora={ahora} />
-                    ))}
-                  </div>
-                </RegionEstable>
+                {/* Filas de 56 px; la última página se completa con fantasma del mismo alto y el pie no se mueve. */}
+                <div className="flex flex-col gap-2">
+                  {pResp.visibles.map((d) => (
+                    <Fila key={d.id} d={d} on={sel?.id === d.id} alElegir={() => setElegida(d.id)} ahora={ahora} />
+                  ))}
+                  <Fantasmas n={pResp.faltan} className="h-14 rounded-panel border border-borde" />
+                </div>
                 {pResp.mostrar && <Paginador {...pResp.pie} nombre={t("Respondidas")} />}
               </section>
             )}
@@ -154,10 +154,10 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
                 <div key={i} className="flex flex-col gap-2 pt-1">
                   {q.encabezado && <span className="self-start rounded-chip bg-acento-suave px-2 text-ayuda font-semibold text-acento-fuerte">{q.encabezado}</span>}
                   <p className="m-0 text-[15.5px] leading-snug font-semibold">{q.texto}</p>
-                  {q.opciones.map((o) => {
+                  {q.opciones.map((o, j) => {
                     const es = elegida(q, o);
                     return (
-                      <div key={o.etiqueta} className={`flex flex-col gap-0.5 rounded-control border px-3 py-2.5 ${es ? "border-ok bg-ok-suave" : "border-borde bg-hundido"}`}>
+                      <div key={`${j}:${o.etiqueta}`} className={`flex flex-col gap-0.5 rounded-control border px-3 py-2.5 ${es ? "border-ok bg-ok-suave" : "border-borde bg-hundido"}`}>
                         <span className="flex flex-wrap items-center gap-2 font-medium">
                           {o.etiqueta}
                           {o.recomendada && <span className="rounded-chip bg-acento-suave px-1.5 text-ayuda font-normal text-acento-fuerte">{t("recomendada")}</span>}

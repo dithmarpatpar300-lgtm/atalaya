@@ -57,7 +57,7 @@ func (s *Servidor) verSesion(w http.ResponseWriter, r *http.Request) {
 	out.Avance = avance.Actual(s.raizDe(proyecto))
 	// Las decisiones que pidió esta sesión, todas (sin el tope de 200 y 14 días de la bandeja: se filtra antes), de la
 	// más nueva a la más vieja.
-	for _, d := range append(s.Claude.Decisiones(proyecto), s.decisionesDelCentro(proyecto, time.Time{})...) {
+	for _, d := range juntarDecisiones(s.Claude.Decisiones(proyecto), s.decisionesDelCentro(proyecto, time.Time{})) {
 		if d.Agente == id {
 			out.Decisiones = append(out.Decisiones, d)
 		}

@@ -175,6 +175,8 @@ export const EN_CONFIGURAR: Record<string, string> = {
   "Días que guarda el diario": "Days the diary keeps",
   "{n} días": "{n} days",
   Siempre: "Forever",
+  "Preparando…": "Preparing…",
+  "Elige un cambio arriba: su vista previa aparece aquí, antes de aplicarlo.": "Choose a change above: its preview shows here before you apply it.",
 
   // Listo
   "Ni Claude Code ni Codex están instalados todavía": "Neither Claude Code nor Codex is installed yet",

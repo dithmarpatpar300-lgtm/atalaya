@@ -992,6 +992,53 @@ const DIAS_DIARIO = [30, 90, 365, 0];
 /** El paso 7: qué proyectos entran en la datapedia y cuántos días guarda el diario. */
 function PasoPrivacidad({ entorno, prefs, alCambio }: { entorno: Entorno; prefs: Preferencias; alCambio: () => void }) {
   const dias = prefs.diario_dias ?? 0;
+  // Una sola vista previa a la vez, siempre en el mismo lugar (al pie del paso): pedir otra reemplaza la anterior, y
+  // los botones y el selector de días no se mueven (lo que cambia no mueve el diseño).
+  const [abierta, setAbierta] = useState<{ quien: string; propuesta: Propuesta } | null>(null);
+  const [pidiendo, setPidiendo] = useState<string | null>(null);
+  const [aplicando, setAplicando] = useState(false);
+  const [mensaje, setMensaje] = useState<{ ok?: string; error?: string }>({});
+  const pedir = async (quien: string, proponer: () => Promise<Propuesta>) => {
+    setMensaje({});
+    setPidiendo(quien);
+    try {
+      setAbierta({ quien, propuesta: await proponer() });
+    } catch (e) {
+      setAbierta(null);
+      setMensaje({ error: e instanceof Error ? e.message : String(e) });
+    }
+    setPidiendo(null);
+  };
+  const aplicar = async () => {
+    if (!abierta) return;
+    setAplicando(true);
+    try {
+      const e = await api.aplicarCambio(abierta.propuesta.id);
+      setMensaje(e.error ? { error: tServidor(e.error) } : { ok: tServidor(e.resumen) });
+      setAbierta(null);
+      alCambio();
+    } catch (e) {
+      setMensaje({ error: e instanceof Error ? e.message : String(e) });
+    }
+    setAplicando(false);
+  };
+  const boton = (quien: string, texto: string, proponer: () => Promise<Propuesta>, on: boolean, guardado = false) => (
+    <button
+      type="button"
+      aria-pressed={guardado || on}
+      disabled={guardado || pidiendo !== null}
+      onClick={() => void pedir(quien, proponer)}
+      className={`h-(--alto-control-compacto) min-w-24 rounded-control border px-3 text-rotulo ${
+        guardado
+          ? "border-transparent bg-seleccion font-medium text-texto"
+          : on
+            ? "border-acento bg-acento-suave text-acento-fuerte"
+            : "border-borde text-suave hover:border-borde-realce hover:text-texto disabled:opacity-60"
+      }`}
+    >
+      {pidiendo === quien ? t("Preparando…") : texto}
+    </button>
+  );
   return (
     <div className="flex flex-col gap-4">
       <p className="m-0 text-suave">
@@ -1004,17 +1051,19 @@ function PasoPrivacidad({ entorno, prefs, alCambio }: { entorno: Entorno; prefs:
       {entorno.registrados.length === 0 ? (
         <p className="m-0 text-ayuda text-suave">{t("Todavía no hay proyectos registrados.")}</p>
       ) : (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+        <ul className="m-0 grid list-none grid-cols-[minmax(0,14rem)_minmax(0,12rem)_auto] items-center gap-x-4 gap-y-2 p-0 max-sm:grid-cols-[minmax(0,1fr)_auto]">
           {entorno.registrados.map((r) => (
-            <li key={r.nombre} className="flex flex-wrap items-center gap-3">
-              <span className="min-w-40 font-medium">{r.nombre}</span>
-              <Estado ok={r.datapedia} si={t("en la datapedia")} no={t("fuera de la datapedia")} />
-              <ConPropuesta
-                texto={r.datapedia ? t("Sacar") : t("Volver a indexar")}
-                primario={false}
-                proponer={() => api.proponerProyectos({ datapedia: [{ nombre: r.nombre, dentro: !r.datapedia }] })}
-                alCambio={alCambio}
-              />
+            <li key={r.nombre} className="contents">
+              <span className="truncate font-medium" title={r.nombre}>{r.nombre}</span>
+              <span className="max-sm:hidden"><Estado ok={r.datapedia} si={t("en la datapedia")} no={t("fuera de la datapedia")} /></span>
+              <span>
+                {boton(
+                  "dp:" + r.nombre,
+                  r.datapedia ? t("Sacar") : t("Volver a indexar"),
+                  () => api.proponerProyectos({ datapedia: [{ nombre: r.nombre, dentro: !r.datapedia }] }),
+                  abierta?.quien === "dp:" + r.nombre,
+                )}
+              </span>
             </li>
           ))}
         </ul>
@@ -1025,23 +1074,28 @@ function PasoPrivacidad({ entorno, prefs, alCambio }: { entorno: Entorno; prefs:
         <p className="m-0 text-ayuda text-aviso">{t("Elige primero quién coordina: esta preferencia se guarda junto a esa.")}</p>
       ) : (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("Días que guarda el diario")}>
-          {DIAS_DIARIO.map((d) =>
-            d === dias ? (
-              <span key={d} className="rounded-control bg-seleccion px-3 py-1 text-rotulo font-medium">
-                {d ? t("{n} días", { n: d }) : t("Siempre")}
-              </span>
-            ) : (
-              <ConPropuesta
-                key={d}
-                texto={d ? t("{n} días", { n: d }) : t("Siempre")}
-                primario={false}
-                proponer={() => api.proponerPreferencias({ ...prefs, diario_dias: d })}
-                alCambio={alCambio}
-              />
-            ),
-          )}
+          {DIAS_DIARIO.map((d) => (
+            <span key={d}>
+              {boton(
+                "dias:" + d,
+                d ? t("{n} días", { n: d }) : t("Siempre"),
+                () => api.proponerPreferencias({ ...prefs, diario_dias: d }),
+                abierta?.quien === "dias:" + d,
+                d === dias,
+              )}
+            </span>
+          ))}
         </div>
       )}
+      <div aria-live="polite" className="flex flex-col gap-2 border-t border-borde pt-4">
+        {abierta ? (
+          <VistaPrevia propuesta={abierta.propuesta} aplicando={aplicando} alAplicar={aplicar} alCancelar={() => setAbierta(null)} />
+        ) : (
+          <p className={`m-0 text-ayuda ${mensaje.error ? "text-error" : mensaje.ok ? "text-ok" : "text-tenue"}`}>
+            {mensaje.error ?? mensaje.ok ?? t("Elige un cambio arriba: su vista previa aparece aquí, antes de aplicarlo.")}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

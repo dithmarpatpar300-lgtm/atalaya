@@ -174,6 +174,18 @@ const ejemplos = [
   "el tope de por omisión",
   "el tope de AGENTS.md:20",
   "30 min · por omisión",
+  // La cuota de Claude por /usage
+  "No se pudo cargar el historial",
+  "La última lectura tiene más de 20 minutos",
+  "La lectura de Claude está desactivada en demo",
+  "No se encontró Claude Code",
+  "Leyendo el uso de Claude",
+  "Esperando la primera lectura",
+  "No se pudo leer el uso de Claude",
+  "Claude limita temporalmente la lectura del uso",
+  "Claude no devolvió un informe de suscripción",
+  "No se pudo guardar el historial",
+  "solo el panel puede solicitar la lectura",
 ];
 
 test("traduce cada patrón completo y conserva lo desconocido", () => {

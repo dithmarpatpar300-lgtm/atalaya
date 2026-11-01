@@ -27,6 +27,7 @@ import (
 	"atalaya/internal/demo"
 	registro "atalaya/internal/proyectos"
 	"atalaya/internal/servidor"
+	"atalaya/internal/usoclaude"
 	"atalaya/internal/web"
 )
 
@@ -122,6 +123,8 @@ func main() {
 	// Para la configuración desde el panel: dónde buscar Claude Code y Codex, y dónde guardar las copias y el historial
 	// de lo que cambia (junto al índice de la datapedia: la carpeta de Atalaya, o la del mundo de demo).
 	s.Casa, s.CodexHome, s.Datos, s.Demo = casa, estadoCodex, filepath.Dir(*rutaDB), *modoDemo
+	s.UsoClaude = usoclaude.NuevoLector(s.Datos, s.Demo)
+	s.ConectarUsoClaude()
 	// El kit viaja junto al ejecutable (el zip, y el repositorio en desarrollo): de ahí se copia la skill. Y el
 	// ejecutable mismo identifica la compilación (para que un panel abierto se recargue cuando cambia).
 	if exe, err := os.Executable(); err == nil {

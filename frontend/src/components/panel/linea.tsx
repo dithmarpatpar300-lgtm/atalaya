@@ -287,10 +287,11 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                         if (ms < ini || ms > fin) return null;
                         const texto = t("{hora} · editó {ruta}, que {otro} también editaba", { hora: hhmm(ms), ruta: c.ruta, otro: c.otro });
                         const abrir = t("{texto}. Abrir a {otro}", { texto, otro: c.otro });
+                        // La clave lleva la contraparte: el servidor da un cruce por cada otro agente, con igual ruta y hora.
                         // La marca abre al otro agente; su área de clic es más ancha que la raya (≥ 12 px).
                         return c.otro_id ? (
                           <button
-                            key={`${c.ruta}${c.hora}`}
+                            key={`${c.ruta}|${c.hora}|${c.otro_id ?? ""}|${c.otro}`}
                             type="button"
                             title={abrir}
                             aria-label={abrir}
@@ -301,7 +302,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                             <span aria-hidden="true" className="absolute inset-y-1 left-1/2 w-[3px] -translate-x-1/2 rounded-full bg-error group-hover:w-[5px]" />
                           </button>
                         ) : (
-                          <span key={`${c.ruta}${c.hora}`} title={texto} className="absolute top-1 bottom-1 w-[3px] -translate-x-1/2 rounded-full bg-error" style={{ left: p(ms) }} />
+                          <span key={`${c.ruta}|${c.hora}|${c.otro_id ?? ""}|${c.otro}`} title={texto} className="absolute top-1 bottom-1 w-[3px] -translate-x-1/2 rounded-full bg-error" style={{ left: p(ms) }} />
                         );
                       })}
                     </div>

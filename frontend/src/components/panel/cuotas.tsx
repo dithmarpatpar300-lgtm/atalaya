@@ -5,7 +5,9 @@ import { IconoChevron, IconoRecargar } from "@/components/ui/iconos";
 import type { EstadoCuotas, PanelCuota, PosturaProveedor, VentanaCuota } from "@/lib/api";
 import { cuandoReinicia, duracion, haceCuanto, porcentaje, ritmo, tokens } from "@/lib/formato";
 import { t, tServidor } from "@/lib/i18n";
+import { usaUsoClaude } from "@/lib/uso-claude";
 import { useAhora } from "@/lib/vivo";
+import { DetalleClaude, FranjaClaude, useUsoClaude } from "./uso-claude";
 
 const NOMBRE: Record<string, string> = { "Claude Code": "Claude", Codex: "Codex" };
 const VENTANA: Record<string, string> = { "5 h": "5 horas", Semanal: "Semana" };
@@ -152,17 +154,23 @@ export function Cuotas({ estado, leyendo, alLeer }: { estado: EstadoCuotas | nul
   const [abierto, setAbierto] = useState(false);
   const lec = estado?.lectura;
   const posturas = new Map((lec?.advice?.providers ?? []).map((p) => [p.provider, p]));
-  // Cuotas es opcional: sin ella (ya leído, no instalada), la franja no aparece en vez de mostrar un error.
-  if (estado && estado.leida_en > 0 && !estado.instalada && !lec) return null;
+  // Claude sale de /usage cuando el servidor lo tiene (lib/uso-claude.ts); entonces su línea de Cuotas no se muestra,
+  // para que la franja y el detalle no digan dos cifras distintas. Codex sigue con Cuotas.
+  const vivo = useUsoClaude(estado);
+  const claude = usaUsoClaude(vivo.uso) ? vivo.uso : null;
+  const paneles = (lec?.panels ?? []).filter((p) => !(claude && p.provider === "Claude Code"));
+  // Cuotas es opcional: sin ella (ya leído, no instalada) y sin /usage, la franja no aparece en vez de mostrar un error.
+  if (!claude && estado && estado.leida_en > 0 && !estado.instalada && !lec) return null;
   return (
     <section aria-labelledby="cuotas" className="flex flex-col gap-3 rounded-tarjeta border border-borde bg-superficie px-4 py-3 sm:px-5">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5">
         <h2 id="cuotas" className="sr-only">
           {t("Cuotas")}
         </h2>
+        {claude && <FranjaClaude u={claude} ahora={ahora} vivo={vivo} />}
         {lec ? (
-          lec.panels.map((p) => <Franja key={p.provider} p={p} postura={posturas.get(p.provider)} ahora={ahora} />)
-        ) : (
+          paneles.map((p) => <Franja key={p.provider} p={p} postura={posturas.get(p.provider)} ahora={ahora} />)
+        ) : claude && (estado?.error || (estado && !estado.instalada)) ? null : (
           <div className="esqueleto h-5 flex-1 rounded-chip" aria-label={t("Leyendo las cuotas con la herramienta opcional Cuotas")} />
         )}
       </div>
@@ -188,7 +196,7 @@ export function Cuotas({ estado, leyendo, alLeer }: { estado: EstadoCuotas | nul
           onClick={alLeer}
           disabled={leyendo}
           aria-label={t("Leer las cuotas ahora")}
-          title={t("Leer ahora")}
+          title={t("Leer las cuotas ahora")}
           className="grid size-7 place-items-center rounded-control border border-borde text-suave hover:border-borde-fuerte hover:bg-elevado hover:text-texto disabled:cursor-wait disabled:text-tenue"
         >
           <IconoRecargar className={`size-3.5 ${leyendo ? "animate-spin" : ""}`} />
@@ -198,16 +206,17 @@ export function Cuotas({ estado, leyendo, alLeer }: { estado: EstadoCuotas | nul
           onClick={() => setAbierto((a) => !a)}
           aria-expanded={abierto}
           aria-controls="cuotas-detalle"
-          disabled={!lec}
+          disabled={!lec && !claude}
           className="flex h-7 items-center gap-1.5 rounded-control border border-borde px-2.5 text-suave hover:border-borde-fuerte hover:bg-elevado hover:text-texto disabled:text-tenue"
         >
           {t("Detalle")}
           <IconoChevron className={`size-3 transition-transform duration-150 ${abierto ? "-rotate-90" : "rotate-90"}`} />
         </button>
       </div>
-      {abierto && lec && (
+      {abierto && (lec || claude) && (
         <div id="cuotas-detalle" className="grid gap-4 border-t border-borde pt-3.5 lg:grid-cols-2">
-          {lec.panels.map((p) => (
+          {claude && <DetalleClaude u={claude} ahora={ahora} vivo={vivo} />}
+          {paneles.map((p) => (
             <Tarjeta key={p.provider} p={p} postura={posturas.get(p.provider)} ahora={ahora} />
           ))}
         </div>

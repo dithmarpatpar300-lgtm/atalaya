@@ -30,6 +30,17 @@ type Pregunta struct {
 	Respuesta  string   `json:"respuesta,omitempty"`
 }
 
+// agregar suma una opción salvo que su etiqueta ya esté: la etiqueta es la identidad de la opción (la clave en el
+// panel y lo que se elige), así que dos iguales serían la misma.
+func (q *Pregunta) agregar(o Opcion) {
+	for _, v := range q.Opciones {
+		if v.Etiqueta == o.Etiqueta {
+			return
+		}
+	}
+	q.Opciones = append(q.Opciones, o)
+}
+
 // Decision: una pregunta con botones o un grupo de preguntas de una sesión.
 type Decision struct {
 	ID        string     `json:"id"`     // agente~paso
@@ -76,7 +87,7 @@ func (a *archivo) anotarDecision(nombre string, input json.RawMessage, idUso str
 			if et == "" {
 				et = ac.Action
 			}
-			q.Opciones = append(q.Opciones, Opcion{Etiqueta: tapar(et), Recomendada: i == 0})
+			q.agregar(Opcion{Etiqueta: tapar(et), Recomendada: i == 0})
 		}
 		if a.botones != nil && a.botones.Estado == DecPendiente {
 			a.botones.Estado = DecReemplazada
@@ -103,7 +114,7 @@ func (a *archivo) anotarDecision(nombre string, input json.RawMessage, idUso str
 		for _, iq := range in.Questions {
 			q := Pregunta{Texto: tapar(iq.Question), Encabezado: iq.Header, Multiple: iq.MultiSelect}
 			for _, o := range iq.Options {
-				q.Opciones = append(q.Opciones, Opcion{Etiqueta: tapar(o.Label), Nota: tapar(o.Description), Recomendada: esRecomendada(o.Label)})
+				q.agregar(Opcion{Etiqueta: tapar(o.Label), Nota: tapar(o.Description), Recomendada: esRecomendada(o.Label)})
 			}
 			d.Preguntas = append(d.Preguntas, q)
 		}
@@ -173,10 +184,17 @@ func (ix *Indice) Decisiones(proyecto string) []Decision {
 		if nombre == "" {
 			nombre = ag.Proyecto
 		}
-		for _, d := range a.decisiones {
+		vistos := map[string]bool{}
+		for i, d := range a.decisiones {
 			c := *d
 			c.Preguntas = append([]Pregunta(nil), d.Preguntas...)
 			c.ID = ag.ID + "~" + strconv.Itoa(d.Paso)
+			// Dos decisiones del mismo paso no comparten id: la segunda lleva su posición, que no cambia (la lista
+			// solo crece). El panel pagina y dibuja por el id.
+			if vistos[c.ID] {
+				c.ID += "~" + strconv.Itoa(i)
+			}
+			vistos[c.ID] = true
 			c.Agente, c.Proyecto, c.Sesion = ag.ID, ag.Proyecto, nombre
 			out = append(out, c)
 		}

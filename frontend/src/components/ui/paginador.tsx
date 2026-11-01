@@ -1,8 +1,8 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { t } from "@/lib/i18n";
-import { paginasVisibles, ventanaViva } from "@/lib/paginas";
+import { paginasVisibles, relleno, sinRepetir, ventanaViva } from "@/lib/paginas";
 import { IconoChevron } from "./iconos";
 import { Segmentado } from "./segmentado";
 
@@ -51,7 +51,11 @@ export function Paginador({
       {/* Cada parte del renglón mide 32 px (lo del selector «Por página»): con o sin él, todo pie mide lo mismo y dos pies
           vecinos quedan con la raya a la misma altura. */}
       <p className="dato m-0 mr-auto flex h-8 items-center gap-2 text-ayuda whitespace-nowrap text-suave" aria-live="polite">
-        {total > 0 ? t("{desde}–{hasta} de {total}", { desde, hasta, total }) : ""}
+        {/* De ancho fijo, el del contador más largo («509–509 de 509»): «1–16» y «17–32» no cambian el ancho y el pie de
+            una tarjeta angosta no pasa a dos líneas en unas páginas sí y en otras no. */}
+        <span style={{ minWidth: `${t("{desde}–{hasta} de {total}", { desde: total, hasta: total, total }).length}ch` }}>
+          {total > 0 ? t("{desde}–{hasta} de {total}", { desde, hasta, total }) : ""}
+        </span>
         {nuevos > 0 && alVerNuevos && (
           <button type="button" onClick={alVerNuevos} className="rounded-chip bg-acento-suave px-2 text-acento-fuerte hover:bg-acento hover:text-sobre-acento">
             {nuevos === 1 ? t("1 nuevo") : t("{n} nuevos", { n: nuevos })}
@@ -76,7 +80,9 @@ export function Paginador({
       )}
 
       {paginas > 1 && (
-        <nav aria-label={t("Páginas de {lista}", { lista: nombre })} className="flex h-8 items-center">
+        // Ancho reservado para la ventana más ancha de números (a lo más 9 casillas y las flechas): pasar de «1 2 3 … 99» a
+        // «1 … 4 5 6 7 8 … 99» no ensancha el pie ni lo hace saltar de línea.
+        <nav aria-label={t("Páginas de {lista}", { lista: nombre })} className="flex h-8 items-center justify-end" style={{ minWidth: `${(Math.min(paginas, 9) + 2) * 30}px` }}>
           <ul className="m-0 flex list-none items-center gap-0.5 p-0">
             <li>
               <button type="button" aria-label={t("Página anterior")} disabled={pagina <= 1} onClick={() => alIr(pagina - 1)} className={`${CASILLA} ${FLECHA}`}>
@@ -115,32 +121,25 @@ export function Paginador({
 }
 
 /**
- * Guarda el alto más grande que tuvo la lista mientras hay varias páginas: la última página, más corta, no sube el pie
- * ni lo que hay debajo; cambiar de página no mueve la página. Se olvida al cambiar el ancho, el tamaño de página o la
- * lista (`clave`), y con una sola página no reserva nada.
+ * Filas fantasma: completan una página corta hasta su tamaño, con la misma geometría que las reales (`className` da el
+ * alto y el margen), tenues, fuera del lector de pantalla y sin foco. Así toda página mide lo mismo sin medir nada: el
+ * pie no se mueve nunca, tampoco en la última página ni mientras llegan datos en vivo (antes se reservaba el alto más
+ * grande visto, y una página con más alto le dejaba un hueco a las demás).
  */
-export function RegionEstable({ activa, clave, className, children }: { activa: boolean; clave: string; className?: string; children: ReactNode }) {
-  const interior = useRef<HTMLDivElement>(null);
-  const [m, setM] = useState({ clave: "", ancho: 0, alto: 0 });
-  useEffect(() => {
-    const el = interior.current;
-    if (!el || !activa) return;
-    const ro = new ResizeObserver(() => {
-      const ancho = Math.round(el.offsetWidth);
-      const alto = el.offsetHeight;
-      setM((p) => (p.clave === clave && p.ancho === ancho ? (alto > p.alto ? { clave, ancho, alto } : p) : { clave, ancho, alto }));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [activa, clave]);
-  return (
-    <div className={className} style={{ minHeight: activa && m.clave === clave ? m.alto : undefined }}>
-      {/* flow-root: el margen de la primera fila queda dentro de lo medido. */}
-      <div ref={interior} className="flow-root">
-        {children}
-      </div>
-    </div>
-  );
+export function Fantasmas({ n, className, como = "div" }: { n: number; className: string; como?: "div" | "li" }) {
+  const Etiqueta = como;
+  return Array.from({ length: n }, (_, i) => <Etiqueta key={`\u0000fantasma-${i}`} aria-hidden="true" data-fantasma="" className={`${className} opacity-40`} />);
+}
+
+/** Lo mismo en una tabla: una fila de `columnas` celdas vacías del alto de las reales. */
+export function FantasmasDeTabla({ n, columnas, className }: { n: number; columnas: number; className: string }) {
+  return Array.from({ length: n }, (_, i) => (
+    <tr key={`\u0000fantasma-${i}`} aria-hidden="true" data-fantasma="" className="border-t border-borde">
+      <td colSpan={columnas} className="p-0">
+        <div className={`${className} opacity-40`} />
+      </td>
+    </tr>
+  ));
 }
 
 function leerTamano(almacen: string, opciones: readonly number[], defecto: number): number {
@@ -171,7 +170,7 @@ export function usePaginaViva<T>(
 
   function alIr(n: number) {
     // Al salir de la 1 se congela el orden de ahora; al volver a ella, se suelta.
-    setEstado({ reinicio, pagina: n, foto: n === 1 ? null : (e.foto ?? elementos.map(clave)) });
+    setEstado({ reinicio, pagina: n, foto: n === 1 ? null : (e.foto ?? sinRepetir(elementos, clave).map(clave)) });
   }
 
   const pie = {
@@ -195,5 +194,7 @@ export function usePaginaViva<T>(
       },
     },
   };
-  return { visibles: v.visibles, pie, mostrar: elementos.length > Math.min(...opciones), claveAlto: `${reinicio}:${tamano}` };
+  const mostrar = elementos.length > Math.min(...opciones);
+  // Las fantasma solo con el pie a la vista: sin pie no hay páginas que cambiar.
+  return { visibles: v.visibles, pie, mostrar, faltan: mostrar ? relleno(v.visibles.length, tamano, v.paginas) : 0 };
 }

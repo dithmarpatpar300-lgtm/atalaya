@@ -63,3 +63,33 @@ func TestDecisiones(t *testing.T) {
 		t.Error("el filtro por proyecto")
 	}
 }
+
+// La etiqueta es la identidad de la opción: una repetida no se suma.
+func TestOpcionRepetida(t *testing.T) {
+	var q Pregunta
+	q.agregar(Opcion{Etiqueta: "Sí", Recomendada: true})
+	q.agregar(Opcion{Etiqueta: "No"})
+	q.agregar(Opcion{Etiqueta: "Sí", Nota: "otra"})
+	if len(q.Opciones) != 2 || !q.Opciones[0].Recomendada || q.Opciones[0].Nota != "" {
+		t.Errorf("opciones: %+v", q.Opciones)
+	}
+}
+
+// Dos decisiones del mismo paso no comparten id, y el id no cambia al leer de nuevo.
+func TestDecisionesDelMismoPaso(t *testing.T) {
+	a := &archivo{agente: &Agente{ID: "s", Tipo: "sesion", Proyecto: "P"}}
+	a.decisiones = []*Decision{{Tipo: "botones", Paso: 4}, {Tipo: "preguntas", Paso: 4}, {Tipo: "botones", Paso: 9}}
+	ix := &Indice{arch: map[string]*archivo{"s": a}}
+	for vuelta := 0; vuelta < 2; vuelta++ {
+		vistos := map[string]bool{}
+		for _, d := range ix.Decisiones("") {
+			if vistos[d.ID] {
+				t.Fatalf("id repetido %q", d.ID)
+			}
+			vistos[d.ID] = true
+		}
+		if !vistos["s~4"] || !vistos["s~4~1"] || !vistos["s~9"] {
+			t.Errorf("ids: %v", vistos)
+		}
+	}
+}
