@@ -22,6 +22,7 @@ import (
 	"atalaya/internal/codexvivo"
 	"atalaya/internal/cuotas"
 	"atalaya/internal/datapedia"
+	"atalaya/internal/demo"
 	registro "atalaya/internal/proyectos"
 	"atalaya/internal/servidor"
 	"atalaya/internal/web"
@@ -39,14 +40,29 @@ func main() {
 	transcritos := flag.String("claude", filepath.Join(casa, ".claude", "projects"), "carpeta de los transcritos de Claude Code")
 	dirCuotas := flag.String("cuotas", filepath.Join(local, "Cuotas"), "carpeta de Cuotas (cuotas.exe y sus archivos)")
 	cada := flag.Duration("cada", 2*time.Second, "cada cuánto se miran los archivos")
-	dirCodex := flag.String("codex", filepath.Join(local, "Atalaya", "codex"), "carpeta de la traza en vivo de Codex (la escribe scripts/ops/codex.ps1)")
+	dirCodex := flag.String("codex", filepath.Join(local, "Atalaya", "codex"), "carpeta de la traza en vivo de Codex (la escribe scripts/codex.ps1)")
 	rutaDB := flag.String("db", filepath.Join(local, "Atalaya", "atalaya.db"), "índice de la datapedia (SQLite; se rehace si se borra)")
 	var proyectos listaProyectos
 	flag.Var(&proyectos, "proyecto", "Nombre=Ruta de un proyecto con docs/trazabilidad (se repite; se suma al registro)")
 	conAvisos := flag.Bool("avisos", true, "notificaciones de Windows de lo que te espera (decisiones y alertas de error)")
 	dirDiario := flag.String("diario", filepath.Join(local, "Atalaya", "diario"), "carpeta del diario, un JSON por día (vacía: sin diario)")
 	rutaRegistro := flag.String("proyectos", "", "registro de proyectos (por omisión, "+registro.Archivo+" junto al ejecutable)")
+	modoDemo := flag.Bool("demo", false, "usar proyectos y agentes inventados")
+	// La carpeta del mundo de demo aparece en las rutas que muestra el panel: para capturas, una neutra
+	// (por ejemplo C:\Users\Public\atalaya-demo) en vez de la temporal del usuario.
+	carpetaDemo := flag.String("demo-carpeta", filepath.Join(os.TempDir(), "atalaya-demo"), "dónde se escribe el mundo de -demo (se borra y se rehace)")
 	flag.Parse()
+	if *modoDemo {
+		m, err := demo.Preparar(*carpetaDemo, time.Now())
+		if err != nil {
+			log.Fatalf("preparar demo: %v", err)
+		}
+		*transcritos, *dirCodex, *rutaRegistro = m.Claude, m.Codex, m.Registro
+		*dirDiario, *rutaDB, *dirCuotas = m.Diario, m.DB, m.Cuotas
+		*conAvisos = false
+		proyectos = nil
+		log.Printf("mundo de demo: %s", m.Raiz)
+	}
 
 	host, _, err := net.SplitHostPort(*escucha)
 	if err != nil || (host != "127.0.0.1" && host != "localhost") {

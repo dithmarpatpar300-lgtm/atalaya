@@ -52,7 +52,7 @@ type Reglas struct {
 	// Las reglas del proceso (la salud del proceso, internal/proceso), leídas del mismo AGENTS.md.
 	Frescura time.Duration // lo más vieja que puede estar la lectura de la cuota al lanzar
 	TmpRaiz  string        // «C:\Mi-Proyecto-tmp»: dónde van los temporales de los agentes
-	Retomar  string        // el script que lista los temporales que quedan («scripts/ops/retomar.ps1»)
+	Retomar  string        // el script del proyecto que lista los temporales que quedan, si lo tiene
 }
 
 // Fuente de una regla («AGENTS.md:31»), o vacía si el documento no la escribe.

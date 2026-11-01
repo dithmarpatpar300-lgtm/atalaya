@@ -127,7 +127,7 @@ type Carpeta struct {
 	Lugar     string    `json:"lugar"`
 	Bytes     int64     `json:"bytes"`
 	Archivos  int       `json:"archivos"`
-	Parciales int       `json:"parciales"` // .rgpart dentro
+	Parciales int       `json:"parciales"` // descargas a medias dentro (.rgpart)
 	Mod       time.Time `json:"mod"`
 	// Lo que se sabe de ella: el acta con el mismo nombre y el agente que la usó.
 	Acta         string `json:"acta,omitempty"`

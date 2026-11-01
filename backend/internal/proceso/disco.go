@@ -75,7 +75,7 @@ func Firma(lugares []string) string {
 // maxEntradas: lo más que se recorre de una carpeta para medirla; una más grande se informa con lo contado.
 const maxEntradas = 20000
 
-// Escanear lista y mide las carpetas de los lugares, como retomar.ps1: archivos, bytes y .rgpart.
+// Escanear lista y mide las carpetas de los lugares: archivos, bytes y descargas a medias.
 func Escanear(lugares []string) []Carpeta {
 	var out []Carpeta
 	for _, l := range lugares {

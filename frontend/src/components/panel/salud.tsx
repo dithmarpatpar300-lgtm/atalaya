@@ -44,8 +44,8 @@ const CHIP_TEMPORAL: Record<CarpetaTemporal["estado"], string> = {
 
 /**
  * La salud del proceso: cada subagente y cada llamada a Codex contra las
- * reglas de AGENTS.md, con la ruta que prueba cada falta, y los temporales que siguen en el disco (lo mismo que
- * lista scripts/ops/retomar.ps1). El panel solo lee: no corrige ni borra nada, dice dónde mirar.
+ * reglas de AGENTS.md, con la ruta que prueba cada falta, y los temporales que siguen en el disco. El panel solo
+ * lee: no corrige ni borra nada, dice dónde mirar.
  */
 export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; version: number; alAbrirAgente: (id: string, paso?: number) => void }) {
   const [periodo, setPeriodo] = useState<Periodo>("hoy");
@@ -241,7 +241,7 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
             {(inf?.lugares ?? []).join(" · ")}
           </span>
         </div>
-        <span className="text-ayuda text-tenue">Lo mismo que lista scripts/ops/retomar.ps1, pero siempre a la vista. El panel no borra: el borrado sigue siendo del agente o tuyo.</span>
+        <span className="text-ayuda text-tenue">Las carpetas que los agentes dejaron en el disco. El panel no borra: el borrado sigue siendo del agente o tuyo.</span>
         {inf && inf.temporales.length === 0 && <p className="m-0 rounded-panel bg-ok-suave px-3 py-2.5 text-ok">Ninguna carpeta temporal en el disco.</p>}
         {(inf?.temporales ?? []).map((t) => (
           <div key={t.ruta} className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-panel bg-elevado px-3 py-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto_9.5rem]">
@@ -255,7 +255,7 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
             </span>
             <span className="dato text-right text-ayuda text-suave max-sm:hidden">{peso(t.bytes)}</span>
             <span className="dato text-ayuda whitespace-nowrap text-tenue max-sm:hidden">
-              {t.archivos} arch.{t.parciales ? ` · ${t.parciales} .rgpart` : ""}
+              {t.archivos} arch.{t.parciales ? ` · ${t.parciales} a medias` : ""}
             </span>
             <span className="flex justify-end">
               {t.agente ? (

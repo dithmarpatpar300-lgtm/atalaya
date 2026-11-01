@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -82,6 +83,9 @@ type Estado struct {
 	// LeidaEn: cuándo la leyó este servidor (unix, s).
 	LeidaEn int64  `json:"leida_en"`
 	Error   string `json:"error,omitempty"`
+	// Instalada: falso si no está cuotas.exe ni sus archivos. Cuotas es opcional: no es un error, y el panel no
+	// muestra la franja.
+	Instalada bool `json:"instalada"`
 }
 
 // Decodificar valida y convierte la salida JSON de Cuotas.
@@ -148,8 +152,9 @@ func (l *Lector) Leer(ctx context.Context) Estado {
 	ahora := l.Ahora()
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	est := Estado{LeidaEn: ahora.Unix()}
+	est := Estado{LeidaEn: ahora.Unix(), Instalada: true}
 	out, err := l.Ejecutar(ctx, l.Exe, "una-vez", "--json")
+	noEsta := errors.Is(err, fs.ErrNotExist) || errors.Is(err, exec.ErrNotFound)
 	if err == nil {
 		var lec *Lectura
 		if lec, err = Decodificar(out); err == nil {
@@ -158,9 +163,12 @@ func (l *Lector) Leer(ctx context.Context) Estado {
 	}
 	if err != nil {
 		lec, err2 := DesdeArchivos(l.Dir)
-		if err2 != nil {
+		switch {
+		case err2 != nil && noEsta:
+			est.Instalada = false // ni el ejecutable ni sus archivos: Cuotas no está, y no es un error
+		case err2 != nil:
 			est.Error = fmt.Sprintf("%v; y por los archivos: %v", err, err2)
-		} else {
+		default:
 			est.Lectura, est.Origen, est.Error = lec, "archivos", err.Error()
 		}
 	}

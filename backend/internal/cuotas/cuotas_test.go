@@ -70,6 +70,21 @@ func TestSinEjecutableUsaLosArchivos(t *testing.T) {
 	}
 }
 
+// Sin cuotas.exe y sin sus archivos, Cuotas no está instalada: no es un error, y el panel no muestra la franja. Un
+// ejecutable que existe y falla sí es un error.
+func TestSinCuotas(t *testing.T) {
+	l := NuevoLector(filepath.Join(t.TempDir(), "cuotas.exe"), t.TempDir())
+	est := l.Leer(context.Background())
+	if est.Instalada || est.Error != "" || est.Lectura != nil {
+		t.Errorf("sin Cuotas: %+v", est)
+	}
+	l = NuevoLector("cuotas.exe", t.TempDir())
+	l.Ejecutar = func(context.Context, string, ...string) ([]byte, error) { return nil, errors.New("salida 1") }
+	if est := l.Leer(context.Background()); !est.Instalada || est.Error == "" {
+		t.Errorf("un ejecutable que falla: %+v", est)
+	}
+}
+
 func TestForzarRespetaElMinimo(t *testing.T) {
 	ahora := time.Unix(1000, 0)
 	veces := 0

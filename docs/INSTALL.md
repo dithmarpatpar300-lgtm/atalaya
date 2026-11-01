@@ -52,6 +52,8 @@ Useful options:
 | `-avisos=false` | No Windows notifications | on |
 | `-diario <folder>` | Where the diary goes (empty: no diary) | `%LOCALAPPDATA%\Atalaya\diario` |
 | `-db <file>` | The datapedia index (rebuilt if deleted) | `%LOCALAPPDATA%\Atalaya\atalaya.db` |
+| `-demo` | A demo world: made-up projects, agents, alerts and decisions, to try it without any agent | off |
+| `-demo-carpeta <folder>` | Where that world is written (wiped and rebuilt at startup) | the temp folder |
 
 To start it with Windows, add a shortcut to the Startup folder:
 

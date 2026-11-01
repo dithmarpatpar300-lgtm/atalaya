@@ -201,7 +201,7 @@ function Tarjeta({ p, on, alElegir }: { p: ProyectoPortafolio; on: boolean; alEl
       <span className="grid w-full grid-cols-4 gap-2">
         <Dato rotulo="Contrato" valor={`${tiene} de ${p.contrato.length}`} titulo={`${tiene} de ${p.contrato.length} archivos del contrato`} />
         <Dato rotulo="Salud hoy" valor={salud.cifra} titulo={salud.titulo} />
-        <Dato rotulo="Atalaya" valor={String(p.consultas)} titulo={`${p.consultas} consultas a Atalaya por MCP desde la medianoche`} />
+        <Dato rotulo="Consultas" valor={String(p.consultas)} titulo={`${p.consultas} consultas a Atalaya por MCP desde la medianoche`} />
         <Dato
           rotulo="Te esperan"
           valor={String(p.decisiones ?? 0)}

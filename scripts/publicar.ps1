@@ -7,7 +7,7 @@
   (docs/trazabilidad, the plan, the audits); the public copy takes only what serves other people:
   - every tracked file of backend/, frontend/, kit/, scripts/ and .github/ (the CI);
   - README.md, README.es.md, CHANGELOG.md, LICENSE, proyectos.ejemplo.json, .gitignore, .gitattributes;
-  - from docs/, only INSTALL.md and INSTALAR.md;
+  - from docs/, only INSTALL.md, INSTALAR.md and the screenshots in docs/img/;
   - a generic .mcp.json (the local one names this machine's project).
   Then it checks the copy:
   - the version in backend/internal/servidor/servidor.go is the first one in CHANGELOG.md;
@@ -66,7 +66,7 @@ if ($actualizar) {
 $sueltos = @('README.md', 'README.es.md', 'CHANGELOG.md', 'LICENSE', 'proyectos.ejemplo.json', '.gitignore', '.gitattributes',
     'docs/INSTALL.md', 'docs/INSTALAR.md')
 $archivos = & git -C $raiz ls-files | Where-Object {
-    $_ -match '^(backend|frontend|kit|scripts|\.github)/' -or $sueltos -contains $_
+    $_ -match '^(backend|frontend|kit|scripts|\.github|docs/img)/' -or $sueltos -contains $_
 }
 foreach ($a in $sueltos) { if ($archivos -notcontains $a) { Fallar "$a is not tracked" } }
 foreach ($rel in $archivos) {

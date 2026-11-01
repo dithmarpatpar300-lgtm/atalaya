@@ -184,7 +184,7 @@ func (s *Servidor) decisionesMCP(proyecto string) string {
 	return fmt.Sprintf("Decisiones que esperan al dueño del proyecto: %d\n", n) + b.String()
 }
 
-// retomarMCP: lo de retomar.ps1 y ESTADO en una sola respuesta.
+// retomarMCP: lo que hace falta para retomar el proyecto y su ESTADO, en una sola respuesta.
 func (s *Servidor) retomarMCP(proyecto string) string {
 	proyecto = s.proyectoOMayor(proyecto)
 	raiz := s.raizDe(proyecto)
@@ -242,7 +242,7 @@ func (s *Servidor) retomarMCP(proyecto string) string {
 	if rel, t := estadoParaRetomar(raiz); t != "" {
 		b.WriteString("\nDe " + rel + ":\n" + t + "\n")
 	}
-	b.WriteString("\nEl árbol de git y los procesos de laboratorio no los ve Atalaya: míralos con git status y retomar.ps1.\n")
+	b.WriteString("\nEl árbol de git y los procesos de laboratorio no los ve Atalaya: míralos con git status.\n")
 	return b.String()
 }
 

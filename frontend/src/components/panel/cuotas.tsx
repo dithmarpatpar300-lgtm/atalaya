@@ -146,6 +146,8 @@ export function Cuotas({ estado, leyendo, alLeer }: { estado: EstadoCuotas | nul
   const [abierto, setAbierto] = useState(false);
   const lec = estado?.lectura;
   const posturas = new Map((lec?.advice?.providers ?? []).map((p) => [p.provider, p]));
+  // Cuotas es opcional: sin ella (ya leído, no instalada), la franja no aparece en vez de mostrar un error.
+  if (estado && estado.leida_en > 0 && !estado.instalada && !lec) return null;
   return (
     <section aria-labelledby="cuotas" className="flex flex-col gap-3 rounded-tarjeta border border-borde bg-superficie px-4 py-3 sm:px-5">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5">

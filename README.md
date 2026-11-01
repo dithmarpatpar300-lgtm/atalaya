@@ -8,6 +8,8 @@ answers the agents themselves over MCP. It only reads, listens only on `127.0.0.
 
 > The panel and the project kit are in Spanish. This README and the install guide are in both languages.
 
+![Atalaya's agents view: a session with its subagents and Codex runs, live](docs/img/agentes-oscuro.png)
+
 ---
 
 ## Why
@@ -31,6 +33,16 @@ your answer for a while. Atalaya puts all of it in one local panel and turns it 
 | **MCP server** | `que_hizo`, `buscar`, `archivo`, `salud`, `estado`, `retomar` and `preguntar`: agents ask instead of rereading documents and transcripts. Measured: half the new tokens for the same question, and more correct answers. |
 | **`atalaya-proyecto` skill** | Prepares a project (new or existing) to work with agents: installs a tiered kit (1 indexable, 2 with agents, 3 complete), opens its phase 0 and registers it in Atalaya, without overwriting anything the project already had. |
 
+## Screenshots
+
+Taken from the demo (`atalaya.exe -demo`): the projects, agents and decisions are made up.
+
+| | |
+| --- | --- |
+| ![Your projects: progress, contract and what is waiting, per project](docs/img/proyectos.png) | ![Process health: each agent against the project's rules](docs/img/salud.png) |
+| ![Decisions: what your sessions are asking you](docs/img/decisiones.png) | ![Timeline: each agent on the clock, its cap and file clashes](docs/img/linea.png) |
+| ![Statistics: minutes and tokens per task class and model](docs/img/estadisticas.png) | ![An agent: its assignment, lineage and deliverables](docs/img/agentes.png) |
+
 ## Status
 
 **Version 1.0.0, stable.** Tested and validated on **Windows 11** with **Claude Code** (CLI and desktop app) and
@@ -45,6 +57,9 @@ cd atalaya
 .\scripts\compilar.ps1          # needs Go 1.27+ and Node.js 20+; produces atalaya.exe
 .\atalaya.exe                   # then open http://127.0.0.1:7420
 ```
+
+To look around first, without Claude Code or Codex: `.\atalaya.exe -demo` serves made-up projects, agents, alerts and
+decisions (the same world as the screenshots).
 
 The full guide (registering projects, connecting Claude Code and Codex over MCP, the skill and every option) is in
 **[docs/INSTALL.md](docs/INSTALL.md)**.

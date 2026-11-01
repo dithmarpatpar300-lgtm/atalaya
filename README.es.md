@@ -6,6 +6,8 @@ responde a los propios agentes por MCP. Solo lee, escucha solo en `127.0.0.1` y 
 
 [English](README.md) · **Español** · [Instalar](docs/INSTALAR.md) · [Novedades](CHANGELOG.md) · Licencia MIT
 
+![La vista de agentes de Atalaya: una sesión con sus subagentes y llamadas a Codex, en vivo](docs/img/agentes-oscuro.png)
+
 ---
 
 ## Para qué sirve
@@ -30,6 +32,16 @@ consultar.
 | **Servidor MCP** | `que_hizo`, `buscar`, `archivo`, `salud`, `estado`, `retomar` y `preguntar`: los agentes preguntan en vez de releer documentos y transcritos. Medido: la mitad de tokens nuevos para la misma pregunta, y más aciertos. |
 | **Skill `atalaya-proyecto`** | Prepara un proyecto (nuevo o existente) para trabajar con agentes: instala un kit por niveles (1 indexable, 2 con agentes, 3 completo), abre su fase 0 y lo registra en Atalaya, sin pisar nada de lo que ya tenía. |
 
+## Capturas
+
+Sacadas de la demo (`atalaya.exe -demo`): los proyectos, los agentes y las decisiones son inventados.
+
+| | |
+| --- | --- |
+| ![Tus proyectos: avance, contrato y lo que espera, por proyecto](docs/img/proyectos.png) | ![Salud del proceso: cada agente contra las reglas del proyecto](docs/img/salud.png) |
+| ![Decisiones: lo que tus sesiones te preguntan](docs/img/decisiones.png) | ![Línea de tiempo: cada agente sobre el reloj, su tope y los cruces de archivos](docs/img/linea.png) |
+| ![Estadísticas: minutos y tokens por clase de tarea y modelo](docs/img/estadisticas.png) | ![Un agente: su asignación, su linaje y sus entregables](docs/img/agentes.png) |
+
 ## Estado
 
 **Versión 1.0.0, estable.** Probado y validado en **Windows 11** con **Claude Code** (la CLI y la app de escritorio) y
@@ -44,6 +56,9 @@ cd atalaya
 .\scripts\compilar.ps1          # pide Go 1.27+ y Node.js 20+; deja atalaya.exe
 .\atalaya.exe                   # y abre http://127.0.0.1:7420
 ```
+
+Para mirarlo antes, sin Claude Code ni Codex: `.\atalaya.exe -demo` sirve proyectos, agentes, alertas y decisiones
+inventados (el mismo mundo de las capturas).
 
 La guía completa, con el registro de proyectos, la conexión por MCP con Claude Code y Codex, la skill y las opciones,
 está en **[docs/INSTALAR.md](docs/INSTALAR.md)**.

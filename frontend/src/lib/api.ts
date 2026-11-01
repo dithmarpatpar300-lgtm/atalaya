@@ -50,6 +50,8 @@ export interface EstadoCuotas {
   origen: "ejecutable" | "archivos" | "";
   leida_en: number;
   error?: string;
+  /** Falso si la herramienta opcional Cuotas no está (ni su ejecutable ni sus archivos): la franja no se muestra. */
+  instalada: boolean;
 }
 
 export interface Tokens {

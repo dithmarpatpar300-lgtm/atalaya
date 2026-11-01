@@ -52,6 +52,8 @@ Opciones útiles:
 | `-avisos=false` | Sin notificaciones de Windows | encendidas |
 | `-diario <carpeta>` | Dónde va el diario (vacía: sin diario) | `%LOCALAPPDATA%\Atalaya\diario` |
 | `-db <archivo>` | El índice de la datapedia (se rehace si se borra) | `%LOCALAPPDATA%\Atalaya\atalaya.db` |
+| `-demo` | Un mundo de demo: proyectos, agentes, alertas y decisiones inventados, para probarlo sin agentes | apagado |
+| `-demo-carpeta <carpeta>` | Dónde se escribe ese mundo (se borra y se rehace al arrancar) | la carpeta temporal |
 
 Para que arranque con Windows, un acceso directo en la carpeta de inicio:
 

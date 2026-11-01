@@ -32,7 +32,7 @@ type Mirada struct {
 	Orden string
 }
 
-// LanzamientoCodex: una llamada a scripts/ops/codex.ps1 desde una sesión, con la mirada a la cuota anterior.
+// LanzamientoCodex: una llamada a scripts/codex.ps1 desde una sesión, con la mirada a la cuota anterior.
 type LanzamientoCodex struct {
 	Proyecto string
 	Sesion   string // ruta del transcrito
@@ -44,7 +44,7 @@ type LanzamientoCodex struct {
 
 var reTemporal = regexp.MustCompile(`(?i)[\w.-]*-tmp[\\/]+(\d{4}-\d\d-\d\d-[\w.-]+)`)
 
-// miraCuota: el paso lee la cuota (Cuotas, get_usage, o retomar.ps1, que corre «cuotas una-vez»).
+// miraCuota: el paso lee la cuota (Cuotas, get_usage, o un script del proyecto que corre «cuotas una-vez»).
 func miraCuota(p *Paso) bool {
 	if strings.HasSuffix(p.Herramienta, "get_usage") {
 		return true

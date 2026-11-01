@@ -103,7 +103,7 @@ func (s *Servidor) portafolio() []proyectoPortafolio {
 			sigla = strings.ToUpper(string([]rune(p.Nombre)[:min(2, len([]rune(p.Nombre)))]))
 		}
 		pp := proyectoPortafolio{Nombre: p.Nombre, Sigla: sigla, Ruta: p.Raiz, Nivel: p.Nivel, Existe: existe,
-			Contrato: contrato(p.Raiz, p.Registrado, f), Vivos: vivos[p.Nombre], Consultas: consultas[p.Nombre], Decisiones: decisiones[p.Nombre]}
+			Contrato: contrato(p.Raiz, p.Registrado, p.Nivel, f), Vivos: vivos[p.Nombre], Consultas: consultas[p.Nombre], Decisiones: decisiones[p.Nombre]}
 		if f != nil {
 			pp.Fase, pp.Avance = f.Fase, avanceDe(f)
 		} else if existe {
@@ -132,8 +132,10 @@ func avanceDe(f *avance.Fase) *avancePortafolio {
 	return a
 }
 
-// contrato: los siete archivos del contrato de trazabilidad, cada uno con su presencia. f es el avance ya leído.
-func contrato(raiz string, registrado bool, f *avance.Fase) []archivoContrato {
+// contrato: los archivos del contrato de trazabilidad que pide el nivel del proyecto, cada uno con su presencia: cinco
+// hasta el nivel 1 (el kit de nivel 1 no instala documentos de operación ni roles) y siete desde el 2. f es el avance
+// ya leído.
+func contrato(raiz string, registrado bool, nivel int, f *avance.Fase) []archivoContrato {
 	hay := func(rel string, dir bool) bool {
 		fi, err := os.Stat(filepath.Join(raiz, filepath.FromSlash(rel)))
 		return err == nil && fi.IsDir() == dir
@@ -158,15 +160,11 @@ func contrato(raiz string, registrado bool, f *avance.Fase) []archivoContrato {
 	if r := estadisticas.RutaAgentes(raiz); !op.Esta && r != "" && hay(r, false) {
 		op.Ruta, op.Esta = r, true
 	}
-	return []archivoContrato{
-		archivo("agents", "AGENTS.md", "AGENTS.md"),
-		archivo("mcp", ".mcp.json", ".mcp.json"),
-		estado,
-		av,
-		op,
-		{ID: "subagentes", Nombre: ".claude/agents/", Ruta: ".claude/agents/", Esta: hay(".claude/agents", true)},
-		{ID: "registro", Nombre: "registrado en proyectos.json", Ruta: "proyectos.json", Esta: registrado},
+	out := []archivoContrato{archivo("agents", "AGENTS.md", "AGENTS.md"), archivo("mcp", ".mcp.json", ".mcp.json"), estado, av}
+	if nivel >= 2 {
+		out = append(out, op, archivoContrato{ID: "subagentes", Nombre: ".claude/agents/", Ruta: ".claude/agents/", Esta: hay(".claude/agents", true)})
 	}
+	return append(out, archivoContrato{ID: "registro", Nombre: "registrado en proyectos.json", Ruta: "proyectos.json", Esta: registrado})
 }
 
 // consultasDeHoy: por proyecto, los pasos «Atalaya» (mcp__atalaya__… en Claude Code; en Codex, la misma herramienta en
