@@ -1,5 +1,7 @@
 "use client";
 
+import { t } from "@/lib/i18n";
+
 import { COLOR_HILO, type FaseAvance, horas, type Paquete, tonoEstado, tramos } from "@/lib/avance";
 
 /**
@@ -24,35 +26,35 @@ export function HiloFase({
   const tono = elegido ? tonoEstado(elegido.estado) : null;
   return (
     <div className="flex flex-col gap-2">
-      <div role="group" aria-label="Paquetes de la fase: pasa el puntero o enfoca un tramo" className="flex gap-0.5" style={{ height: alto }}>
-        {ts.map((t) => {
-          const on = elegido?.id === t.paquete.id;
+      <div role="group" aria-label={t("Paquetes de la fase: pasa el puntero o enfoca un tramo")} className="flex gap-0.5" style={{ height: alto }}>
+        {ts.map((tr) => {
+          const on = elegido?.id === tr.paquete.id;
           return (
             <button
-              key={t.paquete.id}
+              key={tr.paquete.id}
               type="button"
-              aria-label={t.aria}
+              aria-label={tr.aria}
               aria-pressed={on}
-              onMouseEnter={() => alElegir(t.paquete.id)}
-              onFocus={() => alElegir(t.paquete.id)}
-              onClick={() => alElegir(t.paquete.id)}
+              onMouseEnter={() => alElegir(tr.paquete.id)}
+              onFocus={() => alElegir(tr.paquete.id)}
+              onClick={() => alElegir(tr.paquete.id)}
               className="relative min-w-0 overflow-hidden rounded-[3px] transition-[filter] duration-100 hover:brightness-125 focus-visible:brightness-125 motion-reduce:transition-none"
-              style={{ flex: `${t.peso} 1 0`, background: t.fondo, boxShadow: on ? "0 0 0 2px var(--superficie), 0 0 0 3px var(--texto)" : undefined }}
+              style={{ flex: `${tr.peso} 1 0`, background: tr.fondo, boxShadow: on ? "0 0 0 2px var(--superficie), 0 0 0 3px var(--texto)" : undefined }}
             >
-              {t.relleno > 0 && <span aria-hidden="true" className="absolute inset-y-0 left-0" style={{ width: `${t.relleno}%`, background: COLOR_HILO.curso }} />}
+              {tr.relleno > 0 && <span aria-hidden="true" className="absolute inset-y-0 left-0" style={{ width: `${tr.relleno}%`, background: COLOR_HILO.curso }} />}
             </button>
           );
         })}
       </div>
       {etiquetas && (
         <div aria-hidden="true" className="flex gap-0.5">
-          {ts.map((t) => (
+          {ts.map((tr) => (
             <span
-              key={t.paquete.id}
-              className={`dato min-w-0 truncate text-center text-[11px] ${elegido?.id === t.paquete.id ? "text-texto" : "text-tenue"}`}
-              style={{ flex: `${t.peso} 1 0` }}
+              key={tr.paquete.id}
+              className={`dato min-w-0 truncate text-center text-[11px] ${elegido?.id === tr.paquete.id ? "text-texto" : "text-tenue"}`}
+              style={{ flex: `${tr.peso} 1 0` }}
             >
-              {t.paquete.id}
+              {tr.paquete.id}
             </span>
           ))}
         </div>
@@ -60,23 +62,26 @@ export function HiloFase({
       <div aria-live="polite" className="dato grid h-[30px] grid-cols-[3rem_minmax(0,1fr)_3rem_5.5rem_3rem] items-center gap-2 rounded-control bg-hundido px-2.5 text-[12.5px]">
         {elegido ? (
           <>
-            <b className="font-semibold">{elegido.id}</b>
+            {/* Fila de alto fijo: un nombre más largo que su columna se corta, nunca la parte en varias líneas. */}
+            <b className="truncate font-semibold" title={elegido.id}>
+              {elegido.id}
+            </b>
             <span className="truncate font-sans" title={elegido.que}>
               {elegido.que || "—"}
             </span>
             <span className="text-right text-suave">{horas(elegido.horas)} h</span>
-            <span className={tono?.clase}>{tono?.palabra}</span>
+            <span className={tono?.clase}>{tono ? t(tono.palabra) : ""}</span>
             <span className="text-right">{elegido.pct} %</span>
           </>
         ) : (
-          <span className="col-span-full font-sans text-tenue">Sin paquetes en la tabla.</span>
+          <span className="col-span-full font-sans text-tenue">{t("Sin paquetes en la tabla.")}</span>
         )}
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-ayuda text-suave">
-        <Clave color={COLOR_HILO.hecho} texto="hecho" />
-        <Clave color={COLOR_HILO.curso} texto="avanzado en curso" />
-        <Clave color={COLOR_HILO.falta} texto="lo que falta" />
-        <span className="ml-auto text-tenue">el ancho de cada tramo son sus horas</span>
+        <Clave color={COLOR_HILO.hecho} texto={t("hecho")} />
+        <Clave color={COLOR_HILO.curso} texto={t("avanzado en curso")} />
+        <Clave color={COLOR_HILO.falta} texto={t("lo que falta")} />
+        <span className="ml-auto text-tenue">{t("el ancho de cada tramo son sus horas")}</span>
       </div>
     </div>
   );

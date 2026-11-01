@@ -5,6 +5,8 @@ import { Segmentado } from "@/components/ui/segmentado";
 import { api, type DetallePaso, type Paso, type RespuestaPasos } from "@/lib/api";
 import { FONDO_PROVEEDOR } from "@/lib/proveedor";
 import { hora } from "@/lib/formato";
+import { metaPaso } from "@/lib/hilos";
+import { t, tServidor } from "@/lib/i18n";
 import { CuerpoPaso } from "./detalle-paso";
 
 const TIPOS = ["Edita", "Escribe", "Ejecuta", "Lee", "Busca", "Delega", "Atalaya"];
@@ -18,13 +20,13 @@ const CUANDO: { valor: string; nombre: string; horas: number }[] = [
 function Resaltado({ texto, palabras }: { texto: string; palabras: string[] }) {
   if (palabras.length === 0) return <>{texto}</>;
   const re = new RegExp(`(${palabras.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
-  const partes: ReactNode[] = texto.split(re).map((t, i) =>
+  const partes: ReactNode[] = texto.split(re).map((trozo, i) =>
     i % 2 ? (
       <mark key={i} className="rounded-[3px] bg-acento-suave px-0.5 text-acento-fuerte">
-        {t}
+        {trozo}
       </mark>
     ) : (
-      t
+      trozo
     ),
   );
   return <>{partes}</>;
@@ -119,16 +121,16 @@ export function BuscarPasos({
   const visible = detalle && elegido && detalle.clave === `${elegido.agente}#${elegido.paso.n}` ? detalle.d : null;
 
   return (
-    <main id="contenido" tabIndex={-1} aria-label="Pasos de los agentes" className="relative mx-auto flex w-full max-w-[1520px] flex-col items-start gap-5 p-5 lg:flex-row">
+    <main id="contenido" tabIndex={-1} aria-label={t("Pasos de los agentes")} className="relative mx-auto flex w-full max-w-[1520px] flex-col items-start gap-5 p-5 lg:flex-row">
       <aside
-        aria-label="Búsqueda en los pasos"
+        aria-label={t("Búsqueda en los pasos")}
         className="w-full overflow-hidden rounded-tarjeta border border-borde bg-superficie lg:sticky lg:top-[4.25rem] lg:w-[30rem] lg:shrink-0"
       >
         <div className="flex flex-col gap-3 border-b border-borde p-4">
           <h2 className="m-0 text-encabezado font-semibold">Datapedia</h2>
           {selector}
           <label className="sr-only" htmlFor="buscar-pasos">
-            Buscar en los pasos de los agentes
+            {t("Buscar en los pasos de los agentes")}
           </label>
           <div className="relative">
             <input
@@ -137,43 +139,43 @@ export function BuscarPasos({
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Orden, archivo o resumen: controller.rs, check.ps1…"
+              placeholder={t("Orden, archivo o resumen: controller.rs, check.ps1…")}
               autoComplete="off"
               spellCheck={false}
               className="h-(--alto-control) w-full rounded-control border border-borde-campo bg-superficie pr-24 pl-3 text-cuerpo text-texto placeholder:text-tenue hover:border-suave focus-visible:border-acento"
             />
-            <span className="dato pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-ayuda text-tenue">{res ? `${res.total} pasos` : ""}</span>
+            <span className="dato pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-ayuda text-tenue">{res ? (res.total === 1 ? t("1 paso") : t("{n} pasos", { n: res.total })) : ""}</span>
           </div>
           <Segmentado
-            etiqueta="Proyectos"
+            etiqueta={t("Proyectos")}
             valor={alcance}
             alCambiar={setAlcance}
             opciones={[
-              { valor: "proyecto", nombre: proyecto || "Este proyecto" },
-              { valor: "todos", nombre: "Todos los proyectos" },
+              { valor: "proyecto", nombre: proyecto || t("Este proyecto") },
+              { valor: "todos", nombre: t("Todos los proyectos") },
             ]}
           />
-          <div role="group" aria-label="Tipo de paso" className="flex flex-wrap gap-1.5">
+          <div role="group" aria-label={t("Tipo de paso")} className="flex flex-wrap gap-1.5">
             <Opcion activo={tipo === ""} alPulsar={() => setTipo("")}>
-              Todos
+              {t("Todos")}
             </Opcion>
-            {TIPOS.map((t) => (
-              <Opcion key={t} activo={tipo === t} alPulsar={() => setTipo(tipo === t ? "" : t)}>
-                {t === "Atalaya" ? "Consultas a Atalaya" : t}
+            {TIPOS.map((tipoPaso) => (
+              <Opcion key={tipoPaso} activo={tipo === tipoPaso} alPulsar={() => setTipo(tipo === tipoPaso ? "" : tipoPaso)}>
+                {t(tipoPaso === "Atalaya" ? "Consultas a Atalaya" : tipoPaso)}
               </Opcion>
             ))}
           </div>
-          <div role="group" aria-label="Cuándo" className="flex flex-wrap items-center gap-1.5">
-            <span className="text-ayuda text-tenue">Cuándo</span>
+          <div role="group" aria-label={t("Cuándo")} className="flex flex-wrap items-center gap-1.5">
+            <span className="text-ayuda text-tenue">{t("Cuándo")}</span>
             {CUANDO.map((c) => (
               <Opcion key={c.valor} activo={cuando === c.valor} alPulsar={() => setCuando(c.valor)}>
-                {c.nombre}
+                {t(c.nombre)}
               </Opcion>
             ))}
           </div>
         </div>
         {error ? (
-          <p className="m-0 px-4 py-6 text-rotulo text-error">No se pudo buscar: {error}</p>
+          <p className="m-0 px-4 py-6 text-rotulo text-error">{t("No se pudo buscar: {error}", { error: tServidor(error) })}</p>
         ) : !res ? (
           <div className="flex flex-col gap-2 p-3" aria-hidden="true">
             {[0, 1, 2, 3].map((i) => (
@@ -181,12 +183,12 @@ export function BuscarPasos({
             ))}
           </div>
         ) : grupos.length === 0 ? (
-          <p className="m-0 px-4 py-6 text-rotulo text-suave">Ningún paso coincide. Prueba con parte del nombre del archivo, otro periodo o quita el filtro de tipo.</p>
+          <p className="m-0 px-4 py-6 text-rotulo text-suave">{t("Ningún paso coincide. Prueba con parte del nombre del archivo, otro periodo o quita el filtro de tipo.")}</p>
         ) : (
           <div aria-live="polite" className="scroll-interno flex max-h-[calc(100vh-23rem)] flex-col gap-3 overflow-y-auto p-2">
             {res.total > mostrados && (
               <p className="m-0 px-2 text-ayuda text-tenue">
-                Los {mostrados} más recientes de {res.total}. Afina con más palabras, el tipo o el periodo.
+                {t("Los {mostrados} más recientes de {total}. Afina con más palabras, el tipo o el periodo.", { mostrados, total: res.total })}
               </p>
             )}
             {grupos.map((g) => (
@@ -212,7 +214,7 @@ export function BuscarPasos({
                     >
                       <span className="dato pt-px text-ayuda text-suave">{hora(new Date(p.hora))}</span>
                       <span className={`justify-self-start rounded-chip px-1.5 text-ayuda ${p.tipo === "Atalaya" ? "bg-acento text-sobre-acento" : "bg-elevado text-suave"}`}>
-                        {p.tipo}
+                        {t(p.tipo)}
                       </span>
                       <span className="flex min-w-0 flex-col">
                         <span className={`truncate text-rotulo ${p.error ? "text-error" : ""}`}>
@@ -222,7 +224,7 @@ export function BuscarPasos({
                           <span className="dato truncate text-ayuda text-tenue">
                             {p.hilo && !p.resumen.includes(p.hilo) ? <Resaltado texto={p.hilo} palabras={palabras} /> : null}
                             {p.hilo && !p.resumen.includes(p.hilo) && p.meta ? " · " : ""}
-                            {p.meta}
+                            {metaPaso(p.meta)}
                           </span>
                         )}
                       </span>
@@ -236,14 +238,14 @@ export function BuscarPasos({
       </aside>
 
       <div className="min-w-0 flex-1">
-        <article aria-label="El paso elegido" className="flex flex-col gap-4 rounded-tarjeta border border-borde bg-superficie px-6 py-5">
+        <article aria-label={t("El paso elegido")} className="flex flex-col gap-4 rounded-tarjeta border border-borde bg-superficie px-6 py-5">
           {elegido ? (
             <>
               <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-borde pb-4">
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="text-encabezado font-semibold">{elegido.rol}</span>
                   <span className="dato truncate text-ayuda text-tenue">
-                    {elegido.proyecto} · paso {elegido.paso.n} · {hora(new Date(elegido.paso.hora))} · {elegido.paso.tipo}
+                    {t("{proyecto} · paso {n} · {hora} · {tipo}", { proyecto: elegido.proyecto, n: elegido.paso.n, hora: hora(new Date(elegido.paso.hora)), tipo: t(elegido.paso.tipo) })}
                   </span>
                 </span>
                 <button
@@ -251,7 +253,7 @@ export function BuscarPasos({
                   onClick={() => alAbrirPaso(elegido.proyecto, elegido.agente, elegido.paso.n)}
                   className="h-(--alto-control-compacto) rounded-control bg-acento px-3 text-rotulo font-medium text-sobre-acento hover:bg-acento-fuerte"
                 >
-                  Abrir en la actividad →
+                  {t("Abrir en la actividad →")}
                 </button>
               </header>
               {visible ? (
@@ -259,12 +261,12 @@ export function BuscarPasos({
                   <CuerpoPaso d={visible} modo="estilizado" />
                 </div>
               ) : (
-                <div className="esqueleto h-40 rounded-panel" aria-label="Cargando" />
+                <div className="esqueleto h-40 rounded-panel" aria-label={t("Cargando")} />
               )}
             </>
           ) : (
             <p className="m-0 text-suave">
-              Busca en lo que hicieron todos los agentes: una orden, un archivo, un resumen. Elige un paso para ver su diff o su salida.
+              {t("Busca en lo que hicieron todos los agentes: una orden, un archivo, un resumen. Elige un paso para ver su diff o su salida.")}
             </p>
           )}
         </article>

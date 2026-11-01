@@ -2,6 +2,7 @@
 // poder probarlas. El backend decide cada marca (backend/internal/proceso); aquí solo se cuenta y se rotula.
 
 import type { Regla } from "./api.ts";
+import { decimal, idioma, tServidor } from "./i18n.ts";
 
 export type Marca = "cumple" | "falta" | "medias" | "no_aplica" | "sin_dato";
 export type Periodo = "hoy" | "fase" | "todo";
@@ -67,6 +68,11 @@ export const MARCA: Record<Marca, { signo: string; palabra: string }> = {
   sin_dato: { signo: "?", palabra: "sin dato" },
 };
 
+const MARCA_EN: Record<Marca, string> = { cumple: "met", falta: "violated", medias: "partial", no_aplica: "not applicable", sin_dato: "no data" };
+
+/** La palabra de la marca en el idioma del panel (no pasa por el diccionario: «falta» ya significa otra cosa allí). */
+export const palabraMarca = (m: Marca): string => (idioma() === "en" ? MARCA_EN[m] : MARCA[m].palabra);
+
 /** Clases de color de cada marca: el chip de la celda y la tarjeta del hallazgo. */
 export const COLOR_MARCA: Record<Marca, { texto: string; fondo: string }> = {
   cumple: { texto: "text-ok", fondo: "bg-ok-suave" },
@@ -122,7 +128,7 @@ export function resumen(inf: Pick<InformeProceso, "reglas" | "filas" | "temporal
     enRegla: inf.filas.filter(enRegla).length,
     faltas,
     conFaltas: inf.filas.filter((f) => f.faltas > 0).length,
-    reglasConFaltas: inf.reglas.filter((r) => conFalta.has(r.id)).map((r) => (nombres.get(r.id) ?? r.id).toLowerCase()),
+    reglasConFaltas: inf.reglas.filter((r) => conFalta.has(r.id)).map((r) => tServidor(nombres.get(r.id) ?? r.id).toLowerCase()),
     medias,
     mediasActivos,
     temporales: inf.temporales.length,
@@ -139,7 +145,7 @@ export function peso(b: number): string {
     n /= 1024;
     i++;
   }
-  return i === 0 ? `${b} B` : `${n.toFixed(1).replace(".", ",")} ${u[i]}`;
+  return i === 0 ? `${b} B` : `${decimal(n)} ${u[i]}`;
 }
 
 /** La fila que se muestra al llegar: la que sigue elegida, si no la primera con faltas, si no la primera. */

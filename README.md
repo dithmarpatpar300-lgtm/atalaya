@@ -6,7 +6,8 @@ answers the agents themselves over MCP. It only reads, listens only on `127.0.0.
 
 **English** · [Español](README.es.md) · [Install](docs/INSTALL.md) · [Changelog](CHANGELOG.md) · MIT license
 
-> The panel and the project kit are in Spanish. This README and the install guide are in both languages.
+> The panel is in English and Spanish (the ES/EN button in the header); the project kit is in Spanish. This README and the
+> install guide are in both languages.
 
 ![Atalaya's agents view: a session with its subagents and Codex runs, live](docs/img/agentes-oscuro.png)
 
@@ -46,8 +47,8 @@ Taken from the demo (`atalaya.exe -demo`): the projects, agents and decisions ar
 ## Status
 
 **Version 1.0.0, stable.** Tested and validated on **Windows 11** with **Claude Code** (CLI and desktop app) and
-**Codex CLI**. The Linux and macOS builds compile but have not been tested, and they have no notifications. The UI and
-the kit are in Spanish.
+**Codex CLI**. The Linux and macOS builds compile but have not been tested, and they have no notifications. The UI is in
+English and Spanish; the kit is in Spanish.
 
 ## Quick start
 

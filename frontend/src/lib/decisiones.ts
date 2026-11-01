@@ -1,6 +1,8 @@
 // Las decisiones que las sesiones te piden. Solo lectura:
 // Atalaya muestra la pregunta, sus opciones y la recomendada; respondes en la app.
 
+import { t } from "./i18n.ts";
+
 export interface OpcionDecision {
   etiqueta: string;
   nota?: string;
@@ -55,7 +57,7 @@ export function agrupar(ds: Decision[]): Grupos {
 export function tituloDecision(d: Decision): string {
   if (d.preguntas.length === 1) return d.preguntas[0].texto;
   const temas = d.preguntas.map((q) => (q.encabezado || q.texto).toLowerCase());
-  return `${d.preguntas.length} decisiones: ${temas.slice(0, -1).join(", ")} y ${temas[temas.length - 1]}`;
+  return t("{n} decisiones: {temas} y {ultimo}", { n: d.preguntas.length, temas: temas.slice(0, -1).join(", "), ultimo: temas[temas.length - 1] });
 }
 
 /** Lo que elegiste, corto, para la fila de las respondidas. */
@@ -76,7 +78,7 @@ export function elegida(q: PreguntaDecision, o: OpcionDecision): boolean {
 /** «hace 6 min», «hace 2 h», «hace 3 d». */
 export function hace(iso: string, ahora: number): string {
   const min = Math.max(0, Math.round((ahora - Date.parse(iso)) / 60_000));
-  if (min < 60) return `hace ${min} min`;
-  if (min < 48 * 60) return `hace ${Math.round(min / 60)} h`;
-  return `hace ${Math.round(min / 1440)} d`;
+  if (min < 60) return t("hace {d}", { d: `${min} min` });
+  if (min < 48 * 60) return t("hace {d}", { d: `${Math.round(min / 60)} h` });
+  return t("hace {d}", { d: `${Math.round(min / 1440)} d` });
 }

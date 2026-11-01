@@ -3,7 +3,8 @@
 **English** · [Español](INSTALAR.md) · [Back to the README](../README.md)
 
 This guide gets Atalaya running, with your projects registered and connected to Claude Code and Codex. It is tested on
-Windows 11; everything you type is PowerShell. The panel and the kit are in Spanish.
+Windows 11; everything you type is PowerShell. The panel is in English and Spanish
+(the ES/EN button in the header); the kit is in Spanish.
 
 ## 1. Requirements
 

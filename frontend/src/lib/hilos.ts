@@ -1,3 +1,4 @@
+import { decimal, t } from "./i18n.ts";
 // La geometría de los hilos de la línea de tiempo: filas de alto fijo y un solo SVG
 // que dibuja el riel, los desvíos, las vueltas, el mismo archivo, los paralelos y las delegaciones. Sin React ni DOM:
 // se prueba con `node --test` (hilos.test.mts) y el componente solo pinta lo que devuelve.
@@ -148,8 +149,21 @@ export function geometria(filas: Fila[], colores: Map<string, string>): { trazos
 /** Coma decimal y un decimal fijo: «0,4 k», «181,4 k», «4,92 M» (la regla: lo que cambia en vivo no mueve el diseño; las cifras no bailan). */
 export function tokensCortos(n: number): string {
   if (n < 1000) return `${n}`;
-  if (n < 1_000_000) return `${(n / 1000).toFixed(1).replace(".", ",")} k`;
-  return `${(n / 1_000_000).toFixed(2).replace(".", ",")} M`;
+  if (n < 1_000_000) return `${decimal(n / 1000)} k`;
+  return `${decimal(n / 1_000_000, 2)} M`;
+}
+
+/** El resumen corto del resultado de un paso que arma el servidor («12 líneas», «error», «Exit code 1»), en el idioma del panel. */
+export function metaPaso(meta: string): string {
+  if (meta === "error") return t("error");
+  if (meta === "1 línea") return t("1 línea");
+  let m = /^(\d+) líneas$/.exec(meta);
+  if (m) return t("{n} líneas", { n: m[1] });
+  m = /^(\d+) caracteres$/.exec(meta);
+  if (m) return t("{n} caracteres", { n: m[1] });
+  m = /^salida 0 · (\d+) líneas$/.exec(meta);
+  if (m) return t("salida 0 · {n} líneas", { n: m[1] });
+  return meta;
 }
 
 /** La parte de la salida de su mensaje que le toca a un paso: las llamadas de un lote la reparten. */

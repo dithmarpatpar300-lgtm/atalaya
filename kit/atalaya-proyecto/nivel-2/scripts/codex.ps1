@@ -7,7 +7,8 @@
   - Adds a detached git worktree of -Base under -TmpRoot. With -IncluirCambios
     it also copies the working tree's uncommitted changes (tracked diff and
     untracked files) so Codex can see them; -Parche applies one patch file on
-    top (only inside the worktree).
+    top (only inside the worktree). The installed node_modules (at the root or
+    one folder down) are linked in, so Codex can type-check and run the tests.
   - Read-only by default. With -Escribe the sandbox is workspace-write, still
     inside the worktree only: at the end every change Codex made there is saved
     as docs/trazabilidad/<Fase>/codex/<date>-<Tema>.patch. The script never
@@ -137,6 +138,20 @@ try {
         $scope = "$scope + parche $(Split-Path -Leaf $patchPath) sin commit"
     }
 
+    # The installed dependencies (node_modules at the root or one folder down), linked into the worktree so Codex
+    # can type-check and test; they stay out of the patch because git ignores them. Removed first in `finally`.
+    $links = @()
+    $dirs = @($root) + @(Get-ChildItem -LiteralPath $root -Directory | Where-Object { $_.Name -notmatch '^\.' } | ForEach-Object { $_.FullName })
+    foreach ($dir in $dirs) {
+        $from = Join-Path $dir 'node_modules'
+        if (-not (Test-Path -LiteralPath $from)) { continue }
+        $to = Join-Path $tree $from.Substring($root.Length).TrimStart('\')
+        if ((Test-Path -LiteralPath (Split-Path -Parent $to)) -and -not (Test-Path -LiteralPath $to)) {
+            & cmd.exe /d /c "mklink /J `"$to`" `"$from`" >nul 2>&1"
+            if (Test-Path -LiteralPath $to) { $links += $to }
+        }
+    }
+
     # The project's standing rules for Codex, if it has them; otherwise the task alone.
     $preambulo = Join-Path $root 'docs\operacion\codex-preambulo.md'
     $prompt = [System.IO.File]::ReadAllText($encargoPath, $utf8)
@@ -238,6 +253,8 @@ finally {
         if (Test-Path -LiteralPath $outFile) { $liveMeta.informe = "docs/trazabilidad/$Fase/codex/$date-$Tema.md" }
         [System.IO.File]::WriteAllText("$liveBase.meta.json", ($liveMeta | ConvertTo-Json -Compress), $utf8)
     }
+    # The dependency links go first: rmdir removes a junction without touching what it points to.
+    foreach ($link in $links) { & cmd.exe /d /c "rmdir `"$link`" 2>nul" }
     if ($treeAdded) {
         & cmd.exe /d /c "git -C `"$root`" worktree remove --force `"$tree`" 2>&1" | Out-Null
     }

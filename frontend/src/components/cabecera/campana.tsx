@@ -8,6 +8,7 @@ import { marcasDe } from "@/lib/alertas";
 import type { Alerta, EstadoAvisos, Regla } from "@/lib/api";
 import { cuando } from "@/lib/formato";
 import { useCerrarFuera } from "@/lib/use-fuera";
+import { t, tServidor } from "@/lib/i18n";
 
 type Filtro = "sinver" | "todas";
 
@@ -73,15 +74,15 @@ export function Campana({
   const grave = sinVer.some((a) => a.nivel === "error");
   const ultimo = avisos?.enviados?.[0];
   const estado = estadoAviso || (ultimo
-    ? `Último: ${cuando(new Date(ultimo.hora))} · ${ultimo.titulo}${ultimo.error ? ` · Error: ${ultimo.error}` : ""}`
-    : "Todavía no salió ningún aviso.");
+    ? t("Último: {hora} · {titulo}{error}", { hora: cuando(new Date(ultimo.hora)), titulo: tServidor(ultimo.titulo), error: ultimo.error ? ` · ${t("Error: {error}", { error: tServidor(ultimo.error) })}` : "" })
+    : t("Todavía no salió ningún aviso."));
 
   async function ejecutarAviso(accion: () => Promise<void>, prueba = false) {
     setGuardando(true);
-    setEstadoAviso(prueba ? "Enviando…" : "");
+    setEstadoAviso(prueba ? t("Enviando…") : "");
     try {
       await accion();
-      setEstadoAviso(prueba ? "Llegó la prueba: mírala en la esquina de la pantalla." : "");
+      setEstadoAviso(prueba ? t("Llegó la prueba: mírala en la esquina de la pantalla.") : "");
     } catch (e) {
       setEstadoAviso(e instanceof Error ? e.message : String(e));
     } finally {
@@ -97,8 +98,8 @@ export function Campana({
         onClick={alternar}
         aria-haspopup="dialog"
         aria-expanded={abierto}
-        aria-label={sinVer.length ? `Alertas: ${sinVer.length} sin ver` : "Alertas: nada sin ver"}
-        title="Alertas de las reglas"
+        aria-label={sinVer.length ? t("Alertas: {n} sin ver", { n: sinVer.length }) : t("Alertas: nada sin ver")}
+        title={t("Alertas de las reglas")}
         className={`relative grid size-[34px] place-items-center rounded-full border transition-colors duration-150 ${
           abierto ? "border-acento bg-elevado text-texto" : "border-borde text-suave hover:border-borde-fuerte hover:bg-elevado hover:text-texto"
         }`}
@@ -120,20 +121,20 @@ export function Campana({
         <div
           ref={caja}
           role="dialog"
-          aria-label="Alertas"
+          aria-label={t("Alertas")}
           className="capa aparecer-menu fixed z-40 flex flex-col rounded-panel"
           style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: `calc(100vh - ${pos.top + 12}px)` }}
         >
           <div className="flex items-center gap-3 border-b border-borde p-3">
-            <h2 className="m-0 flex-1 text-encabezado font-semibold">Alertas</h2>
+            <h2 className="m-0 flex-1 text-encabezado font-semibold">{t("Alertas")}</h2>
             <div className="w-44">
               <Segmentado
-                etiqueta="Qué alertas"
+                etiqueta={t("Qué alertas")}
                 valor={filtro}
                 alCambiar={setFiltro}
                 opciones={[
-                  { valor: "sinver", nombre: "Sin ver", cuenta: sinVer.length },
-                  { valor: "todas", nombre: "Todas", cuenta: alertas.length },
+                  { valor: "sinver", nombre: t("Sin ver"), cuenta: sinVer.length },
+                  { valor: "todas", nombre: t("Todas"), cuenta: alertas.length },
                 ]}
               />
             </div>
@@ -142,7 +143,7 @@ export function Campana({
           <div className="scroll-interno flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
             {lista.length === 0 ? (
               <p className="m-0 px-2 py-6 text-center text-rotulo text-suave">
-                {alertas.length === 0 ? "Ninguna regla rota ahora." : "Nada sin ver. Las vistas siguen en «Todas»."}
+                {alertas.length === 0 ? t("Ninguna regla rota ahora.") : t("Nada sin ver. Las vistas siguen en «Todas».")}
               </p>
             ) : (
               lista.map((a) => (
@@ -163,29 +164,29 @@ export function Campana({
 
           <div className="flex flex-col gap-2 border-t border-borde p-3">
             <div className="flex items-center gap-2">
-              <h3 className="m-0 flex-1 text-rotulo font-semibold">Reglas vigiladas</h3>
+              <h3 className="m-0 flex-1 text-rotulo font-semibold">{t("Reglas vigiladas")}</h3>
               {sinVer.length > 1 && (
                 <button type="button" onClick={alMarcarTodas} className="h-7 rounded-control px-2 text-ayuda text-suave hover:bg-elevado hover:text-texto">
-                  Marcar todas como vistas
+                  {t("Marcar todas como vistas")}
                 </button>
               )}
             </div>
             <ul className="m-0 grid list-none grid-cols-1 gap-1.5 p-0 sm:grid-cols-2">
               {reglas.map((r) => (
-                <li key={r.id} className="flex flex-col rounded-control bg-elevado/60 px-2.5 py-1.5" title={r.nota}>
+                <li key={r.id} className="flex flex-col rounded-control bg-elevado/60 px-2.5 py-1.5" title={tServidor(r.nota)}>
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-ayuda">{r.nombre}</span>
-                    <span className="dato text-ayuda font-medium">{r.umbral}</span>
+                    <span className="truncate text-ayuda">{tServidor(r.nombre)}</span>
+                    <span className="dato text-ayuda font-medium">{tServidor(r.umbral)}</span>
                   </span>
-                  <span className="truncate text-[11px] text-tenue">{r.omision ? "por omisión, no está escrita" : r.fuente}</span>
+                  <span className="truncate text-[11px] text-tenue">{r.omision ? t("por omisión, no está escrita") : r.fuente}</span>
                 </li>
               ))}
             </ul>
             {avisos && (
               <div className="flex flex-col gap-1">
-                <h3 className="m-0 text-rotulo font-semibold">Notificaciones de Windows</h3>
+                <h3 className="m-0 text-rotulo font-semibold">{t("Notificaciones de Windows")}</h3>
                 {!avisos.activos ? (
-                  <p className="m-0 text-ayuda text-tenue">Apagadas: Atalaya arrancó con <code>-avisos=false</code>.</p>
+                  <p className="m-0 text-ayuda text-tenue">{t("Apagadas: Atalaya arrancó con {opcion}.", { opcion: "-avisos=false" })}</p>
                 ) : (
                   <>
                     {([
@@ -204,14 +205,14 @@ export function Campana({
                           <span className={`absolute top-0.5 size-4 rounded-full bg-superficie transition-[left] duration-150 ${avisos[clave] ? "left-4" : "left-0.5"}`} />
                         </span>
                         <span className="flex flex-col">
-                          <span>{nombre}</span>
-                          <span className="text-ayuda text-tenue">{ayuda}</span>
+                          <span>{t(nombre)}</span>
+                          <span className="text-ayuda text-tenue">{t(ayuda)}</span>
                         </span>
                       </button>
                     ))}
                     <div className="flex items-center gap-2">
                       <button type="button" disabled={guardando} onClick={() => ejecutarAviso(alProbarAviso, true)} className="h-7 rounded-control px-2 text-ayuda text-suave hover:bg-elevado hover:text-texto disabled:opacity-50">
-                        Probar
+                        {t("Probar")}
                       </button>
                       <span className="h-5 min-w-0 flex-1 truncate text-ayuda text-tenue" title={estado}>{estado}</span>
                     </div>

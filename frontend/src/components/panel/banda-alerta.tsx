@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { BarraAlerta, CabeceraAlerta, CarrilNivel, fuenteDe } from "@/components/ui/tarjeta-alerta";
 import { COLOR, marcasDe } from "@/lib/alertas";
 import type { Alerta, Regla } from "@/lib/api";
+import { t, tServidor } from "@/lib/i18n";
 
 /**
  * Una regla rota que no espera (un error sin ver: la frontera de archivos o un agente que pasó su presupuesto),
@@ -22,7 +23,7 @@ export function BandaAlerta({
   alVisto: () => void;
 }) {
   const c = COLOR[alerta.nivel];
-  const linea = `${alerta.texto} · ${fuenteDe(alerta)}`;
+  const linea = `${tServidor(alerta.texto)} · ${fuenteDe(alerta)}`;
   // Bajo la cabecera, que en un ancho de teléfono se parte en dos filas y pasa de 60 px: se mide y se sigue.
   const [top, setTop] = useState(60);
   useEffect(() => {
@@ -45,7 +46,7 @@ export function BandaAlerta({
         <div className="flex min-w-0 flex-[1_1_20rem] flex-col gap-0.5">
           <CabeceraAlerta alerta={alerta} />
           <p className="m-0 h-[1.125rem] truncate text-rotulo" title={linea}>
-            {alerta.texto}
+            {tServidor(alerta.texto)}
             <span className="text-tenue"> · {fuenteDe(alerta)}</span>
           </p>
         </div>
@@ -56,10 +57,10 @@ export function BandaAlerta({
         )}
         <span className="ml-auto flex shrink-0 gap-2">
           <button type="button" onClick={alVer} className={`h-8 rounded-control border px-3 text-rotulo whitespace-nowrap hover:bg-elevado ${c.borde}`}>
-            Ver el agente
+            {t("Ver el agente")}
           </button>
           <button type="button" onClick={alVisto} className={`h-8 rounded-control px-3 text-rotulo font-medium hover:opacity-90 ${alerta.nivel === "info" ? "bg-elevado text-texto" : `${c.barra} text-superficie`}`}>
-            Visto
+            {t("Visto")}
           </button>
         </span>
       </div>

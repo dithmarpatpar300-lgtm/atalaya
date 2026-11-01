@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { hora } from "@/lib/formato";
+import { t, tServidor } from "@/lib/i18n";
 import { Documento } from "./detalle-agente";
 import {
   type Celda,
@@ -13,6 +14,7 @@ import {
   hallazgos,
   type InformeProceso,
   MARCA,
+  palabraMarca,
   type Periodo,
   peso,
   puntoDe,
@@ -20,9 +22,9 @@ import {
 } from "@/lib/salud";
 
 const PERIODOS: { id: Periodo; nombre: (fase?: string) => string }[] = [
-  { id: "hoy", nombre: () => "Hoy" },
-  { id: "fase", nombre: (f) => (f ? `Fase ${f.replace(/^F/, "")}` : "Fase") },
-  { id: "todo", nombre: () => "Todo" },
+  { id: "hoy", nombre: () => t("Hoy") },
+  { id: "fase", nombre: (f) => (f ? t("Fase {n}", { n: f.replace(/^F/, "") }) : t("Fase")) },
+  { id: "todo", nombre: () => t("Todo") },
 ];
 
 const CLAVE = "atalaya:salud";
@@ -90,7 +92,11 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
   const actual = filaInicial(filas, elegida);
   const sel = filas.find((f) => f.id === actual) ?? null;
   const r = inf ? resumen(inf) : null;
-  const titulo = { hoy: "hoy", fase: inf?.fase ? `fase ${inf.fase.replace(/^F/, "")}` : "la fase en curso", todo: "todo lo leído" }[periodo];
+  const titulo = {
+    hoy: t("hoy"),
+    fase: inf?.fase ? t("fase {n}", { n: inf.fase.replace(/^F/, "") }) : t("la fase en curso"),
+    todo: t("todo lo leído"),
+  }[periodo];
 
   function alTecla(e: React.KeyboardEvent) {
     const i = filas.findIndex((f) => f.id === actual);
@@ -109,44 +115,48 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
 
   const kpis = r
     ? [
-        { rotulo: "En regla", valor: `${r.enRegla} de ${r.agentes}`, nota: "agentes que cumplen todo lo que les aplica", color: "text-ok" },
+        { rotulo: t("En regla"), valor: t("{n} de {total}", { n: r.enRegla, total: r.agentes }), nota: t("agentes que cumplen todo lo que les aplica"), color: "text-ok" },
         {
-          rotulo: "Faltas",
+          rotulo: t("Faltas"),
           valor: String(r.faltas),
-          nota: r.faltas ? `en ${r.conFaltas === 1 ? "1 agente" : `${r.conFaltas} agentes`}: ${r.reglasConFaltas.join(", ")}` : "ninguna",
+          nota: r.faltas
+            ? r.conFaltas === 1
+              ? t("en 1 agente: {reglas}", { reglas: r.reglasConFaltas.join(", ") })
+              : t("en {n} agentes: {reglas}", { n: r.conFaltas, reglas: r.reglasConFaltas.join(", ") })
+            : t("ninguna"),
           color: r.faltas ? "text-error" : "text-ok",
         },
         {
-          rotulo: "A medias",
+          rotulo: t("A medias"),
           valor: String(r.medias),
           nota: !r.medias
-            ? "ninguna"
+            ? t("ninguna")
             : r.mediasActivos === r.medias
-              ? "de agentes que siguen trabajando"
+              ? t("de agentes que siguen trabajando")
               : r.mediasActivos === 0
-                ? "de agentes que ya entregaron"
-                : `${r.mediasActivos} de agentes que siguen trabajando`,
+                ? t("de agentes que ya entregaron")
+                : t("{n} de agentes que siguen trabajando", { n: r.mediasActivos }),
           color: r.medias ? "text-aviso" : "text-ok",
         },
         {
-          rotulo: "Temporales en el disco",
+          rotulo: t("Temporales en el disco"),
           valor: String(r.temporales),
-          nota: r.temporales ? (r.sinActaCerrada ? `${r.sinActaCerrada} sin acta cerrada` : "todos con su acta cerrada") : "ninguno",
+          nota: r.temporales ? (r.sinActaCerrada ? t("{n} sin acta cerrada", { n: r.sinActaCerrada }) : t("todos con su acta cerrada")) : t("ninguno"),
           color: r.sinActaCerrada ? "text-aviso" : "text-ok",
         },
       ]
     : null;
 
   return (
-    <main id="contenido" tabIndex={-1} aria-label="Salud del proceso" className="relative mx-auto flex w-full max-w-[1520px] flex-col gap-5 p-5">
+    <main id="contenido" tabIndex={-1} aria-label={t("Salud del proceso")} className="relative mx-auto flex w-full max-w-[1520px] flex-col gap-5 p-5">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex min-w-0 flex-[1_1_32rem] flex-col gap-1">
-          <h1 className="m-0 text-titulo font-semibold">Salud del proceso · {titulo}</h1>
+          <h1 className="m-0 text-titulo font-semibold">{t("Salud del proceso · {periodo}", { periodo: titulo })}</h1>
           <p className="m-0 max-w-3xl text-suave">
-            Cada agente contra las reglas de AGENTS.md. El panel solo lee los archivos: no corrige nada, te dice dónde mirar.
+            {t("Cada agente contra las reglas de AGENTS.md. El panel solo lee los archivos: no corrige nada, te dice dónde mirar.")}
           </p>
         </div>
-        <div role="group" aria-label="Periodo" className="flex gap-0.5 rounded-control bg-elevado p-[3px]">
+        <div role="group" aria-label={t("Periodo")} className="flex gap-0.5 rounded-control bg-elevado p-[3px]">
           {PERIODOS.map((p) => {
             const on = p.id === periodo;
             return (
@@ -166,7 +176,7 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
         </div>
       </div>
 
-      {error && !inf && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">No se pudo leer la salud del proceso. Se reintenta con el próximo aviso.</p>}
+      {error && !inf && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudo leer la salud del proceso. Se reintenta con el próximo aviso.")}</p>}
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3">
         {kpis
@@ -183,23 +193,25 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
       </div>
 
       <div className="flex flex-col items-start gap-5 xl:flex-row">
-        <section aria-label="Agentes y reglas" className="w-full min-w-0 overflow-hidden rounded-tarjeta border border-borde bg-superficie xl:flex-[999_1_0]">
+        <section aria-label={t("Agentes y reglas")}className="w-full min-w-0 overflow-hidden rounded-tarjeta border border-borde bg-superficie xl:flex-[999_1_0]">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[52rem] table-fixed border-collapse text-rotulo">
               <thead>
                 <tr className="text-left text-ayuda text-suave">
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Agente
+                    {t("Agente")}
                   </th>
                   {(inf?.reglas ?? []).map((g) => (
                     <th
                       key={g.id}
                       scope="col"
-                      title={`${g.nota}${g.umbral ? ` (${g.umbral})` : ""} · ${g.fuente ?? (g.id === "frontera" ? "no está escrita: se vigila igual, por omisión" : "no está escrita: no se exige")}`}
+                      title={`${tServidor(g.nota)}${g.umbral ? ` (${tServidor(g.umbral)})` : ""} · ${g.fuente ? tServidor(g.fuente) : g.id === "frontera" ? t("no está escrita: se vigila igual, por omisión") : t("no está escrita: no se exige")}`}
                       className="w-[6.5rem] px-1 py-3 text-center font-medium"
                     >
-                      <span className="block truncate">{g.nombre}</span>
-                      <span className={`dato block truncate text-[10.5px] font-normal ${g.omision ? "text-aviso" : "text-tenue"}`}>{g.fuente ?? (g.id === "frontera" ? "por omisión" : "no escrita")}</span>
+                      <span className="block truncate">{tServidor(g.nombre)}</span>
+                      <span className={`dato block truncate text-[10.5px] font-normal ${g.omision ? "text-aviso" : "text-tenue"}`}>
+                        {g.fuente ? tServidor(g.fuente) : g.id === "frontera" ? t("por omisión") : t("no escrita")}
+                      </span>
                     </th>
                   ))}
                 </tr>
@@ -208,13 +220,13 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                 {inf === null ? (
                   <tr>
                     <td colSpan={8} className="p-3">
-                      <div className="esqueleto h-12 rounded-control" aria-label="Cargando" />
+                      <div className="esqueleto h-12 rounded-control" aria-label={t("Cargando")} />
                     </td>
                   </tr>
                 ) : filas.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-6 text-suave">
-                      Ningún subagente ni llamada a Codex en este periodo. Prueba con «{PERIODOS[1].nombre(inf.fase)}» o «Todo».
+                      {t("Ningún subagente ni llamada a Codex en este periodo. Prueba con «{fase}» o «Todo».", { fase: PERIODOS[1].nombre(inf.fase) })}
                     </td>
                   </tr>
                 ) : (
@@ -224,51 +236,50 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
             </table>
           </div>
           <p className="m-0 border-t border-borde px-4 py-2.5 text-ayuda text-tenue">
-            ✓ cumple · ✕ falta · ! a medias · ? sin dato (los archivos no lo dicen) · — no aplica (Codex no lleva bitácora ni acta: su informe y REGISTRO.md hacen
-            ese papel)
+            {t("✓ cumple · ✕ falta · ! a medias · ? sin dato (los archivos no lo dicen) · — no aplica (Codex no lleva bitácora ni acta: su informe y REGISTRO.md hacen ese papel)")}
           </p>
         </section>
 
-        <aside aria-label="Detalle del agente" className="flex w-full min-w-0 flex-col gap-3 rounded-tarjeta border border-borde-fuerte bg-superficie p-4 xl:sticky xl:top-[68px] xl:w-[25rem] xl:shrink-0">
-          {sel ? <Detalle f={sel} proyecto={proyecto} alAbrirAgente={alAbrirAgente} /> : <p className="m-0 text-suave">Elige un agente para ver qué le falta y dónde mirarlo.</p>}
+        <aside aria-label={t("Detalle del agente")} className="flex w-full min-w-0 flex-col gap-3 rounded-tarjeta border border-borde-fuerte bg-superficie p-4 xl:sticky xl:top-[68px] xl:w-[25rem] xl:shrink-0">
+          {sel ? <Detalle f={sel} proyecto={proyecto} alAbrirAgente={alAbrirAgente} /> : <p className="m-0 text-suave">{t("Elige un agente para ver qué le falta y dónde mirarlo.")}</p>}
         </aside>
       </div>
 
-      <section aria-label="Temporales que siguen en el disco" className="flex flex-col gap-2.5 rounded-tarjeta border border-borde bg-superficie p-4">
+      <section aria-label={t("Temporales que siguen en el disco")} className="flex flex-col gap-2.5 rounded-tarjeta border border-borde bg-superficie p-4">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="m-0 text-encabezado font-semibold">Temporales que siguen en el disco</h2>
+          <h2 className="m-0 text-encabezado font-semibold">{t("Temporales que siguen en el disco")}</h2>
           <span className="dato truncate text-ayuda text-tenue" title={(inf?.lugares ?? []).join(" · ")}>
             {(inf?.lugares ?? []).join(" · ")}
           </span>
         </div>
-        <span className="text-ayuda text-tenue">Las carpetas que los agentes dejaron en el disco. El panel no borra: el borrado sigue siendo del agente o tuyo.</span>
-        {inf && inf.temporales.length === 0 && <p className="m-0 rounded-panel bg-ok-suave px-3 py-2.5 text-ok">Ninguna carpeta temporal en el disco.</p>}
-        {(inf?.temporales ?? []).map((t) => (
-          <div key={t.ruta} className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-panel bg-elevado px-3 py-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto_9.5rem]">
+        <span className="text-ayuda text-tenue">{t("Las carpetas que los agentes dejaron en el disco. El panel no borra: el borrado sigue siendo del agente o tuyo.")}</span>
+        {inf && inf.temporales.length === 0 && <p className="m-0 rounded-panel bg-ok-suave px-3 py-2.5 text-ok">{t("Ninguna carpeta temporal en el disco.")}</p>}
+        {(inf?.temporales ?? []).map((c) => (
+          <div key={c.ruta} className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-panel bg-elevado px-3 py-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto_9.5rem]">
             <span className="flex min-w-0 flex-col">
-              <span className="dato truncate" title={t.ruta}>
-                {t.ruta}
+              <span className="dato truncate" title={c.ruta}>
+                {c.ruta}
               </span>
-              <span className="truncate text-ayuda text-suave" title={actaDe(t)}>
-                {actaDe(t)}
+              <span className="truncate text-ayuda text-suave" title={actaDe(c)}>
+                {actaDe(c)}
               </span>
             </span>
-            <span className="dato text-right text-ayuda text-suave max-sm:hidden">{peso(t.bytes)}</span>
+            <span className="dato text-right text-ayuda text-suave max-sm:hidden">{peso(c.bytes)}</span>
             <span className="dato text-ayuda whitespace-nowrap text-tenue max-sm:hidden">
-              {t.archivos} arch.{t.parciales ? ` · ${t.parciales} a medias` : ""}
+              {c.parciales ? t("{n} arch. · {p} a medias", { n: c.archivos, p: c.parciales }) : t("{n} arch.", { n: c.archivos })}
             </span>
             <span className="flex justify-end">
-              {t.agente ? (
+              {c.agente ? (
                 <button
                   type="button"
-                  onClick={() => alAbrirAgente(t.agente!)}
-                  title={`Ver ${t.agente_nombre ?? "el agente"}`}
-                  className={`rounded-chip px-2 py-0.5 text-ayuda font-medium whitespace-nowrap hover:underline ${CHIP_TEMPORAL[t.estado]}`}
+                  onClick={() => alAbrirAgente(c.agente!)}
+                  title={c.agente_nombre ? t("Ver {nombre}", { nombre: c.agente_nombre }) : t("Ver el agente")}
+                  className={`rounded-chip px-2 py-0.5 text-ayuda font-medium whitespace-nowrap hover:underline ${CHIP_TEMPORAL[c.estado]}`}
                 >
-                  {t.estado}
+                  {t(c.estado)}
                 </button>
               ) : (
-                <span className={`rounded-chip px-2 py-0.5 text-ayuda font-medium whitespace-nowrap ${CHIP_TEMPORAL[t.estado]}`}>{t.estado}</span>
+                <span className={`rounded-chip px-2 py-0.5 text-ayuda font-medium whitespace-nowrap ${CHIP_TEMPORAL[c.estado]}`}>{t(c.estado)}</span>
               )}
             </span>
           </div>
@@ -278,10 +289,12 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
   );
 }
 
-function actaDe(t: CarpetaTemporal): string {
-  const quien = t.agente_nombre ? ` · ${t.agente_nombre}` : "";
-  if (!t.acta) return `Sin acta en temporales/${quien}`;
-  return `Acta ${t.acta_estado ?? ""}: ${t.acta}${quien}`;
+function actaDe(c: CarpetaTemporal): string {
+  if (!c.acta) return c.agente_nombre ? t("Sin acta en temporales/ · {quien}", { quien: c.agente_nombre }) : t("Sin acta en temporales/");
+  const estado = c.acta_estado ? t(c.acta_estado) : "";
+  return c.agente_nombre
+    ? t("Acta {estado}: {acta} · {quien}", { estado, acta: c.acta, quien: c.agente_nombre })
+    : t("Acta {estado}: {acta}", { estado, acta: c.acta });
 }
 
 function FilaSalud({
@@ -312,7 +325,7 @@ function FilaSalud({
               {f.nombre}
             </span>
             <span className="dato truncate text-[11.5px] text-tenue">
-              {f.clase || f.proveedor} · {f.activo ? "trabajando" : hora(new Date(f.inicio))}
+              {f.clase || f.proveedor} · {f.activo ? t("trabajando") : hora(new Date(f.inicio))}
             </span>
           </span>
         </button>
@@ -320,8 +333,8 @@ function FilaSalud({
       {f.celdas.map((c) => (
         <td key={c.regla} className="px-1 text-center">
           <span
-            title={`${c.titulo}. ${c.texto}`}
-            aria-label={`${c.regla}: ${MARCA[c.marca].palabra}`}
+            title={`${tServidor(c.titulo)}. ${tServidor(c.texto)}`}
+            aria-label={`${tServidor(c.regla)}: ${palabraMarca(c.marca)}`}
             className={`inline-grid h-6 min-w-7 place-items-center rounded-chip px-1.5 font-semibold ${COLOR_MARCA[c.marca].fondo} ${COLOR_MARCA[c.marca].texto}`}
           >
             {MARCA[c.marca].signo}
@@ -340,7 +353,7 @@ function Prueba({ c, alPaso, alDoc }: { c: Celda; alPaso: (id: string, paso: num
   if (c.agente && (c.paso ?? -1) >= 0) {
     return (
       <button type="button" onClick={() => alPaso(c.agente!, c.paso!)} className="self-start text-left text-ayuda text-acento underline-offset-2 hover:underline">
-        Ver el paso {c.paso} en la actividad
+        {t("Ver el paso {n} en la actividad", { n: c.paso ?? 0 })}
       </button>
     );
   }
@@ -370,7 +383,7 @@ function Detalle({ f, proyecto, alAbrirAgente }: { f: FilaProceso; proyecto: str
             {f.nombre}
           </span>
           <span className="truncate text-ayuda text-suave" title={f.tarea}>
-            {f.tarea || f.clase} · {f.estado.toLowerCase()} {f.activo ? "" : hora(new Date(f.ultimo))}
+            {f.tarea || f.clase} · {t(f.estado.toLowerCase())} {f.activo ? "" : hora(new Date(f.ultimo))}
           </span>
         </span>
         <button
@@ -378,7 +391,7 @@ function Detalle({ f, proyecto, alAbrirAgente }: { f: FilaProceso; proyecto: str
           onClick={() => alAbrirAgente(f.id)}
           className="h-(--alto-control-compacto) shrink-0 rounded-control bg-acento px-3 text-rotulo font-medium whitespace-nowrap text-sobre-acento hover:bg-acento-fuerte"
         >
-          Ver el agente →
+          {t("Ver el agente →")}
         </button>
       </header>
       {hs.map((c) => (
@@ -387,15 +400,15 @@ function Detalle({ f, proyecto, alAbrirAgente }: { f: FilaProceso; proyecto: str
             <span aria-hidden="true" className="dato">
               {MARCA[c.marca].signo}
             </span>
-            {c.titulo}
-            <span className="sr-only">({MARCA[c.marca].palabra})</span>
+            {tServidor(c.titulo)}
+            <span className="sr-only">({palabraMarca(c.marca)})</span>
           </span>
-          <span className="text-rotulo">{c.texto}</span>
+          <span className="text-rotulo">{tServidor(c.texto)}</span>
           <Prueba c={c} alPaso={(id, n) => alAbrirAgente(id, n)} alDoc={setDoc} />
         </div>
       ))}
       {doc && <Documento proyecto={proyecto} ruta={doc} alCerrar={() => setDoc(null)} />}
-      {hs.length === 0 && <p className="m-0 rounded-panel bg-ok-suave px-3 py-2.5 text-ok">Cumple todas las reglas que le aplican.</p>}
+      {hs.length === 0 && <p className="m-0 rounded-panel bg-ok-suave px-3 py-2.5 text-ok">{t("Cumple todas las reglas que le aplican.")}</p>}
       <ul className="m-0 flex list-none flex-col gap-1 border-t border-borde p-0 pt-2.5">
         {f.celdas
           .filter((c) => c.marca === "cumple" || c.marca === "no_aplica")
@@ -405,7 +418,7 @@ function Detalle({ f, proyecto, alAbrirAgente }: { f: FilaProceso; proyecto: str
                 {MARCA[c.marca].signo}
               </span>
               <span className="truncate">
-                {c.titulo}. {c.texto}
+                {tServidor(c.titulo)}. {tServidor(c.texto)}
               </span>
             </li>
           ))}

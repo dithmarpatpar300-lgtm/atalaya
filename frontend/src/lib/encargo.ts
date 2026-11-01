@@ -2,6 +2,7 @@
 // cada hito de la bitácora sobre el tiempo. Sin React: se prueba con `node --test` (encargo.test.mts).
 import type { Agente, Paso } from "./api.ts";
 import { nombreAgente, titulos } from "./arbol.ts";
+import { t } from "./i18n.ts";
 
 export interface NodoLinaje {
   id: string;
@@ -16,7 +17,7 @@ export interface NodoLinaje {
 }
 
 const vivo = (a: Agente) => a.estado === "Trabajando" || a.estado === "En espera";
-const notaHijo = (h: Agente) => (h.tarea ? recortar(h.tarea, 40) : h.proveedor === "Codex" ? "llamada a Codex" : "subagente");
+const notaHijo = (h: Agente) => (h.tarea ? recortar(h.tarea, 40) : h.proveedor === "Codex" ? t("llamada a Codex") : t("subagente"));
 
 /**
  * El linaje de un agente: quién lo lanzó, sus hermanos (lo demás que nació de la misma sesión, subagentes y llamadas
@@ -36,17 +37,17 @@ export function linaje(a: Agente, todos: Agente[]): NodoLinaje[] {
     out.push(
       padre
         ? nodo(padre, 0, -1, recortar(titulos(padre).alterno, 40))
-        : { id: a.padre, nombre: `Sesión ${a.padre.slice(0, 8)}`, nota: "fuera de la lista", nivel: 0, padre: -1, yo: false, proveedor: "Claude", activo: false },
+        : { id: a.padre, nombre: t("Sesión {id}", { id: a.padre.slice(0, 8) }), nota: t("fuera de la lista"), nivel: 0, padre: -1, yo: false, proveedor: "Claude", activo: false },
     );
-    out.push(nodo(a, 1, 0, "este"));
+    out.push(nodo(a, 1, 0, t("este")));
     const hermanos = todos
       .filter((x) => x.padre === a.padre && x.id !== a.id)
       .sort((x, y) => Number(coincide(y)) - Number(coincide(x)) || Date.parse(x.inicio) - Date.parse(y.inicio))
       .slice(0, 5);
-    for (const h of hermanos) out.push(nodo(h, 1, 0, coincide(h) ? "en paralelo" : Date.parse(h.inicio) < Date.parse(a.inicio) ? "antes" : "después"));
+    for (const h of hermanos) out.push(nodo(h, 1, 0, coincide(h) ? t("en paralelo") : Date.parse(h.inicio) < Date.parse(a.inicio) ? t("antes") : t("después")));
     for (const h of hijos.slice(0, 5)) out.push(nodo(h, 2, 1, notaHijo(h)));
   } else {
-    out.push(nodo(a, 0, -1, a.tipo === "codex" ? "sin sesión enlazada" : "este"));
+    out.push(nodo(a, 0, -1, a.tipo === "codex" ? t("sin sesión enlazada") : t("este")));
     for (const h of hijos.slice(0, 8)) out.push(nodo(h, 1, 0, notaHijo(h)));
   }
   return out;

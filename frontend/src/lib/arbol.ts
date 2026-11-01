@@ -1,6 +1,7 @@
 // La lista de agentes como árbol: cada sesión con lo que nació de ella colgando debajo, sus
 // subagentes y sus llamadas a Codex (las dos traen `padre`). Sin React: se prueba con `node --test` (arbol.test.mts).
 import type { Agente } from "./api.ts";
+import { t } from "./i18n.ts";
 
 export interface FilaArbol {
   agente: Agente;
@@ -68,14 +69,14 @@ export function titulos(a: Agente): Titulos {
   // la tarea (un general-purpose sin documentos), su rol.
   const nombre = a.titulo && comparable(a.titulo) !== comparable(principal) ? a.titulo : "";
   const tarea = a.tarea && a.tarea !== principal ? a.tarea : a.tipo === "sesion" ? "" : a.rol;
-  const alterno = nombre || tarea || "Sin encargo";
+  const alterno = nombre || tarea || t("Sin encargo");
   return { principal, clase: a.clase, alterno, completo: nombre && a.tarea ? `${nombre} — ${a.tarea}` : alterno };
 }
 
 /** El principal con su clase, en una sola cadena («Codificador I2», «Tienda Demo»). */
 export function nombreAgente(a: Agente): string {
-  const t = titulos(a);
-  return `${t.principal}${t.clase ? ` ${t.clase}` : ""}`;
+  const ti = titulos(a);
+  return `${ti.principal}${ti.clase ? ` ${ti.clase}` : ""}`;
 }
 
 export const ALTO_FILA = 62;

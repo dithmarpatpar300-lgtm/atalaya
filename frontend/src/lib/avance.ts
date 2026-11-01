@@ -1,6 +1,8 @@
 // El avance por fase: tipos de /api/avance y lo que se calcula para dibujar el hilo de la
 // fase. El % lo calcula el backend (internal/avance); aquí solo se rotula y se reparte el ancho.
 
+import { decimal, t } from "./i18n.ts";
+
 export type EstadoPaquete = "hecho" | "en curso" | "sin empezar" | "bloqueado";
 
 export interface Paquete {
@@ -33,7 +35,7 @@ export interface RespuestaAvance {
 }
 
 /** Coma decimal y siempre un decimal: «82,8». */
-export const uno = (n: number) => (Number.isFinite(n) ? n : 0).toFixed(1).replace(".", ",");
+export const uno = (n: number) => decimal(n);
 
 /** Horas sin decimales si son enteras: «4», «4,5». */
 export const horas = (n: number) => (Number.isInteger(n) ? String(n) : uno(n));
@@ -76,7 +78,7 @@ export function tramos(f: Pick<FaseAvance, "paquetes">): Tramo[] {
       peso: p.horas > 0 ? p.horas : 1,
       fondo,
       relleno: curso ? Math.max(0, Math.min(100, p.pct)) : 0,
-      aria: `${p.id}, ${p.que || "sin descripción"}, ${horas(p.horas)} horas, ${tonoEstado(p.estado).palabra}, ${p.pct} %`,
+      aria: t("{id}, {que}, {horas} horas, {estado}, {pct} %", { id: p.id, que: p.que || t("sin descripción"), horas: horas(p.horas), estado: t(tonoEstado(p.estado).palabra), pct: p.pct }),
     };
   });
 }

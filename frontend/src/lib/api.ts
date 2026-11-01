@@ -1,6 +1,7 @@
 // Tipos y llamadas a la API de solo lectura del backend (backend/internal/servidor).
 
 import type { RespuestaAvance } from "./avance.ts";
+import { tServidor } from "./i18n.ts";
 import type { InformeEstadisticas, PeriodoEstadisticas } from "./estadisticas.ts";
 import type { RespuestaDecisiones } from "./decisiones.ts";
 import type { PreguntaCentro } from "./preguntas.ts";
@@ -308,7 +309,7 @@ async function siFallo(r: Response) {
   try {
     msg = ((await r.json()) as { error?: string }).error ?? msg;
   } catch {}
-  throw new Error(msg);
+  throw new Error(tServidor(msg));
 }
 
 async function pedir<T>(ruta: string, senal?: AbortSignal): Promise<T> {

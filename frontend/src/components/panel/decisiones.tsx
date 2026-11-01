@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { agrupar, type Decision, eleccion, elegida, hace, type RespuestaDecisiones, tituloDecision } from "@/lib/decisiones";
 import { cuando } from "@/lib/formato";
+import { t } from "@/lib/i18n";
 import { useAhora } from "@/lib/vivo";
 import { Responder } from "./responder";
 
@@ -39,14 +40,14 @@ function Fila({ d, on, alElegir, ahora }: { d: Decision; on: boolean; alElegir: 
       {respondida ? (
         <span className="flex min-w-0 flex-col items-end">
           <span className="max-w-full min-w-0 truncate rounded-chip bg-ok-suave px-2 py-0.5 text-ayuda text-ok" title={eleccion(d)}>
-            {eleccion(d) || "respondida"}
+            {eleccion(d) || t("respondida")}
           </span>
           <span className="dato text-[11px] text-tenue">{cuando(new Date(d.hora))}</span>
         </span>
       ) : (
         <span className="flex flex-col items-end">
           <span className="dato text-ayuda text-aviso">{hace(d.hora, ahora)}</span>
-          <span className="text-ayuda text-tenue">{d.tipo === "atalaya" ? "por Atalaya" : d.tipo === "botones" ? "botones" : `${d.preguntas.length} preguntas`}</span>
+          <span className="text-ayuda text-tenue">{d.tipo === "atalaya" ? t("por Atalaya") : d.tipo === "botones" ? t("botones") : d.preguntas.length === 1 ? t("1 pregunta") : t("{n} preguntas", { n: d.preguntas.length })}</span>
         </span>
       )}
     </button>
@@ -101,30 +102,29 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
     );
 
   return (
-    <main id="contenido" tabIndex={-1} aria-label="Decisiones" className="relative mx-auto flex w-full max-w-[1520px] flex-col gap-4 p-5">
+    <main id="contenido" tabIndex={-1} aria-label={t("Decisiones")} className="relative mx-auto flex w-full max-w-[1520px] flex-col gap-4 p-5">
       <div className="flex flex-col gap-1">
-        <h1 className="m-0 text-titulo font-semibold">Lo que te espera</h1>
+        <h1 className="m-0 text-titulo font-semibold">{t("Lo que te espera")}</h1>
         <p className="m-0 max-w-3xl text-suave">
-          De todos los proyectos: cada sesión que se detuvo a preguntarte algo, con la pregunta, las opciones y la que recomendó. Las que llegan por Atalaya se responden aquí, por pasos, con texto e
-          imágenes; las de la app, en la app o el móvil.
+          {t("De todos los proyectos: cada sesión que se detuvo a preguntarte algo, con la pregunta, las opciones y la que recomendó. Las que llegan por Atalaya se responden aquí, por pasos, con texto e imágenes; las de la app, en la app o el móvil.")}
         </p>
       </div>
 
-      {error && !resp && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">No se pudieron leer las decisiones. Se reintenta con el próximo aviso.</p>}
+      {error && !resp && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudieron leer las decisiones. Se reintenta con el próximo aviso.")}</p>}
       {!resp && !error && <div className="esqueleto h-40 rounded-tarjeta" aria-hidden="true" />}
-      {resp && todas.length === 0 && <p className="m-0 rounded-tarjeta border border-borde bg-superficie px-5 py-6 text-suave">Ninguna sesión te preguntó nada en los últimos 14 días.</p>}
+      {resp && todas.length === 0 && <p className="m-0 rounded-tarjeta border border-borde bg-superficie px-5 py-6 text-suave">{t("Ninguna sesión te preguntó nada en los últimos 14 días.")}</p>}
 
       {todas.length > 0 && (
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex min-w-0 flex-[1_1_32rem] flex-col gap-4">
-            {g.esperando.length === 0 && <p className="m-0 rounded-panel bg-ok-suave px-4 py-3 text-ok">Nada te espera ahora.</p>}
-            {lista("Esperándote", g.esperando)}
-            {lista("Sin respuesta, de hace más de un día", g.sinRespuesta)}
-            {lista("Respondidas", g.respondidas)}
+            {g.esperando.length === 0 && <p className="m-0 rounded-panel bg-ok-suave px-4 py-3 text-ok">{t("Nada te espera ahora.")}</p>}
+            {lista(t("Esperándote"), g.esperando)}
+            {lista(t("Sin respuesta, de hace más de un día"), g.sinRespuesta)}
+            {lista(t("Respondidas"), g.respondidas)}
           </div>
 
           {sel && (
-            <aside aria-label="Decisión elegida" className="sticky top-[68px] flex min-h-[28rem] min-w-0 flex-[1_1_26rem] flex-col gap-3 rounded-tarjeta border border-borde-fuerte bg-superficie p-5">
+            <aside aria-label={t("Decisión elegida")} className="sticky top-[68px] flex min-h-[28rem] min-w-0 flex-[1_1_26rem] flex-col gap-3 rounded-tarjeta border border-borde-fuerte bg-superficie p-5">
               <span className="flex min-w-0 items-center gap-2 text-ayuda text-suave">
                 <span className="dato rounded-chip bg-elevado px-1.5">{sigla(sel.proyecto)}</span>
                 <span className="truncate" title={`${sel.proyecto} · ${sel.sesion}`}>
@@ -141,8 +141,8 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
                       <div key={o.etiqueta} className={`flex flex-col gap-0.5 rounded-control border px-3 py-2.5 ${es ? "border-ok bg-ok-suave" : "border-borde bg-hundido"}`}>
                         <span className="flex flex-wrap items-center gap-2 font-medium">
                           {o.etiqueta}
-                          {o.recomendada && <span className="rounded-chip bg-acento-suave px-1.5 text-ayuda font-normal text-acento-fuerte">recomendada</span>}
-                          {es && <span className="rounded-chip bg-ok-suave px-1.5 text-ayuda font-normal text-ok">elegiste esta</span>}
+                          {o.recomendada && <span className="rounded-chip bg-acento-suave px-1.5 text-ayuda font-normal text-acento-fuerte">{t("recomendada")}</span>}
+                          {es && <span className="rounded-chip bg-ok-suave px-1.5 text-ayuda font-normal text-ok">{t("elegiste esta")}</span>}
                         </span>
                         {o.nota && <span className="text-ayuda text-suave">{o.nota}</span>}
                       </div>
@@ -150,7 +150,7 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
                   })}
                   {q.respuesta && !q.opciones.some((o) => elegida(q, o)) && (
                     <div className="rounded-control border border-ok bg-ok-suave px-3 py-2.5">
-                      <span className="text-ayuda text-ok">Respondiste con tus palabras</span>
+                      <span className="text-ayuda text-ok">{t("Respondiste con tus palabras")}</span>
                       <p className="m-0 line-clamp-4" title={q.respuesta}>
                         {q.respuesta}
                       </p>
@@ -161,7 +161,7 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
               <span className="flex-1" />
               {sel.contexto && (
                 <div className="flex flex-col gap-0.5 rounded-control bg-hundido px-3 py-2.5 text-rotulo">
-                  <span className="text-tenue">Lo que te contó antes de preguntar</span>
+                  <span className="text-tenue">{t("Lo que te contó antes de preguntar")}</span>
                   <span className="line-clamp-3" title={sel.contexto}>
                     {sel.contexto}
                   </span>
@@ -175,16 +175,18 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
                     onClick={() => setRespondiendo(sel.id.replace(/^atalaya~/, ""))}
                     className="h-9 rounded-control bg-acento px-4 font-medium text-sobre-acento hover:bg-acento-fuerte"
                   >
-                    Responder aquí
+                    {t("Responder aquí")}
                   </button>
                 )}
                 {sel.agente && (
                   <button type="button" onClick={() => alAbrirSesion(sel)} className="h-9 rounded-control border border-borde-fuerte px-3.5 font-medium hover:bg-elevado">
-                    Abrir la sesión en esa pregunta
+                    {t("Abrir la sesión en esa pregunta")}
                   </button>
                 )}
                 <span className="text-ayuda text-tenue">
-                  {sel.estado === "respondida" && sel.respondida ? `Respondida: ${cuando(new Date(sel.respondida))}` : `La sesión está ${sel.estado_sesion.toLowerCase() || "sin dato"}`}
+                  {sel.estado === "respondida" && sel.respondida
+                    ? t("Respondida: {hora}", { hora: cuando(new Date(sel.respondida)) })
+                    : t("La sesión está {estado}", { estado: sel.estado_sesion ? t(sel.estado_sesion).toLowerCase() : t("sin dato") })}
                 </span>
               </div>
             </aside>

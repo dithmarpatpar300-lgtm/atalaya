@@ -2,6 +2,7 @@
 // probarla sin navegador. Todo va en milisegundos y en porcentajes del tramo visible.
 
 import { duracion, hora } from "./formato.ts";
+import { idioma, t } from "./i18n.ts";
 
 export interface ChoqueLinea {
   hora: string;
@@ -138,12 +139,13 @@ export const hhmm = (t: number): string => hora(new Date(t));
 export const minutos = (ms: number): string => duracion(Math.round(ms / MIN) * 60);
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const MESES_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** «Hoy», «Ayer» o «29 oct», con `hoy` en AAAA-MM-DD. */
 export function nombreDia(dia: string, hoy: string): string {
-  if (dia === hoy) return "Hoy";
+  if (dia === hoy) return t("Hoy");
   const [a, m, d] = dia.split("-").map(Number);
   const ayer = new Date(Date.parse(`${hoy}T12:00:00`) - 24 * 60 * MIN);
-  if (ayer.getFullYear() === a && ayer.getMonth() + 1 === m && ayer.getDate() === d) return "Ayer";
-  return `${d} ${MESES[m - 1]}`;
+  if (ayer.getFullYear() === a && ayer.getMonth() + 1 === m && ayer.getDate() === d) return t("Ayer");
+  return idioma() === "en" ? `${MESES_EN[m - 1]} ${d}` : `${d} ${MESES[m - 1]}`;
 }

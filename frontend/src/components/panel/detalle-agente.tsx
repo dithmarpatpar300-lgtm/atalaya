@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { IconoCerrar } from "@/components/ui/iconos";
 import { Markdown } from "@/components/ui/markdown";
 import { type Agente, api, type Detalle, type EstadoAgente } from "@/lib/api";
+import { idioma, t, tServidor } from "@/lib/i18n";
 import { COLOR_PROVEEDOR } from "@/lib/proveedor";
 import { nombreAgente, titulos } from "@/lib/arbol";
 import { archivosTocados, linaje, type NodoLinaje, posicionHito } from "@/lib/encargo";
@@ -46,15 +47,15 @@ export function Documento({ proyecto, ruta, alCerrar }: { proyecto: string; ruta
         <h2 id="doc-titulo" className="dato m-0 min-w-0 flex-1 truncate text-rotulo font-medium">
           {ruta}
         </h2>
-        <button type="button" onClick={() => dialogo.current?.close()} aria-label="Cerrar" className="grid size-8 place-items-center rounded-control hover:bg-elevado">
+        <button type="button" onClick={() => dialogo.current?.close()} aria-label={t("Cerrar")} className="grid size-8 place-items-center rounded-control hover:bg-elevado">
           <IconoCerrar className="size-4" />
         </button>
       </div>
       <div className="scroll-interno max-h-[75vh] overflow-y-auto p-5">
         {error ? (
-          <p className="m-0 text-error">No se pudo leer: {error}</p>
+          <p className="m-0 text-error">{t("No se pudo leer: {error}", { error: tServidor(error) })}</p>
         ) : texto === null ? (
-          <div className="esqueleto h-24 rounded-panel" aria-label="Cargando" />
+          <div className="esqueleto h-24 rounded-panel" aria-label={t("Cargando")} />
         ) : (
           <Markdown texto={texto} ruta={ruta} />
         )}
@@ -158,9 +159,9 @@ export function DetalleAgente({
       <div className="grid min-w-0 flex-1 gap-5">
         <section className={tarjeta}>
           {cargando ? (
-            <div className="esqueleto h-16 rounded-control" aria-label="Cargando" />
+            <div className="esqueleto h-16 rounded-control" aria-label={t("Cargando")} />
           ) : (
-            <p className="m-0 text-suave">Elige un agente de la lista para ver su encargo, su avance y lo que hace paso a paso.</p>
+            <p className="m-0 text-suave">{t("Elige un agente de la lista para ver su encargo, su avance y lo que hace paso a paso.")}</p>
           )}
         </section>
       </div>
@@ -178,9 +179,16 @@ export function DetalleAgente({
   const padre = a.padre ? agentes.find((x) => x.id === a.padre) : undefined;
   const titulo = titulos(a);
   // De dónde nació: la sesión por su nombre (o su id, si no está en la lista); una llamada a Codex sin sesión lo dice.
-  const clase = a.tipo === "codex" ? "llamada" : a.tipo === "subagente" ? "subagente" : "sesión";
-  const deSesion = padre ? `${clase} de ${padre.tipo === "sesion" ? "la sesión " : ""}${nombreAgente(padre)} ${padre.id.slice(0, 4)}…` : a.padre ? `${clase} de la sesión ${a.padre.slice(0, 4)}…` : "";
-  const origen = [a.modelo, a.effort && `effort ${a.effort}`, deSesion || (a.tipo === "codex" ? "llamada sin sesión enlazada" : clase), a.inicio && `desde ${hora(new Date(a.inicio))}`]
+  const clase = a.tipo === "codex" ? t("llamada") : a.tipo === "subagente" ? t("subagente") : t("sesión");
+  const idPadre = padre ? padre.id.slice(0, 4) : a.padre ? a.padre.slice(0, 4) : "";
+  const deSesion = padre
+    ? padre.tipo === "sesion"
+      ? t("{clase} de la sesión {nombre} {id}…", { clase, nombre: nombreAgente(padre), id: idPadre })
+      : t("{clase} de {nombre} {id}…", { clase, nombre: nombreAgente(padre), id: idPadre })
+    : a.padre
+      ? t("{clase} de la sesión {id}…", { clase, id: idPadre })
+      : "";
+  const origen = [a.modelo, a.effort && `effort ${a.effort}`, deSesion || (a.tipo === "codex" ? t("llamada sin sesión enlazada") : clase), a.inicio && t("desde {hora}", { hora: hora(new Date(a.inicio)) })]
     .filter(Boolean)
     .join(" · ");
   const turnos = Math.max(0, ...detalle.pasos.map((p) => p.turno));
@@ -188,24 +196,24 @@ export function DetalleAgente({
   // La ficha: de la línea «Asignación» si la hay; si no (una sesión), lo que se sabe de ella.
   const ficha: { k: string; v: string; dato?: boolean }[] = a.asignacion
     ? [
-        { k: "Nivel", v: a.nivel || "—" },
-        { k: "Clase", v: a.clase_detalle || a.clase || "—" },
-        { k: "Rol", v: a.rol_asignado || a.rol.toLowerCase() },
-        { k: "Modelo", v: a.modelo_asignado || a.modelo || "—", dato: true },
+        { k: t("Nivel"), v: a.nivel || "—" },
+        { k: t("Clase"), v: a.clase_detalle || a.clase || "—" },
+        { k: t("Rol"), v: a.rol_asignado || a.rol.toLowerCase() },
+        { k: t("Modelo"), v: a.modelo_asignado || a.modelo || "—", dato: true },
         { k: "Effort", v: a.effort || "—" },
-        { k: "Presupuesto", v: a.presupuesto || "—" },
+        { k: t("Presupuesto"), v: a.presupuesto || "—" },
         { k: "Base", v: a.base || "—", dato: true },
-        { k: "Cuota al lanzar", v: a.cuota || "—" },
+        { k: t("Cuota al lanzar"), v: a.cuota || "—" },
       ]
     : [
-        { k: "Proveedor", v: `${a.proveedor} · ${a.tipo === "sesion" ? "sesión" : a.tipo === "subagente" ? "subagente" : "llamada"}` },
-        { k: "Modelo", v: [a.modelo, a.effort && `effort ${a.effort}`].filter(Boolean).join(", ") || "—", dato: true },
-        { k: "Clase", v: a.clase || "—" },
+        { k: t("Proveedor"), v: `${a.proveedor} · ${clase}` },
+        { k: t("Modelo"), v: [a.modelo, a.effort && `effort ${a.effort}`].filter(Boolean).join(", ") || "—", dato: true },
+        { k: t("Clase"), v: a.clase || "—" },
         { k: "Base", v: a.base || "—", dato: true },
-        { k: "Proyecto", v: a.proyecto || "—" },
-        { k: "Inicio", v: a.inicio ? new Date(a.inicio).toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" }) : "—" },
-        { k: "Turnos", v: turnos ? String(turnos) : "—" },
-        { k: "Pasos", v: String(a.pasos) },
+        { k: t("Proyecto"), v: a.proyecto || "—" },
+        { k: t("Inicio"), v: a.inicio ? new Date(a.inicio).toLocaleString(idioma() === "en" ? "en-US" : "es-PE", { dateStyle: "medium", timeStyle: "short" }) : "—" },
+        { k: t("Turnos"), v: turnos ? String(turnos) : "—" },
+        { k: t("Pasos"), v: String(a.pasos) },
       ];
 
   const nodos = linaje(a, agentes);
@@ -227,7 +235,7 @@ export function DetalleAgente({
               {titulo.clase && <span className="dato rounded-chip border border-borde px-[7px] text-ayuda text-suave">{titulo.clase}</span>}
               <span className={`inline-flex items-center gap-1.5 rounded-chip px-2 py-0.5 text-ayuda font-medium ${est.clase}`}>
                 <span aria-hidden="true" className={`size-1.5 rounded-full ${est.punto}`} />
-                {a.estado}
+                {t(a.estado)}
               </span>
             </div>
             <p className="m-0 truncate whitespace-nowrap text-suave" title={titulo.completo}>
@@ -241,10 +249,10 @@ export function DetalleAgente({
             {a.proveedor === "Claude" && (
               <>
                 <button type="button" onClick={() => alVerTraza(a)} className="h-9 rounded-control border border-borde-fuerte px-3.5 font-medium hover:bg-elevado">
-                  Ver la traza
+                  {t("Ver la traza")}
                 </button>
                 <button type="button" onClick={() => setExportando(true)} className="h-9 rounded-control border border-borde-fuerte px-3.5 font-medium hover:bg-elevado">
-                  Exportar
+                  {t("Exportar")}
                 </button>
               </>
             )}
@@ -254,20 +262,20 @@ export function DetalleAgente({
                 <button
                   type="button"
                   disabled={!a.informe}
-                  title={a.informe || "El encargo no nombra un informe"}
+                  title={a.informe || t("El encargo no nombra un informe")}
                   onClick={() => setDoc(a.informe)}
                   className="h-9 rounded-control border border-borde-fuerte px-3.5 font-medium hover:bg-elevado disabled:cursor-not-allowed disabled:text-tenue"
                 >
-                  Ver informe
+                  {t("Ver informe")}
                 </button>
                 <button
                   type="button"
                   disabled={!a.bitacora}
-                  title={a.bitacora || "Sin bitácora"}
+                  title={a.bitacora || t("Sin bitácora")}
                   onClick={() => setDoc(a.bitacora)}
                   className="h-9 rounded-control bg-acento px-3.5 font-medium text-sobre-acento hover:bg-acento-fuerte disabled:cursor-not-allowed disabled:bg-elevado disabled:text-tenue"
                 >
-                  Abrir bitácora
+                  {t("Abrir bitácora")}
                 </button>
               </>
             )}
@@ -283,9 +291,9 @@ export function DetalleAgente({
         <section aria-labelledby="encargo" className={`flex min-w-0 flex-col gap-5 @3xl:col-span-2 ${tarjeta}`}>
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <h2 id="encargo" className="m-0 text-encabezado font-semibold">
-              Encargo
+              {t("Encargo")}
             </h2>
-            <span className="text-ayuda text-tenue">{a.asignacion ? "Leído de la línea «Asignación» del encargo" : "Una sesión: sin línea «Asignación»"}</span>
+            <span className="text-ayuda text-tenue">{a.asignacion ? t("Leído de la línea «Asignación» del encargo") : t("Una sesión: sin línea «Asignación»")}</span>
           </div>
           {/* Las celdas llenan sus filas (4 + 4, o 3 + 3 + 2 estiradas): nunca queda un hueco. */}
           <dl className="m-0 flex flex-wrap gap-px overflow-hidden rounded-panel border border-borde bg-borde">
@@ -300,31 +308,31 @@ export function DetalleAgente({
           <div className="flex flex-wrap gap-6">
             {(nodos.length > 1 || a.tipo === "codex") && (
               <div className="flex min-w-0 flex-[1_1_15rem] flex-col gap-2">
-                <h3 className={subtitulo}>Linaje</h3>
+                <h3 className={subtitulo}>{t("Linaje")}</h3>
                 <Linaje nodos={nodos} alAbrir={alAbrirAgente} />
               </div>
             )}
             {(a.bitacora || a.informe || a.acta) && (
               <div className="flex min-w-0 flex-[1_1_15rem] flex-col gap-2">
-                <h3 className={subtitulo}>Entregables</h3>
+                <h3 className={subtitulo}>{t("Entregables")}</h3>
                 <ul className="m-0 flex list-none flex-col gap-1 p-0">
                   {a.bitacora && (
                     <Entregable
-                      nombre="Bitácora"
+                      nombre={t("Bitácora")}
                       ruta={a.bitacora}
-                      estado={pct === 100 ? "Entregada" : a.avance ? `${a.avance.porcentaje} %` : "Sin leer"}
+                      estado={pct === 100 ? t("Entregada") : a.avance ? `${a.avance.porcentaje} %` : t("Sin leer")}
                       bien={pct === 100}
                       alAbrir={() => setDoc(a.bitacora)}
                     />
                   )}
                   {a.informe && (
-                    <Entregable nombre="Informe" ruta={a.informe} estado={a.informe_existe ? "Escrito" : "Pendiente"} bien={!!a.informe_existe} alAbrir={() => setDoc(a.informe)} />
+                    <Entregable nombre={t("Informe")} ruta={a.informe} estado={a.informe_existe ? t("Escrito") : t("Pendiente")} bien={!!a.informe_existe} alAbrir={() => setDoc(a.informe)} />
                   )}
                   {a.acta && (
                     <Entregable
-                      nombre="Acta de temporales"
+                      nombre={t("Acta de temporales")}
                       ruta={a.acta}
-                      estado={a.acta_estado === "cerrada" ? "Cerrada" : "Abierta"}
+                      estado={a.acta_estado === "cerrada" ? t("Cerrada") : t("Abierta")}
                       bien={a.acta_estado === "cerrada"}
                       alAbrir={() => setDoc(a.acta!)}
                     />
@@ -337,9 +345,9 @@ export function DetalleAgente({
           {archivos.length > 0 && (
             <div className="flex flex-col gap-2">
               <h3 className={subtitulo}>
-                Archivos que tocó{" "}
+                {t("Archivos que tocó")}{" "}
                 <span className="font-normal text-tenue">
-                  · {hayFrontera ? `el encargo nombra ${a.nombrados!.length}` : "el encargo no nombra archivos"}
+                  · {hayFrontera ? t("el encargo nombra {n}", { n: a.nombrados!.length }) : t("el encargo no nombra archivos")}
                 </span>
               </h3>
               <div className="scroll-interno overflow-x-auto rounded-panel border border-borde">
@@ -347,11 +355,11 @@ export function DetalleAgente({
                 <table className="w-full table-fixed border-collapse text-rotulo">
                   <thead>
                     <tr className="bg-elevado text-left text-suave">
-                      <th className="px-3 py-2 font-medium">Archivo</th>
-                      <th className="w-[4.5rem] px-2 py-2 text-right font-medium">Leído</th>
-                      <th className="w-[5rem] px-2 py-2 text-right font-medium">Buscado</th>
-                      <th className="w-[4.75rem] px-2 py-2 text-right font-medium">Editado</th>
-                      {hayFrontera && <th className="w-[8.5rem] px-3 py-2 font-medium">En el encargo</th>}
+                      <th className="px-3 py-2 font-medium">{t("Archivo")}</th>
+                      <th className="w-[4.5rem] px-2 py-2 text-right font-medium">{t("Leído")}</th>
+                      <th className="w-[5rem] px-2 py-2 text-right font-medium">{t("Buscado")}</th>
+                      <th className="w-[4.75rem] px-2 py-2 text-right font-medium">{t("Editado")}</th>
+                      {hayFrontera && <th className="w-[8.5rem] px-3 py-2 font-medium">{t("En el encargo")}</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -369,7 +377,7 @@ export function DetalleAgente({
                         {hayFrontera && (
                           <td className="px-3 py-2">
                             <span className={`rounded-chip px-[7px] py-px text-ayuda ${f.nombrado ? "bg-ok-suave text-ok" : "bg-elevado text-suave"}`}>
-                              {f.nombrado ? "nombrado" : "no nombrado"}
+                              {f.nombrado ? t("nombrado") : t("no nombrado")}
                             </span>
                           </td>
                         )}
@@ -378,13 +386,13 @@ export function DetalleAgente({
                   </tbody>
                 </table>
               </div>
-              {archivos.length > 12 && <span className="text-ayuda text-tenue">Y {archivos.length - 12} archivos más en la actividad.</span>}
+              {archivos.length > 12 && <span className="text-ayuda text-tenue">{t("Y {n} archivos más en la actividad.", { n: archivos.length - 12 })}</span>}
             </div>
           )}
 
           {a.encargo && (
             <details className="rounded-panel border border-borde">
-              <summary className="cursor-pointer px-3 py-2 text-rotulo text-suave select-none hover:text-texto">El encargo completo</summary>
+              <summary className="cursor-pointer px-3 py-2 text-rotulo text-suave select-none hover:text-texto">{t("El encargo completo")}</summary>
               <div className="scroll-interno max-h-96 overflow-y-auto border-t border-borde p-3.5 text-rotulo">
                 <Markdown texto={a.encargo} ruta="" />
               </div>
@@ -395,18 +403,18 @@ export function DetalleAgente({
         {/* Avance */}
         <section aria-labelledby="avance" className={`flex min-w-0 flex-col gap-3.5 ${tarjeta}`}>
           <h2 id="avance" className="m-0 text-encabezado font-semibold">
-            Avance
+            {t("Avance")}
           </h2>
           <div className="flex items-baseline gap-2.5">
             <span className="dato text-[44px] leading-none font-medium tracking-[-0.04em]">{pct === null ? "—" : `${pct} %`}</span>
             <span className="text-rotulo text-suave">
-              {a.tipo === "codex" ? (a.estado === "Trabajando" ? "llamada en curso" : "llamada terminada") : a.avance ? "según la bitácora" : "sin bitácora de avance"}
+              {a.tipo === "codex" ? (a.estado === "Trabajando" ? t("llamada en curso") : t("llamada terminada")) : a.avance ? t("según la bitácora") : t("sin bitácora de avance")}
             </span>
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between text-ayuda text-suave">
-              <span>Tiempo</span>
-              <span className={`dato ${pasado ? "text-aviso" : ""}`}>{presupuesto ? `${minutos} de ${presupuesto} min` : duracion(transcurrido)}</span>
+              <span>{t("Tiempo")}</span>
+              <span className={`dato ${pasado ? "text-aviso" : ""}`}>{presupuesto ? t("{valor} de {max} min", { valor: minutos, max: presupuesto }) : duracion(transcurrido)}</span>
             </div>
             <div className="relative h-2.5 rounded-full bg-elevado">
               <div
@@ -426,7 +434,7 @@ export function DetalleAgente({
               })}
             </div>
             <div className="flex justify-between text-[11.5px] text-tenue">
-              <span>{hitos.length ? "Hitos de la bitácora marcados" : "Sin hitos"}</span>
+              <span>{hitos.length ? t("Hitos de la bitácora marcados") : t("Sin hitos")}</span>
               <span className="dato">{presupuesto ? `${presupuesto} min` : ""}</span>
             </div>
           </div>

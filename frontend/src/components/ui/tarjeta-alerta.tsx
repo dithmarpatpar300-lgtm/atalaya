@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { COLOR, detalleBarra, type Marca, NOMBRE_NIVEL, porcentajeDe } from "@/lib/alertas";
 import type { Alerta, NivelAlerta } from "@/lib/api";
 import { hora } from "@/lib/formato";
+import { t, tServidor } from "@/lib/i18n";
 
 /*
  * La tarjeta de una alerta, compartida por el centro de alertas (la campana) y la banda flotante. A la izquierda, el
@@ -71,7 +72,7 @@ export function ChipNivel({ nivel }: { nivel: NivelAlerta }) {
   const c = COLOR[nivel];
   return (
     <span className={`shrink-0 rounded-chip border px-1.5 text-[11px] leading-[16px] font-medium ${c.texto} ${c.fondo} ${c.borde}`}>
-      {NOMBRE_NIVEL[nivel]}
+      {t(NOMBRE_NIVEL[nivel])}
     </span>
   );
 }
@@ -80,8 +81,8 @@ export function ChipNivel({ nivel }: { nivel: NivelAlerta }) {
 export function CabeceraAlerta({ alerta }: { alerta: Alerta }) {
   return (
     <div className="flex h-5 min-w-0 items-center gap-2">
-      <h3 className="m-0 min-w-0 truncate text-rotulo font-semibold" title={alerta.titulo}>
-        {alerta.titulo}
+      <h3 className="m-0 min-w-0 truncate text-rotulo font-semibold" title={tServidor(alerta.titulo)}>
+        {tServidor(alerta.titulo)}
       </h3>
       <ChipNivel nivel={alerta.nivel} />
       <span className="min-w-0 flex-1 truncate text-ayuda text-tenue" title={`${alerta.nombre} · ${alerta.proyecto}`}>
@@ -141,7 +142,7 @@ export function BarraAlerta({ alerta, marcas = [], detalle = true }: { alerta: A
 
 /** Sin barra: el archivo de la frontera o el dato corto de la regla, en una línea fija. */
 function DatoAlerta({ alerta }: { alerta: Alerta }) {
-  const texto = alerta.archivo ?? alerta.chip;
+  const texto = alerta.archivo ?? tServidor(alerta.chip);
   return (
     <p className="dato m-0 h-5 truncate rounded-chip bg-hundido px-2 text-ayuda leading-5 text-suave" title={texto}>
       {texto}
@@ -151,7 +152,7 @@ function DatoAlerta({ alerta }: { alerta: Alerta }) {
 
 /** El origen del umbral: el documento de la regla o «Umbral por omisión». */
 export function fuenteDe(alerta: Alerta): string {
-  return alerta.fuente ? `Regla: ${alerta.fuente}` : "Umbral por omisión";
+  return alerta.fuente ? t("Regla: {fuente}", { fuente: alerta.fuente }) : t("Umbral por omisión");
 }
 
 /** La tarjeta del centro de alertas. Una vista se atenúa y cambia «Visto» por «Vista», sin mover el pie. */
@@ -172,14 +173,14 @@ export function TarjetaAlerta({
   const fuente = fuenteDe(alerta);
   return (
     <article
-      aria-label={`${NOMBRE_NIVEL[alerta.nivel]}: ${alerta.titulo}, ${alerta.nombre}`}
+      aria-label={`${t(NOMBRE_NIVEL[alerta.nivel])}: ${tServidor(alerta.titulo)}, ${alerta.nombre}`}
       className={`flex shrink-0 overflow-hidden rounded-panel border bg-superficie transition-opacity duration-150 ${c.borde} ${vista ? "opacity-60" : ""}`}
     >
       <CarrilNivel nivel={alerta.nivel} />
       <div className="@container flex min-w-0 flex-1 flex-col gap-2 px-3 pt-2.5 pb-2.5">
         <CabeceraAlerta alerta={alerta} />
-        <p className="m-0 line-clamp-2 h-[2.25rem] text-rotulo" title={alerta.texto}>
-          {alerta.texto}
+        <p className="m-0 line-clamp-2 h-[2.25rem] text-rotulo" title={tServidor(alerta.texto)}>
+          {tServidor(alerta.texto)}
         </p>
         {alerta.max > 0 ? <BarraAlerta alerta={alerta} marcas={marcas} /> : <DatoAlerta alerta={alerta} />}
         {/* En un ancho de teléfono la fuente sube a su propia línea y los botones quedan juntos a la derecha. */}
@@ -193,13 +194,13 @@ export function TarjetaAlerta({
               onClick={alVer}
               className="h-8 shrink-0 rounded-control border border-borde px-2.5 text-rotulo whitespace-nowrap hover:border-borde-fuerte hover:bg-elevado"
             >
-              Ver el agente
+              {t("Ver el agente")}
             </button>
             {vista ? (
-              <span className="grid h-8 w-[3.75rem] shrink-0 place-items-center text-ayuda text-tenue">Vista</span>
+              <span className="grid h-8 w-[3.75rem] shrink-0 place-items-center text-ayuda text-tenue">{t("Vista")}</span>
             ) : (
               <button type="button" onClick={alVisto} className="h-8 w-[3.75rem] shrink-0 rounded-control bg-elevado text-rotulo hover:bg-borde">
-                Visto
+                {t("Visto")}
               </button>
             )}
           </div>

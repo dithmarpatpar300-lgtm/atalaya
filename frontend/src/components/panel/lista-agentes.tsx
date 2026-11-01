@@ -3,6 +3,7 @@
 import { type KeyboardEvent, useRef } from "react";
 import { Segmentado } from "@/components/ui/segmentado";
 import { COLOR } from "@/lib/alertas";
+import { t, tServidor } from "@/lib/i18n";
 import { type Agente, type Alerta, esActivo } from "@/lib/api";
 import { COLOR_PROVEEDOR, FONDO_PROVEEDOR } from "@/lib/proveedor";
 import { ALTO_FILA, nombreAgente, ordenarArbol, titulos, trazosArbol, X_NIVEL } from "@/lib/arbol";
@@ -17,7 +18,7 @@ export function enFiltro(a: Agente, f: Filtro): boolean {
 
 function derecha(a: Agente, ahora: number): string {
   if (a.estado === "Trabajando" && a.avance && a.avance.porcentaje >= 0) return `${a.avance.porcentaje} %`;
-  if (a.estado === "Entregado") return "listo";
+  if (a.estado === "Entregado") return t("listo");
   if (ahora > 0) return haceCuanto(a.ultimo, ahora);
   return "";
 }
@@ -65,19 +66,19 @@ export function ListaAgentes({
 
   return (
     <aside
-      aria-label="Agentes"
+      aria-label={t("Agentes")}
       className="w-full overflow-hidden rounded-tarjeta border border-borde bg-superficie lg:sticky lg:top-[4.25rem] lg:w-[21.25rem] lg:shrink-0"
     >
       <div className="flex flex-col gap-3 border-b border-borde p-4">
-        <h2 className="m-0 text-encabezado font-semibold">Agentes</h2>
+        <h2 className="m-0 text-encabezado font-semibold">{t("Agentes")}</h2>
         <Segmentado
-          etiqueta="Filtro"
+          etiqueta={t("Filtro")}
           valor={filtro}
           alCambiar={alFiltrar}
           opciones={[
-            { valor: "activos", nombre: "Activos", cuenta: cuenta("activos") },
-            { valor: "hechos", nombre: "Hechos", cuenta: cuenta("hechos") },
-            { valor: "todos", nombre: "Todos", cuenta: cuenta("todos") },
+            { valor: "activos", nombre: t("Activos"), cuenta: cuenta("activos") },
+            { valor: "hechos", nombre: t("Hechos"), cuenta: cuenta("hechos") },
+            { valor: "todos", nombre: t("Todos"), cuenta: cuenta("todos") },
           ]}
         />
       </div>
@@ -88,7 +89,7 @@ export function ListaAgentes({
           ))}
         </div>
       ) : filas.length === 0 ? (
-        <p className="m-0 px-4 py-6 text-rotulo text-suave">No hay agentes en este filtro. Los encargos nuevos aparecen aquí al lanzarse.</p>
+        <p className="m-0 px-4 py-6 text-rotulo text-suave">{t("No hay agentes en este filtro. Los encargos nuevos aparecen aquí al lanzarse.")}</p>
       ) : (
         <div className="scroll-interno max-h-[calc(100vh-14rem)] overflow-y-auto py-1.5">
           <div className="relative">
@@ -99,29 +100,29 @@ export function ListaAgentes({
                 const codex = a.proveedor === "Codex";
                 const pct = a.estado === "Trabajando" && a.avance && a.avance.porcentaje >= 0 ? a.avance.porcentaje : null;
                 const alerta = alertas.get(a.id);
-                const t = titulos(a);
+                const ti = titulos(a);
                 const parentesco = codex
                   ? f.nivel
-                    ? ", llamada a Codex de la sesión"
+                    ? `, ${t("llamada a Codex de la sesión")}`
                     : f.sinSesion
-                      ? ", llamada a Codex sin sesión enlazada: ninguna orden de los transcritos la lanzó con su tema"
+                      ? `, ${t("llamada a Codex sin sesión enlazada: ninguna orden de los transcritos la lanzó con su tema")}`
                       : f.huerfano
-                        ? ", llamada a Codex de una sesión fuera de este filtro"
+                        ? `, ${t("llamada a Codex de una sesión fuera de este filtro")}`
                         : ""
                   : f.nivel || f.huerfano
-                    ? ", subagente"
+                    ? `, ${t("subagente")}`
                     : a.tipo === "sesion"
-                      ? ", sesión"
+                      ? `, ${t("sesión")}`
                       : "";
                 // Lo suelto dice de dónde viene, con un tono neutro: no es un error.
-                const prefijo = f.sinSesion ? "sin sesión" : f.huerfano ? (codex ? "llamada" : "subagente") : "";
+                const prefijo = f.sinSesion ? t("sin sesión") : f.huerfano ? (codex ? t("llamada") : t("subagente")) : "";
                 return (
                   <li key={a.id} style={{ height: ALTO_FILA }}>
                     <button
                       type="button"
                       onClick={() => alElegir(a.id)}
                       aria-current={actual ? "true" : undefined}
-                      aria-label={`${nombreAgente(a)}, ${a.estado.toLowerCase()}${parentesco}${alerta ? `, alerta: ${alerta.titulo}, ${alerta.chip}` : ""}. ${t.completo}`}
+                      aria-label={`${nombreAgente(a)}, ${t(a.estado).toLowerCase()}${parentesco}${alerta ? `, ${t("alerta: {titulo}, {chip}", { titulo: tServidor(alerta.titulo), chip: tServidor(alerta.chip) })}` : ""}. ${ti.completo}`}
                       className={`grid h-full w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2.5 pr-3.5 text-left transition-colors duration-150 ${
                         actual ? "bg-seleccion" : "hover:bg-elevado/60"
                       }`}
@@ -129,15 +130,15 @@ export function ListaAgentes({
                     >
                       <span className="flex min-w-0 flex-col">
                         <span className="truncate font-medium whitespace-nowrap" title={nombreAgente(a)}>
-                          {t.principal}
-                          {t.clase && <span className="ml-1.5 text-ayuda font-normal text-tenue">{t.clase}</span>}
+                          {ti.principal}
+                          {ti.clase && <span className="ml-1.5 text-ayuda font-normal text-tenue">{ti.clase}</span>}
                         </span>
                         <span
                           className="truncate text-[12.5px] whitespace-nowrap text-suave"
-                          title={f.sinSesion ? `${t.completo}\nSin sesión enlazada: ninguna orden de los transcritos corrió codex.ps1 con su tema (la sesión ya no está, o la lanzó un script con el tema en una variable).` : t.completo}
+                          title={f.sinSesion ? `${ti.completo}\n${t("Sin sesión enlazada: ninguna orden de los transcritos corrió codex.ps1 con su tema (la sesión ya no está, o la lanzó un script con el tema en una variable).")}` : ti.completo}
                         >
                           {prefijo && <span className="text-tenue">{prefijo} · </span>}
-                          {t.alterno}
+                          {ti.alterno}
                         </span>
                       </span>
                       <span className="flex flex-col items-end gap-1">
@@ -147,7 +148,7 @@ export function ListaAgentes({
                             aria-hidden="true"
                             className={`dato rounded-chip px-1.5 text-[11px] leading-[17px] whitespace-nowrap ${COLOR[alerta.nivel].texto} ${COLOR[alerta.nivel].fondo}`}
                           >
-                            {alerta.chip}
+                            {tServidor(alerta.chip)}
                           </span>
                         ) : pct !== null && (
                           <span aria-hidden="true" className="block h-[3px] w-11 rounded-full bg-elevado">
@@ -161,14 +162,14 @@ export function ListaAgentes({
               })}
             </ul>
             <svg aria-hidden="true" width="56" height={filas.length * ALTO_FILA} className="pointer-events-none absolute top-0 left-0 overflow-visible">
-              {trazos.map((t, i) => (
+              {trazos.map((tz, i) => (
                 <path
                   key={i}
-                  d={t.d}
+                  d={tz.d}
                   fill="none"
-                  stroke={t.codex ? COLOR_PROVEEDOR.Codex : "var(--riel)"}
+                  stroke={tz.codex ? COLOR_PROVEEDOR.Codex : "var(--riel)"}
                   strokeWidth="1.5"
-                  strokeDasharray={t.codex ? "4 3" : undefined}
+                  strokeDasharray={tz.codex ? "4 3" : undefined}
                   strokeLinecap="round"
                 />
               ))}

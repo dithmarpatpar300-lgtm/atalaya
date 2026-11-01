@@ -1,4 +1,5 @@
 import type { Alerta, NivelAlerta, Regla } from "./api.ts";
+import { decimal, t, tServidor } from "./i18n.ts";
 
 /** El orden de gravedad: menor es más grave. */
 export const GRAVEDAD: Record<NivelAlerta, number> = { error: 0, aviso: 1, info: 2 };
@@ -19,7 +20,7 @@ export const COLOR: Record<NivelAlerta, { texto: string; fondo: string; barra: s
 
 /** Una cifra con siempre `dec` decimales y coma decimal (regla: lo que cambia en vivo no mueve el diseño; «88,0», no «88»). */
 export function fija(n: number, dec = 1): string {
-  return (Number.isFinite(n) ? n : 0).toFixed(dec).replace(".", ",");
+  return decimal(Number.isFinite(n) ? n : 0, dec);
 }
 
 /** Cuánto lleva de su tope, en porcentaje con un decimal: «88,0 %». Puede pasar de 100 (un presupuesto vencido). */
@@ -31,9 +32,9 @@ const fijaTokens = (n: number) => (n < 1_000_000 ? `${fija(n / 1000)} k` : `${fi
 
 /** Lo que mide la barra, en sus unidades: «180,0 k de 200,0 k» (tokens), «26 de 30 min». */
 export function detalleBarra(a: Pick<Alerta, "regla" | "valor" | "max">): string {
-  if (a.regla === "contexto") return `${fijaTokens(a.valor)} de ${fijaTokens(a.max)}`;
-  if (a.regla === "tiempo") return `${Math.floor(a.valor)} de ${Math.round(a.max)} min`;
-  return `${fija(a.valor)} de ${fija(a.max)}`;
+  if (a.regla === "contexto") return t("{valor} de {max}", { valor: fijaTokens(a.valor), max: fijaTokens(a.max) });
+  if (a.regla === "tiempo") return t("{valor} de {max} min", { valor: Math.floor(a.valor), max: Math.round(a.max) });
+  return t("{valor} de {max}", { valor: fija(a.valor), max: fija(a.max) });
 }
 
 /** Una marca sobre la barra: dónde cae (0 a 1) y qué es. */
@@ -56,7 +57,7 @@ export function marcasDe(a: Pick<Alerta, "regla" | "max">, reglas: readonly Regl
     const pct = /(\d+(?:[.,]\d+)?)\s*%/.exec(r.umbral);
     if (!pct) return [];
     const v = Number(pct[1].replace(",", "."));
-    return dentro({ pos: v / 100, nombre: `umbral ${r.umbral.trim()}` });
+    return dentro({ pos: v / 100, nombre: t("umbral {valor}", { valor: tServidor(r.umbral.trim()) }) });
   }
   if (a.regla === "tiempo") {
     const tope = /(\d+)\s*min/.exec(r.umbral);
@@ -65,7 +66,7 @@ export function marcasDe(a: Pick<Alerta, "regla" | "max">, reglas: readonly Regl
     const margen = Number(tope[1]) - Number(aviso[1]);
     if (margen <= 0) return [];
     const en = a.max - margen;
-    return dentro({ pos: en / a.max, nombre: `aviso ${Math.round(en)} min` });
+    return dentro({ pos: en / a.max, nombre: t("aviso {n} min", { n: Math.round(en) }) });
   }
   return [];
 }

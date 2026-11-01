@@ -5,6 +5,7 @@ import { IconoBuscar } from "@/components/ui/iconos";
 import { type Agente, api, type DocumentoDatapedia, esActivo, type ProyectoResumen } from "@/lib/api";
 import { FONDO_PROVEEDOR } from "@/lib/proveedor";
 import { nombreAgente, titulos } from "@/lib/arbol";
+import { t } from "@/lib/i18n";
 import { fijarPreferencia } from "@/lib/tema";
 import type { Seccion } from "./cabecera";
 
@@ -86,52 +87,52 @@ export function Paleta({
 
   const items: Item[] = [
     ...agentes
-      .filter((a) => cuadra(a.rol, a.clase, a.tarea, a.titulo ?? "", a.tipo === "sesion" ? `${a.proyecto} sesion` : "", a.estado))
+      .filter((a) => cuadra(a.rol, a.clase, a.tarea, a.titulo ?? "", a.tipo === "sesion" ? `${a.proyecto} ${t("sesión")}` : "", a.estado, t(a.estado)))
       .slice(0, nq ? 6 : 4)
       .map((a) => ({
         clave: `a-${a.id}`,
-        grupo: `Agentes de ${proyecto}`,
+        grupo: t("Agentes de {proyecto}", { proyecto }),
         etiqueta: `${nombreAgente(a)} · ${titulos(a).alterno}`,
-        detalle: a.estado.toLowerCase(),
+        detalle: t(a.estado).toLowerCase(),
         color: a.proveedor === "Codex" || esActivo(a.estado) ? FONDO_PROVEEDOR[a.proveedor] : "bg-borde-fuerte",
         hacer: cerrarY(() => acciones.abrirAgente(a.id)),
       })),
     ...proyectos
-      .filter((p) => p.nombre !== proyecto && cuadra(p.nombre, "proyecto"))
+      .filter((p) => p.nombre !== proyecto && cuadra(p.nombre, t("proyecto")))
       .slice(0, 5)
       .map((p) => ({
         clave: `p-${p.nombre}`,
-        grupo: "Proyectos",
+        grupo: t("Proyectos"),
         etiqueta: p.nombre,
-        detalle: p.activos ? `${p.activos} activos` : `${p.agentes} agentes`,
+        detalle: p.activos ? t("{n} activos", { n: p.activos }) : t("{n} agentes", { n: p.agentes }),
         color: p.activos ? "bg-ok" : "bg-borde-fuerte",
         hacer: cerrarY(() => acciones.elegirProyecto(p.nombre)),
       })),
     ...(nq.length >= 2 ? docs : []).map((d) => ({
       clave: `d-${d.id}`,
-      grupo: "Datapedia",
+      grupo: t("Datapedia"),
       etiqueta: d.titulo,
       // Una sesión bifurcada copia los turnos de la original: el id corto de la sesión las distingue.
-      detalle: d.tipo === "traza" ? `${d.proyecto} · traza · ${d.ruta.split("/")[1]?.slice(0, 4) ?? ""}` : `${d.proyecto} · ${d.tipo}`,
+      detalle: d.tipo === "traza" ? `${d.proyecto} · ${t("traza")} · ${d.ruta.split("/")[1]?.slice(0, 4) ?? ""}` : `${d.proyecto} · ${d.tipo}`,
       color: d.tipo === "traza" ? "bg-hilo-1" : "bg-borde-campo",
       hacer: cerrarY(() => acciones.abrirDocumento(d)),
     })),
     ...[
-      { e: "Ir a Tus proyectos", d: "sección", f: () => acciones.irA("proyectos") },
-      { e: "Ir a las Decisiones", d: "sección", f: () => acciones.irA("decisiones") },
-      { e: "Ir a Agentes", d: "sección", f: () => acciones.irA("agentes") },
-      { e: "Ir a la Línea de tiempo", d: "sección", f: () => acciones.irA("linea") },
-      { e: "Ir al Avance de la fase", d: "sección", f: () => acciones.irA("avance") },
-      { e: "Ir a la Salud del proceso", d: "sección", f: () => acciones.irA("salud") },
-      { e: "Ir a las Estadísticas", d: "sección", f: () => acciones.irA("estadisticas") },
-      { e: "Ir a la Datapedia", d: "sección", f: () => acciones.irA("datapedia") },
-      { e: "Ir a las Consultas", d: "sección", f: () => acciones.irA("consultas") },
-      { e: "Tema oscuro", d: "tema", f: () => fijarPreferencia("oscuro") },
-      { e: "Tema claro", d: "tema", f: () => fijarPreferencia("claro") },
-      { e: "Tema del sistema", d: "tema", f: () => fijarPreferencia("sistema") },
+      { e: t("Ir a Tus proyectos"), d: t("sección"), f: () => acciones.irA("proyectos") },
+      { e: t("Ir a las Decisiones"), d: t("sección"), f: () => acciones.irA("decisiones") },
+      { e: t("Ir a Agentes"), d: t("sección"), f: () => acciones.irA("agentes") },
+      { e: t("Ir a la Línea de tiempo"), d: t("sección"), f: () => acciones.irA("linea") },
+      { e: t("Ir al Avance de la fase"), d: t("sección"), f: () => acciones.irA("avance") },
+      { e: t("Ir a la Salud del proceso"), d: t("sección"), f: () => acciones.irA("salud") },
+      { e: t("Ir a las Estadísticas"), d: t("sección"), f: () => acciones.irA("estadisticas") },
+      { e: t("Ir a la Datapedia"), d: t("sección"), f: () => acciones.irA("datapedia") },
+      { e: t("Ir a las Consultas"), d: t("sección"), f: () => acciones.irA("consultas") },
+      { e: t("Tema oscuro"), d: t("tema"), f: () => fijarPreferencia("oscuro") },
+      { e: t("Tema claro"), d: t("tema"), f: () => fijarPreferencia("claro") },
+      { e: t("Tema del sistema"), d: t("tema"), f: () => fijarPreferencia("sistema") },
     ]
       .filter((x) => cuadra(x.e, x.d))
-      .map((x) => ({ clave: `x-${x.e}`, grupo: "Acciones", etiqueta: x.e, detalle: x.d, color: "bg-texto", hacer: cerrarY(x.f) })),
+      .map((x) => ({ clave: `x-${x.e}`, grupo: t("Acciones"), etiqueta: x.e, detalle: x.d, color: "bg-texto", hacer: cerrarY(x.f) })),
   ];
   const indice = Math.min(activa, Math.max(0, items.length - 1));
 
@@ -160,7 +161,7 @@ export function Paleta({
         // Un clic en el velo (fuera de la caja) cierra.
         if (e.target === dialogo.current) alCerrar();
       }}
-      aria-label="Paleta de órdenes"
+      aria-label={t("Paleta de órdenes")}
       className="capa mx-auto mt-[12vh] w-[min(40rem,calc(100vw-2rem))] overflow-hidden rounded-tarjeta p-0 text-texto backdrop:bg-velo"
     >
       {abierta && (
@@ -168,7 +169,7 @@ export function Paleta({
           <div className="flex items-center gap-2.5 border-b border-borde px-3.5">
             <IconoBuscar className="size-4 shrink-0 text-suave" />
             <label htmlFor={`${base}-q`} className="sr-only">
-              Buscar agentes, proyectos, documentos o acciones
+              {t("Buscar agentes, proyectos, documentos o acciones")}
             </label>
             <input
               id={`${base}-q`}
@@ -184,14 +185,14 @@ export function Paleta({
                 setActiva(0);
               }}
               onKeyDown={alTecla}
-              placeholder="Buscar agentes, proyectos, documentos o acciones…"
+              placeholder={t("Buscar agentes, proyectos, documentos o acciones…")}
               autoComplete="off"
               spellCheck={false}
               className="h-13 flex-1 bg-transparent text-[15px] placeholder:text-tenue focus-visible:outline-none"
             />
             <kbd className="dato rounded-chip border border-borde px-1.5 text-ayuda text-tenue">Esc</kbd>
           </div>
-          <ul id={`${base}-lista`} role="listbox" aria-label="Resultados" className="scroll-interno m-0 max-h-[26rem] list-none overflow-y-auto p-1.5">
+          <ul id={`${base}-lista`} role="listbox" aria-label={t("Resultados")} className="scroll-interno m-0 max-h-[26rem] list-none overflow-y-auto p-1.5">
             {items.map((it, i) => (
               <li key={it.clave} role="none">
                 {(i === 0 || items[i - 1].grupo !== it.grupo) && (
@@ -216,7 +217,7 @@ export function Paleta({
               </li>
             ))}
           </ul>
-          {items.length === 0 && <p className="m-0 px-4 pb-4 text-rotulo text-suave">Nada coincide.</p>}
+          {items.length === 0 && <p className="m-0 px-4 pb-4 text-rotulo text-suave">{t("Nada coincide.")}</p>}
         </>
       )}
     </dialog>

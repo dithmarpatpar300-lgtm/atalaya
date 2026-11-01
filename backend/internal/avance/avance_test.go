@@ -95,3 +95,37 @@ func TestLeerLasFases(t *testing.T) {
 		t.Error("sin avance")
 	}
 }
+
+// Una fase recién abierta: la tabla de AVANCE.md tiene solo un marcador y los paquetes están en el plan. El marcador no
+// es un paquete (antes se pintaba como uno de nombre largo, sin horas, y rompía la vista) y los paquetes salen del plan.
+func TestUnaFaseConLosPaquetesEnElPlan(t *testing.T) {
+	raiz := t.TempDir()
+	fase := filepath.Join(raiz, "docs", "trazabilidad", "F6")
+	_ = os.MkdirAll(fase, 0o755)
+	_ = os.MkdirAll(filepath.Join(raiz, "docs", "planes"), 0o755)
+	avance := "Avance: 0 % — fase 6 en diseño\nPlan: docs/planes/fase-6.md §4\n\n" +
+		"| Paquete | Qué | Horas | Estado | % | Evidencia |\n|---|---|---|---|---|---|\n| (W1 a W12, al aprobarse el plan) | | | | | |\n"
+	_ = os.WriteFile(filepath.Join(fase, "AVANCE.md"), []byte(avance), 0o644)
+	plan := "# Plan\n\n## 4. Resumen\n\n| Paquete | Qué | Clase · rol | Est. (h) |\n|---|---|---|---|\n" +
+		"| **W1** | Hilos | I2 | 6 |\n| **W12** | Cierre | V | 4 + sesión |\n| **Total** | | | **≈ 10 h** |\n\n" +
+		"## 8. Riesgos\n\n| Paquete | Riesgo |\n|---|---|\n| W1 | rompe algo sutil |\n"
+	_ = os.WriteFile(filepath.Join(raiz, "docs", "planes", "fase-6.md"), []byte(plan), 0o644)
+
+	if ps := Parsear(avance, "F6", "x").Paquetes; len(ps) != 0 {
+		t.Fatalf("el marcador se leyó como paquete: %+v", ps)
+	}
+	f := Leer(raiz)[0]
+	if len(f.Paquetes) != 2 || f.Paquetes[0].ID != "W1" || f.Paquetes[1].ID != "W12" || f.HorasTot != 10 || f.Calculado != 0 {
+		t.Fatalf("paquetes del plan: %+v (horas %v)", f.Paquetes, f.HorasTot)
+	}
+	if f.Paquetes[0].Estado != SinEmpezar || len(f.Avisos) != 1 || !strings.Contains(f.Avisos[0], "salen del plan (docs/planes/fase-6.md)") {
+		t.Errorf("estado o avisos: %+v %q", f.Paquetes[0], f.Avisos)
+	}
+
+	// Un plan fuera del proyecto no se lee.
+	_ = os.WriteFile(filepath.Join(fase, "AVANCE.md"), []byte("Avance: 0 % — x\nPlan: ../fuera.md\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(filepath.Dir(raiz), "fuera.md"), []byte("| Paquete | Horas |\n|---|---|\n| X | 3 |\n"), 0o644)
+	if ps := Leer(raiz)[0].Paquetes; len(ps) != 0 {
+		t.Errorf("leyó un plan fuera del proyecto: %+v", ps)
+	}
+}

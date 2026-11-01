@@ -128,15 +128,30 @@ func celdas(l string) []string {
 // Parsear lee el texto de un AVANCE.md.
 func Parsear(texto, fase, ruta string) Fase {
 	b := trazabilidad.ParsearAvance(texto, ruta)
-	f := Fase{Fase: fase, Ruta: ruta, Ahora: b.Texto, Declarado: b.Porcentaje, Hitos: b.Hitos, Paquetes: []Paquete{}, Avisos: []string{}}
+	f := Fase{Fase: fase, Ruta: ruta, Ahora: b.Texto, Declarado: b.Porcentaje, Hitos: b.Hitos, Avisos: []string{}}
+	for _, l := range strings.Split(strings.ReplaceAll(texto, "\r\n", "\n"), "\n") {
+		if m := rePlan.FindStringSubmatch(strings.TrimSpace(l)); m != nil {
+			f.Plan = strings.TrimSpace(m[1])
+			break
+		}
+	}
+	f.Paquetes = paquetes(texto, false)
+	f.calcular()
+	return f
+}
+
+// paquetes: las filas de las tablas con columna «Paquete» (o «ID»); con soloPrimera, las de la primera de ellas. Una
+// fila con el nombre y nada más no es un paquete sino un marcador, como «| (W1 a W12, al aprobarse el plan) | | |»:
+// se salta, para que no se pinte como un paquete de nombre largo, sin horas ni estado.
+func paquetes(texto string, soloPrimera bool) []Paquete {
+	out := []Paquete{}
 	var cols []string
 	for _, l := range strings.Split(strings.ReplaceAll(texto, "\r\n", "\n"), "\n") {
 		t := strings.TrimSpace(l)
-		if m := rePlan.FindStringSubmatch(t); m != nil && f.Plan == "" {
-			f.Plan = strings.TrimSpace(m[1])
-			continue
-		}
 		if !strings.HasPrefix(t, "|") {
+			if len(cols) > 0 && soloPrimera {
+				break
+			}
 			cols = nil // una tabla termina con la primera línea que no es fila
 			continue
 		}
@@ -160,9 +175,13 @@ func Parsear(texto, fase, ruta string) Fase {
 			continue
 		}
 		p := Paquete{Pct: -1}
+		soloNombre := true
 		for i, c := range cs {
 			if i >= len(cols) {
 				break
+			}
+			if cols[i] != "id" && c != "" {
+				soloNombre = false
 			}
 			switch cols[i] {
 			case "id":
@@ -181,13 +200,12 @@ func Parsear(texto, fase, ruta string) Fase {
 				p.Evidencia = strings.Trim(c, "`")
 			}
 		}
-		if p.ID == "" || strings.EqualFold(p.ID, "total") {
+		if p.ID == "" || soloNombre || strings.EqualFold(p.ID, "total") {
 			continue
 		}
-		f.Paquetes = append(f.Paquetes, p)
+		out = append(out, p)
 	}
-	f.calcular()
-	return f
+	return out
 }
 
 func (f *Fase) calcular() {
@@ -252,10 +270,47 @@ func Leer(raiz string) []Fase {
 		}
 		rel, _ := filepath.Rel(raiz, r)
 		// El texto, el plan y los hitos llegan al panel y al MCP: un token pegado por error no sale de aquí.
-		out = append(out, Parsear(secretos.Tapar(string(b)), fase, filepath.ToSlash(rel)))
+		f := Parsear(secretos.Tapar(string(b)), fase, filepath.ToSlash(rel))
+		f.paquetesDelPlan(raiz)
+		out = append(out, f)
 	}
 	sort.Slice(out, func(i, j int) bool { return numFase(out[i].Fase) > numFase(out[j].Fase) })
 	return out
+}
+
+// paquetesDelPlan: una fase recién abierta todavía no tiene su tabla en AVANCE.md, pero su plan (la línea «Plan:»)
+// sí trae la de paquetes con sus horas. Entonces se leen de ahí, todos sin empezar, y un aviso dice de dónde salen.
+// El plan tiene que estar dentro del proyecto.
+func (f *Fase) paquetesDelPlan(raiz string) {
+	if len(f.Paquetes) > 0 || f.Plan == "" {
+		return
+	}
+	campos := strings.Fields(strings.Trim(f.Plan, "`"))
+	if len(campos) == 0 {
+		return
+	}
+	rel := strings.Trim(campos[0], "`")
+	ruta := filepath.Join(raiz, filepath.FromSlash(rel))
+	if dentro, err := filepath.Rel(raiz, ruta); err != nil || filepath.IsAbs(rel) || dentro == ".." || strings.HasPrefix(dentro, ".."+string(filepath.Separator)) {
+		return
+	}
+	b, err := os.ReadFile(ruta)
+	if err != nil {
+		return
+	}
+	ps := paquetes(secretos.Tapar(string(b)), true)
+	if len(ps) == 0 {
+		return
+	}
+	for i := range ps {
+		ps[i].Estado = SinEmpezar
+		ps[i].Pct = -1
+	}
+	f.Paquetes = ps
+	f.Avisos = []string{}
+	f.HorasTot, f.HorasHech, f.Calculado = 0, 0, 0
+	f.calcular()
+	f.Avisos = append([]string{"los paquetes salen del plan (" + rel + "): AVANCE.md todavía no tiene su tabla"}, f.Avisos...)
 }
 
 func numFase(f string) int {

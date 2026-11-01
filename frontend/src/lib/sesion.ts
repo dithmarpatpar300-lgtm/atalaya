@@ -3,6 +3,7 @@
 
 import type { FaseAvance } from "./avance.ts";
 import type { Decision } from "./decisiones.ts";
+import { t } from "./i18n.ts";
 
 export interface PedidoSesion {
   n: number;
@@ -45,25 +46,25 @@ export interface ResumenSesion {
   decisiones?: Decision[];
 }
 
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
-
 /** Lo que siguió a un pedido, en una línea: «lanzó 1 agente, 6 consultas a Atalaya, leyó la cuota». */
 export function loQueSiguio(p: PedidoSesion): string {
   const partes: string[] = [];
-  if (p.lanzados.length) partes.push(`lanzó ${plural(p.lanzados.length, "agente", "agentes")}`);
-  if (p.consultas) partes.push(plural(p.consultas, "consulta a Atalaya", "consultas a Atalaya"));
-  if (p.cuota) partes.push("leyó la cuota");
-  if (p.commits) partes.push(p.commits === 1 ? "comiteó" : `comiteó ${p.commits} veces`);
-  if (!partes.length) partes.push(plural(p.pasos, "paso", "pasos"));
+  const n = p.lanzados.length;
+  if (n) partes.push(n === 1 ? t("lanzó 1 agente") : t("lanzó {n} agentes", { n }));
+  if (p.consultas) partes.push(p.consultas === 1 ? t("1 consulta a Atalaya") : t("{n} consultas a Atalaya", { n: p.consultas }));
+  if (p.cuota) partes.push(t("leyó la cuota"));
+  if (p.commits) partes.push(p.commits === 1 ? t("comiteó") : t("comiteó {n} veces", { n: p.commits }));
+  if (!partes.length) partes.push(p.pasos === 1 ? t("1 paso") : t("{n} pasos", { n: p.pasos }));
   return partes.join(", ");
 }
 
 /** El efecto corto de la columna derecha de la fila. */
 export function efecto(p: PedidoSesion): string {
-  if (p.lanzados.length) return plural(p.lanzados.length, "agente lanzado", "agentes lanzados");
-  if (p.commits) return "commit";
-  if (p.consultas) return plural(p.consultas, "consulta", "consultas");
-  return plural(p.pasos, "paso", "pasos");
+  const n = p.lanzados.length;
+  if (n) return n === 1 ? t("1 agente lanzado") : t("{n} agentes lanzados", { n });
+  if (p.commits) return t("commit");
+  if (p.consultas) return p.consultas === 1 ? t("1 consulta") : t("{n} consultas", { n: p.consultas });
+  return p.pasos === 1 ? t("1 paso") : t("{n} pasos", { n: p.pasos });
 }
 
 /** El pedido que se muestra al llegar: el elegido si existe, si no el último. */

@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { IconoCerrar, IconoCheck } from "@/components/ui/iconos";
 import { api } from "@/lib/api";
+import { t, tServidor } from "@/lib/i18n";
 import {
   archivosQueTiene,
   chipNivel,
@@ -32,6 +33,7 @@ const VACIO: Record<FiltroPortafolio, string> = {
   vivos: "Ningún proyecto tiene agentes vivos ahora.",
   falta: "A ningún proyecto le falta nada del contrato.",
 };
+// Las frases de arriba son claves del diccionario: se pasan por t() al dibujarlas.
 
 /**
  * La portada «Tus proyectos»: una tarjeta por proyecto de proyectos.json, con su avance, su
@@ -65,31 +67,31 @@ export function Proyectos({ version, alAbrirProyecto }: { version: number; alAbr
   const sel = proyectoElegido(visibles, elegido);
 
   return (
-    <main id="contenido" tabIndex={-1} aria-label="Tus proyectos" className="relative mx-auto flex w-full max-w-[1520px] flex-col gap-5 p-4 sm:p-5">
+    <main id="contenido" tabIndex={-1} aria-label={t("Tus proyectos")} className="relative mx-auto flex w-full max-w-[1520px] flex-col gap-5 p-4 sm:p-5">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex min-w-0 flex-[1_1_28rem] flex-col gap-1">
-          <h1 className="m-0 text-titulo font-semibold">Tus proyectos</h1>
+          <h1 className="m-0 text-titulo font-semibold">{t("Tus proyectos")}</h1>
           <p className="m-0 max-w-3xl text-suave">
-            Todos tus proyectos de un vistazo. Cada tarjeta sale de los archivos de su proyecto; donde falta un archivo, lo dice en vez de suponer.
+            {t("Todos tus proyectos de un vistazo. Cada tarjeta sale de los archivos de su proyecto; donde falta un archivo, lo dice en vez de suponer.")}
           </p>
         </div>
-        <span title="Llega con la skill atalaya-proyecto" className="inline-flex">
+        <span title={t("Llega con la skill atalaya-proyecto")} className="inline-flex">
           <button
             type="button"
             disabled
-            title="Llega con la skill atalaya-proyecto"
+            title={t("Llega con la skill atalaya-proyecto")}
             className="h-(--alto-control) cursor-not-allowed rounded-control border border-borde bg-superficie px-3.5 text-rotulo font-medium text-tenue"
           >
-            Proyecto nuevo
+            {t("Proyecto nuevo")}
           </button>
         </span>
       </div>
 
-      {error && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">No se pudo leer el portafolio. Se reintenta con el próximo aviso.</p>}
+      {error && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudo leer el portafolio. Se reintenta con el próximo aviso.")}</p>}
 
       <div className="flex flex-wrap items-center gap-2.5">
         <span id={idFiltro} className="text-rotulo text-suave">
-          Mostrar
+          {t("Mostrar")}
         </span>
         <div role="group" aria-labelledby={idFiltro} className="flex max-w-full flex-wrap gap-0.5 rounded-control bg-elevado p-[3px]">
           {FILTROS.map((f) => {
@@ -104,7 +106,7 @@ export function Proyectos({ version, alAbrirProyecto }: { version: number; alAbr
                   on ? "bg-superficie font-medium text-texto shadow-sm" : "text-suave hover:text-texto"
                 }`}
               >
-                {f.nombre}
+                {t(f.nombre)}
                 <span className="dato inline-block min-w-[2ch] text-right text-ayuda text-tenue">{ps ? n[f.id] : "–"}</span>
               </button>
             );
@@ -113,7 +115,7 @@ export function Proyectos({ version, alAbrirProyecto }: { version: number; alAbr
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <section aria-label="Proyectos" className="min-w-0">
+        <section aria-label={t("Proyectos")} className="min-w-0">
           {!ps ? (
             <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
               {[0, 1, 2, 3].map((i) => (
@@ -121,7 +123,7 @@ export function Proyectos({ version, alAbrirProyecto }: { version: number; alAbr
               ))}
             </div>
           ) : visibles.length === 0 ? (
-            <p className="m-0 flex h-[196px] items-center justify-center rounded-tarjeta border border-dashed border-borde px-4 text-center text-suave">{VACIO[filtro]}</p>
+            <p className="m-0 flex h-[196px] items-center justify-center rounded-tarjeta border border-dashed border-borde px-4 text-center text-suave">{t(VACIO[filtro])}</p>
           ) : (
             <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
               {visibles.map((p) => (
@@ -133,7 +135,7 @@ export function Proyectos({ version, alAbrirProyecto }: { version: number; alAbr
           )}
         </section>
 
-        <aside aria-label="Contrato del proyecto elegido" aria-live="polite" className="min-w-0 lg:sticky lg:top-[68px]">
+        <aside aria-label={t("Contrato del proyecto elegido")} aria-live="polite" className="min-w-0 lg:sticky lg:top-[68px]">
           {sel ? <Contrato p={sel} alAbrir={(s) => alAbrirProyecto(sel.nombre, s)} /> : <div className={ps ? "hidden" : "esqueleto h-[420px] rounded-tarjeta"} aria-hidden="true" />}
         </aside>
       </div>
@@ -147,13 +149,24 @@ function Tarjeta({ p, on, alElegir }: { p: ProyectoPortafolio; on: boolean; alEl
   const salud = saludHoy(p.salud);
   const tiene = archivosQueTiene(p);
   const tramos = tramosHilo(p.avance);
-  const vivosTexto = p.vivos === 1 ? "1 vivo" : `${p.vivos} vivos`;
+  const vivosTexto = p.vivos === 1 ? t("1 vivo") : t("{n} vivos", { n: p.vivos });
+  const consultas = p.consultas === 1 ? t("1 consulta a Atalaya hoy") : t("{n} consultas a Atalaya hoy", { n: p.consultas });
+  const contrato = t("{n} de {total}", { n: tiene, total: p.contrato.length });
   return (
     <button
       type="button"
       aria-pressed={on}
       onClick={alElegir}
-      aria-label={`${p.nombre}. ${fase}. ${chipNivel(p.nivel)}. Avance ${av.cifra === "—" ? av.nota : `${av.cifra}, ${av.nota}`}. Contrato ${tiene} de ${p.contrato.length}. Salud hoy ${salud.cifra === "—" ? "sin agentes" : `${salud.cifra} en regla`}. ${p.consultas} consultas a Atalaya hoy.${p.vivos > 0 ? ` ${vivosTexto}.` : ""}`}
+      aria-label={t("{nombre}. {fase}. {nivel}. Avance {avance}. Contrato {contrato}. Salud hoy {salud}. {consultas}.{vivos}", {
+        nombre: p.nombre,
+        fase,
+        nivel: chipNivel(p.nivel),
+        avance: av.cifra === "—" ? av.nota : `${av.cifra}, ${av.nota}`,
+        contrato,
+        salud: salud.cifra === "—" ? t("sin agentes") : t("{cifra} en regla", { cifra: salud.cifra }),
+        consultas,
+        vivos: p.vivos > 0 ? ` ${vivosTexto}.` : "",
+      })}
       className={`flex h-[196px] w-full flex-col justify-between rounded-tarjeta border bg-superficie p-4 text-left transition-colors duration-150 ${
         on ? "border-acento shadow-[0_0_0_1px_var(--acento)]" : "border-borde hover:border-borde-fuerte"
       }`}
@@ -187,25 +200,29 @@ function Tarjeta({ p, on, alElegir }: { p: ProyectoPortafolio; on: boolean; alEl
         <span className={`text-[30px] leading-9 font-semibold tracking-[-0.01em] [font-variant-numeric:proportional-nums] ${p.avance ? "text-texto" : "text-tenue"}`}>
           {av.cifra}
         </span>
-        <span className="min-w-0 truncate text-rotulo text-suave" title={p.avance ? `${av.nota}, calculado de ${p.avance.ruta}` : av.nota}>
+        <span className="min-w-0 truncate text-rotulo text-suave" title={p.avance ? t("{nota}, calculado de {ruta}", { nota: av.nota, ruta: p.avance.ruta }) : av.nota}>
           {av.nota}
         </span>
       </span>
 
       <span aria-hidden="true" title={hiloEnTexto(p.avance)} className="flex h-1.5 w-full gap-[2px]">
-        {tramos.map((t) => (
-          <span key={t.tipo} className="h-full min-w-[3px] rounded-full" style={{ flex: `${t.peso} 1 0`, background: COLOR_TRAMO[t.tipo] }} />
+        {tramos.map((tr) => (
+          <span key={tr.tipo} className="h-full min-w-[3px] rounded-full" style={{ flex: `${tr.peso} 1 0`, background: COLOR_TRAMO[tr.tipo] }} />
         ))}
       </span>
 
       <span className="grid w-full grid-cols-4 gap-2">
-        <Dato rotulo="Contrato" valor={`${tiene} de ${p.contrato.length}`} titulo={`${tiene} de ${p.contrato.length} archivos del contrato`} />
-        <Dato rotulo="Salud hoy" valor={salud.cifra} titulo={salud.titulo} />
-        <Dato rotulo="Consultas" valor={String(p.consultas)} titulo={`${p.consultas} consultas a Atalaya por MCP desde la medianoche`} />
+        <Dato rotulo={t("Contrato")} valor={contrato} titulo={t("{n} de {total} archivos del contrato", { n: tiene, total: p.contrato.length })} />
+        <Dato rotulo={t("Salud hoy")} valor={salud.cifra} titulo={salud.titulo} />
         <Dato
-          rotulo="Te esperan"
+          rotulo={t("Consultas")}
+          valor={String(p.consultas)}
+          titulo={p.consultas === 1 ? t("1 consulta a Atalaya por MCP desde la medianoche") : t("{n} consultas a Atalaya por MCP desde la medianoche", { n: p.consultas })}
+        />
+        <Dato
+          rotulo={t("Te esperan")}
           valor={String(p.decisiones ?? 0)}
-          titulo={`${p.decisiones ?? 0} preguntas de sus sesiones sin responder`}
+          titulo={p.decisiones === 1 ? t("1 pregunta de sus sesiones sin responder") : t("{n} preguntas de sus sesiones sin responder", { n: p.decisiones ?? 0 })}
           aviso={(p.decisiones ?? 0) > 0}
         />
       </span>
@@ -238,10 +255,8 @@ function Contrato({ p, alAbrir }: { p: ProyectoPortafolio; alAbrir: (seccion?: s
 
       <div className="flex flex-col gap-1.5">
         <div className="flex h-5 items-center justify-between gap-2">
-          <h3 className="m-0 text-rotulo font-medium text-suave">Contrato de trazabilidad</h3>
-          <span className="dato text-ayuda text-tenue">
-            {tiene} de {p.contrato.length}
-          </span>
+          <h3 className="m-0 text-rotulo font-medium text-suave">{t("Contrato de trazabilidad")}</h3>
+          <span className="dato text-ayuda text-tenue">{t("{n} de {total}", { n: tiene, total: p.contrato.length })}</span>
         </div>
         <ul className="m-0 flex list-none flex-col overflow-hidden rounded-panel border border-borde p-0">
           {p.contrato.map((c) => (
@@ -249,16 +264,16 @@ function Contrato({ p, alAbrir }: { p: ProyectoPortafolio; alAbrir: (seccion?: s
               {c.esta ? (
                 <span className="flex items-center gap-1 text-ayuda font-medium text-ok">
                   <IconoCheck className="size-3.5 shrink-0" />
-                  está
+                  {t("está")}
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-ayuda font-medium text-error">
                   <IconoCerrar className="size-3.5 shrink-0" />
-                  falta
+                  {t("falta")}
                 </span>
               )}
-              <span className={`dato truncate text-[12.5px] ${c.esta ? "text-texto" : "text-suave"}`} title={c.ruta === c.nombre ? c.ruta : `${c.nombre} · ${c.ruta}`}>
-                {c.esta && c.id === "avance" ? c.ruta : c.nombre}
+              <span className={`dato truncate text-[12.5px] ${c.esta ? "text-texto" : "text-suave"}`} title={c.ruta === c.nombre ? c.ruta : `${tServidor(c.nombre)} · ${c.ruta}`}>
+                {c.esta && c.id === "avance" ? c.ruta : tServidor(c.nombre)}
               </span>
             </li>
           ))}
@@ -274,15 +289,15 @@ function Contrato({ p, alAbrir }: { p: ProyectoPortafolio; alAbrir: (seccion?: s
         onClick={() => alAbrir()}
         className="h-(--alto-control) rounded-control bg-acento px-4 text-rotulo font-medium text-sobre-acento transition-colors duration-150 hover:bg-acento-fuerte"
       >
-        Abrir el proyecto
+        {t("Abrir el proyecto")}
       </button>
       {/* El mismo proyecto en las otras secciones: el avance, la salud de hoy, su línea y lo que te pregunta. */}
-      <nav aria-label={`${p.nombre} en otras secciones`} className="grid grid-cols-2 gap-1.5">
+      <nav aria-label={t("{nombre} en otras secciones", { nombre: p.nombre })} className="grid grid-cols-2 gap-1.5">
         {[
-          ["avance", "Avance"],
-          ["salud", "Salud"],
-          ["linea", "Línea"],
-          ["decisiones", (p.decisiones ?? 0) > 0 ? `Te esperan ${p.decisiones}` : "Decisiones"],
+          ["avance", t("Avance")],
+          ["salud", t("Salud")],
+          ["linea", t("Línea")],
+          ["decisiones", (p.decisiones ?? 0) > 0 ? t("Te esperan {n}", { n: p.decisiones ?? 0 }) : t("Decisiones")],
         ].map(([s, nombre]) => (
           <button
             key={s}

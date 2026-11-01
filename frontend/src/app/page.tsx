@@ -1,5 +1,5 @@
-import { Panel } from "@/components/panel/panel";
+import { PanelEnSuIdioma } from "@/components/panel/en-su-idioma";
 
 export default function Inicio() {
-  return <Panel />;
+  return <PanelEnSuIdioma />;
 }

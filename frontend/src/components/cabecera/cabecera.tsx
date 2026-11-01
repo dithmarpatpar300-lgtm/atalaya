@@ -5,6 +5,8 @@ import { IconoBuscar } from "@/components/ui/iconos";
 import { Marca } from "@/components/ui/marca";
 import type { ProyectoResumen } from "@/lib/api";
 import type { Conexion } from "@/lib/vivo";
+import { t } from "@/lib/i18n";
+import { BotonIdioma } from "./boton-idioma";
 import { MenuTema } from "./menu-tema";
 import { SelectorProyecto } from "./selector-proyecto";
 
@@ -20,7 +22,7 @@ function teclaMod(): string {
 
 /**
  * La cabecera de una sola fila (52 px), de vidrio: la marca, el proyecto como migas, las secciones como pestañas con
- * subrayado, la puerta a la paleta de órdenes, la luz de la conexión en vivo y el tema. En un teléfono las pestañas
+ * subrayado, la puerta a la paleta de órdenes, la luz de la conexión en vivo, el idioma y el tema. En un teléfono las pestañas
  * bajan a una segunda fila y la búsqueda queda en su icono.
  */
 export function Cabecera({
@@ -69,7 +71,7 @@ export function Cabecera({
         <SelectorProyecto proyectos={proyectos} valor={proyecto} alCambiar={alElegirProyecto} />
 
         {/* Desde 1280 px, una sola fila que nunca se parte: si falta sitio, las pestañas se desplazan de lado y los botones de la derecha no se mueven. Más angosto, las pestañas bajan a su propia fila. */}
-        <nav aria-label="Secciones" className="order-last -mx-1 flex w-full gap-1 self-stretch overflow-x-auto xl:order-none xl:mx-0 xl:ml-1.5 xl:w-auto xl:min-w-0 xl:shrink xl:[scrollbar-width:none]">
+        <nav aria-label={t("Secciones")} className="order-last -mx-1 flex w-full gap-1 self-stretch overflow-x-auto xl:order-none xl:mx-0 xl:ml-1.5 xl:w-auto xl:min-w-0 xl:shrink xl:[scrollbar-width:none]">
           {pestanas.map((p) => {
             const actual = p.id === seccion;
             return (
@@ -81,13 +83,13 @@ export function Cabecera({
                   actual ? "font-semibold text-texto shadow-[inset_0_-2px_0_var(--acento)]" : "text-suave hover:text-texto"
                 }`}
               >
-                {p.nombre}
+                {t(p.nombre)}
                 {/* Lo que te espera se ve siempre, como insignia sobre la esquina: no ocupa sitio en la fila, así la
                     pestaña queda centrada sobre su raya y que aparezca no corre las demás (lo que cambia en vivo no mueve el diseño). */}
                 {p.id === "decisiones"
                   ? !!cuentas.decisiones && (
                       <span
-                        aria-label={`${cuentas.decisiones} esperándote`}
+                        aria-label={t("{n} esperándote", { n: cuentas.decisiones })}
                         className="dato pointer-events-none absolute top-0.5 right-0 min-w-4 translate-x-1/3 rounded-full bg-aviso px-1 text-center text-[10px] leading-4 font-semibold text-fondo"
                       >
                         {cuentas.decisiones}
@@ -106,11 +108,11 @@ export function Cabecera({
           onClick={alAbrirPaleta}
           aria-haspopup="dialog"
           aria-keyshortcuts={mod === "⌘" ? "Meta+K" : "Control+K"}
-          aria-label="Buscar agentes, proyectos, documentos o acciones"
+          aria-label={t("Buscar agentes, proyectos, documentos o acciones")}
           className="flex h-[34px] items-center gap-2 rounded-control border border-borde bg-elevado/55 px-2.5 text-tenue transition-colors duration-150 hover:border-borde-fuerte hover:text-suave min-[1800px]:w-64 shrink-0"
         >
           <IconoBuscar className="size-[15px] shrink-0" />
-          <span className="hidden flex-1 truncate text-left min-[1800px]:inline">Buscar agentes, trazas, documentos</span>
+          <span className="hidden flex-1 truncate text-left min-[1800px]:inline">{t("Buscar agentes, trazas, documentos")}</span>
           <kbd className="dato hidden rounded-[5px] border border-borde px-1.5 text-[11px] md:inline">{mod} K</kbd>
         </button>
 
@@ -122,10 +124,11 @@ export function Cabecera({
             }`}
           />
           {/* Entre 1280 y 1800 px las nueve pestañas no dejan sitio: queda la luz, y el texto para el lector de pantalla. */}
-          <span className="max-md:sr-only xl:max-[1799px]:sr-only">{TEXTO_CONEXION[conexion]}</span>
+          <span className="max-md:sr-only xl:max-[1799px]:sr-only">{t(TEXTO_CONEXION[conexion])}</span>
         </span>
 
         {campana}
+        <BotonIdioma />
         <MenuTema />
       </div>
     </header>

@@ -1,6 +1,8 @@
 // La portada «Tus proyectos»: tipos de /api/portafolio (backend/internal/servidor/portafolio.go)
 // y lo que se calcula para dibujar cada tarjeta. Todo sale de los archivos del proyecto; donde falta uno, se dice.
 
+import { decimal, t, tServidor } from "./i18n.ts";
+
 /** Uno de los siete archivos del contrato de trazabilidad. */
 export interface ArchivoContrato {
   id: "agents" | "mcp" | "estado" | "avance" | "operacion" | "subagentes" | "registro" | string;
@@ -48,7 +50,7 @@ export interface ProyectoPortafolio {
 export type FiltroPortafolio = "todos" | "vivos" | "falta";
 
 /** Coma decimal y siempre un decimal: «82,8». */
-export const uno = (n: number) => (Number.isFinite(n) ? n : 0).toFixed(1).replace(".", ",");
+export const uno = (n: number) => decimal(n, 1);
 
 /** Horas sin decimales si son enteras («53»), si no con uno («43,9»). */
 export const horas = (n: number) => {
@@ -71,21 +73,21 @@ export function cuentas(ps: Pick<ProyectoPortafolio, "contrato" | "existe" | "vi
 }
 
 /** El chip de la tarjeta: «nivel 3» o «sin contrato». */
-export const chipNivel = (nivel: number) => (nivel > 0 ? `nivel ${nivel}` : "sin contrato");
+export const chipNivel = (nivel: number) => (nivel > 0 ? t("nivel {n}", { n: nivel }) : t("sin contrato"));
 
 /** La segunda línea de la tarjeta: la fase y qué pasa ahora, o lo que falta para saberlo. */
 export function lineaFase(p: Pick<ProyectoPortafolio, "fase" | "avance" | "existe">): string {
-  if (!p.existe) return "La carpeta no está en el disco";
+  if (!p.existe) return t("La carpeta no está en el disco");
   if (p.avance) return p.avance.ahora ? `${p.avance.fase} · ${p.avance.ahora}` : p.avance.fase;
-  if (p.fase) return `${p.fase} · sin AVANCE.md`;
-  return "Sin fases en docs/trazabilidad";
+  if (p.fase) return `${p.fase} · ${t("sin AVANCE.md")}`;
+  return t("Sin fases en docs/trazabilidad");
 }
 
 /** La cifra grande y su nota: «82,8 %» y «43,9 de 53 h»; sin AVANCE.md, una raya y por qué. */
 export function cifraAvance(a: AvancePortafolio | null): { cifra: string; nota: string } {
-  if (!a) return { cifra: "—", nota: "sin AVANCE.md" };
-  if (a.horas <= 0) return { cifra: "—", nota: "la tabla no dice horas" };
-  return { cifra: `${uno(a.calculado)} %`, nota: `${horas(a.horas_avanzadas)} de ${horas(a.horas)} h` };
+  if (!a) return { cifra: "—", nota: t("sin AVANCE.md") };
+  if (a.horas <= 0) return { cifra: "—", nota: t("la tabla no dice horas") };
+  return { cifra: `${uno(a.calculado)} %`, nota: t("{hechas} de {total} h", { hechas: horas(a.horas_avanzadas), total: horas(a.horas) }) };
 }
 
 export interface TramoHilo {
@@ -121,42 +123,61 @@ export function tramosHilo(a: AvancePortafolio | null): TramoHilo[] {
 
 /** El hilo dicho en texto, para el lector de pantalla. */
 export function hiloEnTexto(a: AvancePortafolio | null): string {
-  if (!a || a.horas <= 0) return "Sin avance que dibujar";
+  if (!a || a.horas <= 0) return t("Sin avance que dibujar");
   const ts = tramosHilo(a);
-  const peso = (t: TramoHilo["tipo"]) => ts.find((x) => x.tipo === t)?.peso ?? 0;
-  return `${horas(peso("hecho"))} h hechas, ${horas(peso("curso"))} h avanzadas en curso y ${horas(peso("falta"))} h por hacer, de ${horas(a.horas)} h`;
+  const peso = (tipo: TramoHilo["tipo"]) => ts.find((x) => x.tipo === tipo)?.peso ?? 0;
+  return t("{hecho} h hechas, {curso} h avanzadas en curso y {falta} h por hacer, de {total} h", {
+    hecho: horas(peso("hecho")),
+    curso: horas(peso("curso")),
+    falta: horas(peso("falta")),
+    total: horas(a.horas),
+  });
 }
 
 /** La salud de hoy: «2 de 3» en regla; una raya si hoy no trabajó ningún subagente ni Codex. */
 export function saludHoy(s: ProyectoPortafolio["salud"]): { cifra: string; titulo: string } {
-  if (s.total === 0) return { cifra: "—", titulo: "Hoy no trabajó ningún subagente ni llamada a Codex" };
-  return { cifra: `${s.en_regla} de ${s.total}`, titulo: `${s.en_regla} de ${s.total} agentes de hoy van en regla` };
+  if (s.total === 0) return { cifra: "—", titulo: t("Hoy no trabajó ningún subagente ni llamada a Codex") };
+  return {
+    cifra: t("{n} de {total}", { n: s.en_regla, total: s.total }),
+    titulo: t("{n} de {total} agentes de hoy van en regla", { n: s.en_regla, total: s.total }),
+  };
 }
 
-/** El nombre corto de cada archivo para la frase de lo que falta. */
-const CORTO: Record<string, string> = {
-  agents: "AGENTS.md",
-  mcp: ".mcp.json",
-  estado: "el estado para retomar",
-  avance: "AVANCE.md",
-  operacion: "docs/operacion/AGENTES.md",
-  subagentes: ".claude/agents/",
-  registro: "el registro en proyectos.json",
-};
+/** El nombre corto de cada archivo para la frase de lo que falta (los que son una frase, con su inglés en el diccionario). */
+function corto(c: ArchivoContrato): string {
+  switch (c.id) {
+    case "agents":
+      return "AGENTS.md";
+    case "mcp":
+      return ".mcp.json";
+    case "estado":
+      return t("el estado para retomar");
+    case "avance":
+      return "AVANCE.md";
+    case "operacion":
+      return "docs/operacion/AGENTES.md";
+    case "subagentes":
+      return ".claude/agents/";
+    case "registro":
+      return t("el registro en proyectos.json");
+    default:
+      return tServidor(c.nombre);
+  }
+}
 
 function enumerar(xs: string[]): string {
   if (xs.length <= 1) return xs.join("");
-  return `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`;
+  return t("{lista} y {ultimo}", { lista: xs.slice(0, -1).join(", "), ultimo: xs[xs.length - 1] });
 }
 
 /** La frase del panel: qué le falta al proyecto, dicho de los archivos. */
 export function fraseFalta(p: Pick<ProyectoPortafolio, "contrato" | "existe">): string {
-  if (!p.existe) return "La carpeta del proyecto no está en el disco: revisa su ruta en proyectos.json.";
+  if (!p.existe) return t("La carpeta del proyecto no está en el disco: revisa su ruta en proyectos.json.");
   const faltan = p.contrato.filter((c) => !c.esta);
-  if (faltan.length === 0) return "Tiene todo el contrato de trazabilidad.";
-  if (faltan.length === p.contrato.length) return `No tiene contrato: le faltan los ${faltan.length} archivos.`;
-  const nombres = faltan.map((c) => CORTO[c.id] ?? c.nombre);
-  return `${faltan.length === 1 ? "Le falta" : "Le faltan"} ${enumerar(nombres)}.`;
+  if (faltan.length === 0) return t("Tiene todo el contrato de trazabilidad.");
+  if (faltan.length === p.contrato.length) return t("No tiene contrato: le faltan los {n} archivos.", { n: faltan.length });
+  const lista = enumerar(faltan.map(corto));
+  return faltan.length === 1 ? t("Le falta {lista}.", { lista }) : t("Le faltan {lista}.", { lista });
 }
 
 /** El proyecto que muestra el panel: el elegido si sigue a la vista, si no el primero. */

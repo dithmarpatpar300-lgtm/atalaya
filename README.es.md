@@ -46,7 +46,7 @@ Sacadas de la demo (`atalaya.exe -demo`): los proyectos, los agentes y las decis
 
 **Versión 1.0.0, estable.** Probado y validado en **Windows 11** con **Claude Code** (la CLI y la app de escritorio) y
 **Codex CLI**. Los ejecutables para Linux y macOS compilan, pero no se probaron, y allí no hay notificaciones. La
-interfaz y el kit están en español.
+interfaz está en español y en inglés (el botón ES/EN de la cabecera); el kit, en español.
 
 ## Empezar
 

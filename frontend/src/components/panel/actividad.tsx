@@ -2,8 +2,9 @@
 
 import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { api, type DetallePaso, type Paso } from "@/lib/api";
+import { decimal, t, tServidor } from "@/lib/i18n";
 import { hora } from "@/lib/formato";
-import { ANCHO_CANALETA, armarFilas, coloresDeHilo, type Fila, geometria, salidaDelPaso, tokensCortos, ventana } from "@/lib/hilos";
+import { ANCHO_CANALETA, armarFilas, coloresDeHilo, type Fila, geometria, metaPaso, salidaDelPaso, tokensCortos, ventana } from "@/lib/hilos";
 import { CuerpoPaso, type Modo } from "./detalle-paso";
 
 // Colores por tipo, para la actividad: ejecutar y planificar en ciruela, editar y escribir en ámbar, responder en
@@ -80,11 +81,11 @@ function Leyenda() {
   );
   return (
     <ul className="m-0 flex list-none flex-wrap items-center gap-x-3.5 gap-y-1 p-0 text-ayuda text-suave">
-      <li className="flex items-center gap-1.5">{muestra("M4 0V6Q4 12 10 12H22", "var(--riel)")}desvío</li>
-      <li className="flex items-center gap-1.5">{muestra("M22 2V6Q22 12 16 12H5", "var(--riel)", undefined, "M5 9L2 12L5 15")}vuelta</li>
-      <li className="flex items-center gap-1.5">{muestra("M6 2C16 2 16 14 6 14", "var(--hilo-1)", "2 3")}mismo archivo</li>
-      <li className="flex items-center gap-1.5">{muestra("M4 2C13 2 13 14 4 14", "var(--acento)")}en paralelo</li>
-      <li className="flex items-center gap-1.5">{muestra("M2 8H22", "var(--opcional)", "4 3")}delega</li>
+      <li className="flex items-center gap-1.5">{muestra("M4 0V6Q4 12 10 12H22", "var(--riel)")}{t("desvío")}</li>
+      <li className="flex items-center gap-1.5">{muestra("M22 2V6Q22 12 16 12H5", "var(--riel)", undefined, "M5 9L2 12L5 15")}{t("vuelta")}</li>
+      <li className="flex items-center gap-1.5">{muestra("M6 2C16 2 16 14 6 14", "var(--hilo-1)", "2 3")}{t("mismo archivo")}</li>
+      <li className="flex items-center gap-1.5">{muestra("M4 2C13 2 13 14 4 14", "var(--acento)")}{t("en paralelo")}</li>
+      <li className="flex items-center gap-1.5">{muestra("M2 8H22", "var(--opcional)", "4 3")}{t("delega")}</li>
     </ul>
   );
 }
@@ -156,13 +157,13 @@ export function Actividad({
     const i = pasos.findIndex((p) => p.turno === turnoPedido);
     if (i < 0) return;
     const n = pasos[i].n;
-    const t = setTimeout(() => {
+    const espera = setTimeout(() => {
       atendidos.add(cuandoPedido);
       setCuantos((c) => Math.max(c, pasos.length - i));
       setElegido(n);
       requestAnimationFrame(() => filasRef.current.get(n)?.scrollIntoView({ behavior: "smooth", block: "start" }));
     }, 0);
-    return () => clearTimeout(t);
+    return () => clearTimeout(espera);
     // Solo cuando llega un pedido nuevo (cuándo), no cada vez que crece la lista de pasos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnoPedido, cuandoPedido, idAgente]);
@@ -172,10 +173,10 @@ export function Actividad({
   const cuandoPaso = irAPaso?.cuando;
   useEffect(() => {
     if (pasoPedido === undefined || cuandoPaso === undefined || atendidos.has(cuandoPaso)) return;
-    const t = setTimeout(() => {
+    const espera = setTimeout(() => {
       if (irA(pasoPedido)) atendidos.add(cuandoPaso);
     }, 0);
-    return () => clearTimeout(t);
+    return () => clearTimeout(espera);
     // Solo cuando llega un pedido nuevo (cuándo).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pasoPedido, cuandoPaso]);
@@ -231,19 +232,19 @@ export function Actividad({
   const texto = (f: Fila): string => {
     const p = f.paso;
     const marcas: string[] = [];
-    if (p.desvio) marcas.push("se desvía de su hilo");
+    if (p.desvio) marcas.push(t("se desvía de su hilo"));
     const q = p.continua >= 0 ? porN.get(p.continua) : undefined;
-    if (q) marcas.push(`vuelve a ${p.hilo} de las ${hora(new Date(q.hora))}`);
-    if (p.paralelo > 1 && p.herramienta !== "Respuesta") marcas.push(`en paralelo con ${p.paralelo - 1} más`);
-    if (p.subagente) marcas.push("delega en un subagente");
-    return `${hora(new Date(p.hora))}, ${p.tipo}, ${p.resumen || p.herramienta}${marcas.length ? ". " + marcas.join(". ") : ""}`;
+    if (q) marcas.push(t("vuelve a {hilo} de las {hora}", { hilo: p.hilo, hora: hora(new Date(q.hora)) }));
+    if (p.paralelo > 1 && p.herramienta !== "Respuesta") marcas.push(t("en paralelo con {n} más", { n: p.paralelo - 1 }));
+    if (p.subagente) marcas.push(t("delega en un subagente"));
+    return `${hora(new Date(p.hora))}, ${t(p.tipo)}, ${p.resumen || p.herramienta}${marcas.length ? ". " + marcas.join(". ") : ""}`;
   };
 
   return (
     <section aria-labelledby={`${base}-t`} className="flex flex-col gap-4 rounded-tarjeta border border-borde bg-superficie px-6 py-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={`${base}-t`} className="m-0 text-encabezado font-semibold">
-          Actividad <span className="dato text-ayuda font-normal text-tenue">{pasos.length} pasos</span>
+          {t("Actividad")} <span className="dato text-ayuda font-normal text-tenue">{pasos.length === 1 ? t("1 paso") : t("{n} pasos", { n: pasos.length })}</span>
         </h2>
         <div className="flex flex-wrap items-center gap-3">
           <Leyenda />
@@ -251,7 +252,7 @@ export function Actividad({
             type="button"
             onClick={() => cambiar({ tokens: !ajustes.tokens })}
             aria-pressed={ajustes.tokens}
-            title="Tokens de cada paso: ↓ lo que su resultado mete al contexto, ↑ lo que la IA generó"
+            title={t("Tokens de cada paso: ↓ lo que su resultado mete al contexto, ↑ lo que la IA generó")}
             className={`flex h-7 items-center gap-1.5 rounded-control border px-2.5 text-ayuda transition-colors duration-150 ${
               ajustes.tokens ? "border-acento bg-acento-suave text-acento-fuerte" : "border-borde text-suave hover:text-texto"
             }`}
@@ -262,19 +263,19 @@ export function Actividad({
             type="button"
             onClick={() => cambiar({ seguir: !ajustes.seguir })}
             aria-pressed={ajustes.seguir}
-            title="Seguir: cuando la ventana no tiene el foco, la vista baja sola al último paso. Con el foco no se mueve."
+            title={t("Seguir: cuando la ventana no tiene el foco, la vista baja sola al último paso. Con el foco no se mueve.")}
             className={`flex h-7 items-center gap-1.5 rounded-control border px-2.5 text-ayuda transition-colors duration-150 ${
               ajustes.seguir ? "border-acento bg-acento-suave text-acento-fuerte" : "border-borde text-suave hover:text-texto"
             }`}
           >
-            <span className="dato">↧</span> Seguir
+            <span className="dato">↧</span> {t("Seguir")}
           </button>
-          {enVivo && <span className="rounded-chip bg-ok-suave px-2 py-0.5 text-ayuda font-medium text-ok">En vivo</span>}
+          {enVivo && <span className="rounded-chip bg-ok-suave px-2 py-0.5 text-ayuda font-medium text-ok">{t("En vivo")}</span>}
         </div>
       </div>
 
       {pasos.length === 0 ? (
-        <p className="m-0 text-rotulo text-suave">Todavía no hay pasos.</p>
+        <p className="m-0 text-rotulo text-suave">{t("Todavía no hay pasos.")}</p>
       ) : (
         <div className="flex flex-wrap items-start gap-5">
           {/* Línea de tiempo */}
@@ -285,10 +286,10 @@ export function Actividad({
                 onClick={() => setCuantos((c) => c + VISIBLES)}
                 className="mb-2 text-rotulo text-acento underline underline-offset-2 hover:text-acento-fuerte"
               >
-                Mostrar {Math.min(VISIBLES, pasos.length - cuantos)} pasos anteriores
+                {Math.min(VISIBLES, pasos.length - cuantos) === 1 ? t("Mostrar 1 paso anterior") : t("Mostrar {n} pasos anteriores", { n: Math.min(VISIBLES, pasos.length - cuantos) })}
               </button>
             )}
-            <div role="group" aria-label="Pasos; las flechas mueven la elección" onKeyDown={alTecla} className="relative">
+            <div role="group" aria-label={t("Pasos; las flechas mueven la elección")} onKeyDown={alTecla} className="relative">
               {filas.map((f) => {
                 const p = f.paso;
                 if (f.tipo === "etapa") {
@@ -297,7 +298,7 @@ export function Actividad({
                       <span />
                       <span />
                       <span className="flex min-w-0 items-center gap-2 text-ayuda text-acento-fuerte">
-                        <span className="shrink-0 text-[10.5px] font-semibold tracking-[0.06em] uppercase">Etapa {f.nEtapa}</span>
+                        <span className="shrink-0 text-[10.5px] font-semibold tracking-[0.06em] uppercase">{t("Etapa {n}", { n: f.nEtapa })}</span>
                         <span className="truncate">{f.etapa}</span>
                         <span className="h-px flex-1 bg-borde" />
                       </span>
@@ -335,19 +336,19 @@ export function Actividad({
                     {f.tipo === "turno" ? (
                       <span className="flex min-w-0 items-center gap-2.5 pr-2.5">
                         <span className="dato shrink-0 rounded-chip bg-opcional-suave px-[7px] text-[11px] leading-[18px] font-semibold whitespace-nowrap text-opcional">
-                          Turno {p.turno}
+                          {t("Turno {n}", { n: p.turno })}
                         </span>
                         <span className="min-w-0 flex-1 truncate font-medium">{p.resumen}</span>
                         {/* En un teléfono la fila solo tiene sitio para el tipo y el resumen: lo demás está en el inspector y en la etiqueta de la fila. */}
                         {ajustes.tokens && (
                           <span className="dato shrink-0 text-ayuda whitespace-nowrap text-tenue max-sm:hidden">
-                            {tokensCortos(totalTurno.get(p.turno) ?? 0)} en el turno
+                            {t("{tokens} en el turno", { tokens: tokensCortos(totalTurno.get(p.turno) ?? 0) })}
                           </span>
                         )}
                       </span>
                     ) : (
                       <span className="flex min-w-0 items-center gap-2 pr-2.5">
-                        <span className={`shrink-0 rounded-chip px-2 py-px text-ayuda font-medium ${TIPO[p.tipo] ?? "bg-elevado text-suave"}`}>{p.tipo}</span>
+                        <span className={`shrink-0 rounded-chip px-2 py-px text-ayuda font-medium ${TIPO[p.tipo] ?? "bg-elevado text-suave"}`}>{t(p.tipo)}</span>
                         <span className={`min-w-0 flex-1 truncate ${esElegido || vivo ? "text-texto" : "text-suave"}`}>{p.resumen || p.herramienta}</span>
                         {q && (
                           <span
@@ -361,14 +362,18 @@ export function Actividad({
                           <span className="dato shrink-0 rounded-chip bg-acento-suave px-1.5 text-[11px] text-acento-fuerte max-sm:hidden">∥ {p.paralelo}</span>
                         )}
                         {p.subagente && (
-                          <span className="shrink-0 rounded-full border border-dashed border-opcional px-2 text-[11.5px] text-opcional max-sm:hidden">→ subagente</span>
+                          <span className="shrink-0 rounded-full border border-dashed border-opcional px-2 text-[11.5px] text-opcional max-sm:hidden">→ {t("subagente")}</span>
                         )}
                         <span className={`dato hidden shrink-0 text-ayuda sm:inline ${p.error ? "text-error" : "text-tenue"}`}>
-                          {p.hecho ? p.meta : "en curso"}
+                          {p.hecho ? metaPaso(p.meta) : t("en curso")}
                         </span>
                         {ajustes.tokens && (
                           <span
-                            title={`Entró al contexto ≈ ${tokensCortos(p.tok_entra)} · generó ${tokensCortos(salidaDelPaso(p))} · contexto tras el paso ≈ ${tokensCortos(p.tok_tras)}`}
+                            title={t("Entró al contexto ≈ {entra} · generó {sale} · contexto tras el paso ≈ {tras}", {
+                              entra: tokensCortos(p.tok_entra),
+                              sale: tokensCortos(salidaDelPaso(p)),
+                              tras: tokensCortos(p.tok_tras),
+                            })}
                             className="flex w-[84px] shrink-0 flex-col items-end gap-[3px] border-l border-borde pl-2 max-sm:hidden"
                           >
                             {/* Una sola línea siempre (lo que cambia en vivo no mueve el diseño): «↓ 999,9 k» cabe entera; lo que no quepa se corta con puntos. */}
@@ -397,20 +402,20 @@ export function Actividad({
                     <path d="M0 0L8 4L0 8z" fill="var(--riel)" />
                   </marker>
                 </defs>
-                {trazos.map((t, i) => {
-                  const e = TRAZO[t.clase];
+                {trazos.map((tz, i) => {
+                  const e = TRAZO[tz.clase];
                   return (
                     <path
                       key={i}
-                      d={t.d}
+                      d={tz.d}
                       fill="none"
-                      stroke={t.color ?? e.color}
+                      stroke={tz.color ?? e.color}
                       strokeWidth={e.ancho}
                       strokeDasharray={e.raya}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       opacity={e.opacidad}
-                      markerEnd={t.clase === "vuelta" ? `url(#${base}-flecha)` : undefined}
+                      markerEnd={tz.clase === "vuelta" ? `url(#${base}-flecha)` : undefined}
                     />
                   );
                 })}
@@ -484,41 +489,41 @@ function Inspector({
   alAbrirAgente: (id: string) => void;
 }) {
   const enLote = paso.paralelo > 1 && paso.herramienta !== "Respuesta";
-  const lugar = paso.profundidad ? `dentro de un desvío (nivel ${paso.profundidad})` : paso.continua >= 0 ? "retoma su hilo" : "camino principal";
+  const lugar = paso.profundidad ? t("dentro de un desvío (nivel {n})", { n: paso.profundidad }) : paso.continua >= 0 ? t("retoma su hilo") : t("camino principal");
   const celdas = [
     {
-      k: "↑ Generó la IA",
+      k: t("↑ Generó la IA"),
       v: tokensCortos(salidaDelPaso(paso)),
-      nota: enLote ? `${tokensCortos(paso.tok_salida)} del mensaje, entre ${paso.paralelo} llamadas` : "salida del mensaje",
+      nota: enLote ? t("{tokens} del mensaje, entre {n} llamadas", { tokens: tokensCortos(paso.tok_salida), n: paso.paralelo }) : t("salida del mensaje"),
       color: "text-opcional",
     },
     {
-      k: "↓ Entró al contexto",
+      k: t("↓ Entró al contexto"),
       v: paso.tok_entra ? `≈ ${tokensCortos(paso.tok_entra)}` : "—",
-      nota: paso.tok_entra ? "resultado ≈ bytes ÷ 4" : "sin resultado propio",
+      nota: paso.tok_entra ? t("resultado ≈ bytes ÷ 4") : t("sin resultado propio"),
       color: "text-texto",
     },
     {
-      k: "Contexto tras el paso",
+      k: t("Contexto tras el paso"),
       v: paso.tok_tras ? `≈ ${tokensCortos(paso.tok_tras)}` : "—",
-      nota: paso.tok_tras ? `${((paso.tok_tras / ventana) * 100).toFixed(1).replace(".", ",")} % de ${ventana === 1_000_000 ? "1 M" : "200 k"}` : "sin petición todavía",
+      nota: paso.tok_tras ? t("{pct} % de {ventana}", { pct: decimal((paso.tok_tras / ventana) * 100), ventana: ventana === 1_000_000 ? "1 M" : "200 k" }) : t("sin petición todavía"),
       color: "text-acento-fuerte",
     },
   ];
   return (
-    <aside aria-label="Paso elegido" className="sticky top-[68px] min-w-0 flex-[2_1_27rem] overflow-hidden rounded-panel border border-borde bg-hundido">
+    <aside aria-label={t("Paso elegido")} className="sticky top-[68px] min-w-0 flex-[2_1_27rem] overflow-hidden rounded-panel border border-borde bg-hundido">
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-borde bg-superficie px-3.5 py-3">
-        <span className={`rounded-chip px-2 py-px text-ayuda font-medium ${TIPO[paso.tipo] ?? "bg-elevado text-suave"}`}>{paso.tipo}</span>
+        <span className={`rounded-chip px-2 py-px text-ayuda font-medium ${TIPO[paso.tipo] ?? "bg-elevado text-suave"}`}>{t(paso.tipo)}</span>
         <span className="dato min-w-0 flex-[1_1_9rem] truncate text-rotulo">{paso.resumen || paso.herramienta}</span>
         <span className="dato shrink-0 text-ayuda text-tenue">
-          {conSegundos(paso.hora)} · {paso.hecho ? paso.meta : "en curso"}
+          {conSegundos(paso.hora)} · {paso.hecho ? metaPaso(paso.meta) : t("en curso")}
         </span>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-borde px-3.5 py-2.5">
-        <div role="group" aria-label="Cómo se muestra el paso" className="flex gap-0.5 rounded-control bg-elevado p-[3px]">
+        <div role="group" aria-label={t("Cómo se muestra el paso")} className="flex gap-0.5 rounded-control bg-elevado p-[3px]">
           {(
             [
-              ["estilizado", "Estilizado"],
+              ["estilizado", t("Estilizado")],
               ["crudo", "RAW"],
             ] as const
           ).map(([id, nombre]) => (
@@ -556,7 +561,7 @@ function Inspector({
               onClick={() => alRetomar(retoma.n)}
               className="dato rounded-chip border border-acento/40 px-2 py-0.5 text-ayuda text-acento-fuerte hover:bg-acento-suave"
             >
-              ↩ Retoma {paso.hilo.split("/").pop()} de las {hora(new Date(retoma.hora))}
+              {t("↩ Retoma {archivo} de las {hora}", { archivo: paso.hilo.split("/").pop() ?? "", hora: hora(new Date(retoma.hora)) })}
             </button>
           )}
           {paso.subagente && (
@@ -565,17 +570,17 @@ function Inspector({
               onClick={() => alAbrirAgente(paso.subagente!)}
               className="rounded-chip border border-opcional/50 px-2 py-0.5 text-ayuda text-opcional hover:bg-opcional-suave"
             >
-              Abrir el subagente →
+              {t("Abrir el subagente →")}
             </button>
           )}
         </div>
       )}
       {error ? (
-        <p className="m-0 p-3.5 text-rotulo text-error">No se pudo leer el paso: {error}</p>
+        <p className="m-0 p-3.5 text-rotulo text-error">{t("No se pudo leer el paso: {error}", { error: tServidor(error) })}</p>
       ) : detalle ? (
         <CuerpoPaso d={detalle} modo={modo} />
       ) : (
-        <div className="esqueleto m-3.5 h-16 rounded-chip" aria-label="Cargando el paso" />
+        <div className="esqueleto m-3.5 h-16 rounded-chip" aria-label={t("Cargando el paso")} />
       )}
     </aside>
   );

@@ -4,6 +4,7 @@ import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 import { IconoCheck, IconoLuna, IconoPantalla, IconoSol } from "@/components/ui/iconos";
 import { fijarPreferencia, type Preferencia, usePreferenciaTema, useTema } from "@/lib/tema";
 import { useCerrarFuera } from "@/lib/use-fuera";
+import { t } from "@/lib/i18n";
 
 const OPCIONES: { valor: Preferencia; nombre: string; Icono: typeof IconoSol }[] = [
   { valor: "sistema", nombre: "Sistema", Icono: IconoPantalla },
@@ -29,7 +30,7 @@ export function MenuTema() {
   useCerrarFuera(abierto, menu, boton, cerrar);
 
   const actual = OPCIONES.find((o) => o.valor === preferencia) ?? OPCIONES[0];
-  const nombre = preferencia === "sistema" ? `Sistema (ahora ${tema})` : actual.nombre;
+  const nombre = preferencia === "sistema" ? t("Sistema (ahora {tema})", { tema: t(tema) }) : t(actual.nombre);
 
   function abrir() {
     setAbierto(true);
@@ -73,8 +74,8 @@ export function MenuTema() {
         }}
         aria-haspopup="menu"
         aria-expanded={abierto}
-        aria-label={`Tema: ${nombre}`}
-        title={`Tema: ${nombre}`}
+        aria-label={t("Tema: {nombre}", { nombre })}
+        title={t("Tema: {nombre}", { nombre })}
         className={`grid size-[34px] place-items-center rounded-full border transition-colors duration-150 ${
           abierto ? "border-acento bg-elevado text-texto" : "border-borde text-suave hover:border-borde-fuerte hover:bg-elevado hover:text-texto"
         }`}
@@ -83,7 +84,7 @@ export function MenuTema() {
       </button>
 
       {abierto && (
-        <div ref={menu} role="menu" aria-label="Tema" onKeyDown={alTecla} className="capa aparecer-menu absolute top-[42px] right-0 z-40 w-56 rounded-panel p-1.5">
+        <div ref={menu} role="menu" aria-label={t("Tema")} onKeyDown={alTecla} className="capa aparecer-menu absolute top-[42px] right-0 z-40 w-56 rounded-panel p-1.5">
           {OPCIONES.map(({ valor, nombre: n, Icono }, i) => {
             const elegida = valor === preferencia;
             return (
@@ -102,8 +103,8 @@ export function MenuTema() {
               >
                 <Icono className="size-4 shrink-0 text-suave" />
                 <span className="flex flex-1 flex-col">
-                  <span className={elegida ? "font-semibold" : ""}>{n}</span>
-                  {valor === "sistema" && <span className="text-ayuda text-tenue">Ahora: {tema}</span>}
+                  <span className={elegida ? "font-semibold" : ""}>{t(n)}</span>
+                  {valor === "sistema" && <span className="text-ayuda text-tenue">{t("Ahora: {tema}", { tema: t(tema) })}</span>}
                 </span>
                 <span aria-hidden="true" className="grid size-4 place-items-center text-acento">
                   {elegida && <IconoCheck className="size-4" />}

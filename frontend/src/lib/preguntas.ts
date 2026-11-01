@@ -2,6 +2,8 @@
 // MCP `preguntar` y espera; aquí se responde por pasos, con texto libre e imágenes. La lógica de qué preguntas se ven
 // y si se puede enviar es pura, para probarla sin navegador.
 
+import { t } from "./i18n.ts";
+
 export interface OpcionCentro {
   etiqueta: string;
   nota?: string;
@@ -93,8 +95,8 @@ export const MAX_BYTES_IMAGEN = 5 * 1024 * 1024;
 
 /** Por qué no entra una imagen, o null si entra. */
 export function motivoImagen(tipo: string, bytes: number, yaHay: number): string | null {
-  if (yaHay >= MAX_IMAGENES) return `Van hasta ${MAX_IMAGENES} imágenes.`;
-  if (!TIPOS_IMAGEN.includes(tipo)) return "Solo PNG, JPEG, GIF o WebP.";
-  if (bytes > MAX_BYTES_IMAGEN) return "Esa imagen pasa de 5 MB.";
+  if (yaHay >= MAX_IMAGENES) return t("Van hasta {n} imágenes.", { n: MAX_IMAGENES });
+  if (!TIPOS_IMAGEN.includes(tipo)) return t("Solo PNG, JPEG, GIF o WebP.");
+  if (bytes > MAX_BYTES_IMAGEN) return t("Esa imagen pasa de 5 MB.");
   return null;
 }

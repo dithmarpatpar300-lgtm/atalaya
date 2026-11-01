@@ -15,6 +15,7 @@ import {
   type ProyectoResumen,
   type RespuestaAlertas,
 } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { useEventos } from "@/lib/vivo";
 import { Actividad } from "./actividad";
 import { BandaAlerta } from "./banda-alerta";
@@ -386,7 +387,7 @@ export function Panel() {
         onClick={() => document.getElementById("contenido")?.focus()}
         className="fixed top-2 left-2 z-50 -translate-y-16 rounded-control bg-acento px-3 py-2 font-medium text-sobre-acento focus:translate-y-0"
       >
-        Saltar al contenido
+        {t("Saltar al contenido")}
       </button>
       <Cabecera
         proyectos={proyectos}
@@ -435,7 +436,7 @@ export function Panel() {
       ) : seccion === "linea" ? (
         <Linea proyecto={proyecto} version={versionProceso} alAbrirAgente={abrirDesdeAlerta} />
       ) : (
-        <main id="contenido" tabIndex={-1} aria-label="Agentes" className="relative mx-auto w-full max-w-[1520px]">
+        <main id="contenido" tabIndex={-1} aria-label={t("Agentes")} className="relative mx-auto w-full max-w-[1520px]">
           <div className="px-5 pt-5">
             <Cuotas estado={cuotas} leyendo={leyendo} alLeer={leerCuotas} />
           </div>

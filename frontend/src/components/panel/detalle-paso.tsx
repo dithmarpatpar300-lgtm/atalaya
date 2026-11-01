@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Markdown } from "@/components/ui/markdown";
 import type { DetallePaso } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { Diff } from "./diff";
 
 /**
@@ -69,7 +70,7 @@ function Estilizado({ d }: { d: DetallePaso }): ReactNode {
     return (
       <>
         <Diff archivo={d.archivo} diff={d.diff} />
-        {d.error && <Bloque texto={d.salida} tono="error" rotulo="Error" />}
+        {d.error && <Bloque texto={d.salida} tono="error" rotulo={t("Error")} />}
       </>
     );
   }
@@ -78,15 +79,15 @@ function Estilizado({ d }: { d: DetallePaso }): ReactNode {
     return (
       <>
         <Bloque texto={d.orden} tono="orden" />
-        {d.interrumpido && <p className="m-0 border-b border-borde bg-aviso-suave px-3.5 py-1.5 text-ayuda text-aviso">Interrumpida antes de terminar.</p>}
+        {d.interrumpido && <p className="m-0 border-b border-borde bg-aviso-suave px-3.5 py-1.5 text-ayuda text-aviso">{t("Interrumpida antes de terminar.")}</p>}
         {hayPartes ? (
           <>
             {d.stdout ? <Bloque texto={sinAnsi(d.stdout)} tono="suave" rotulo="stdout" /> : null}
             {d.stderr ? <Bloque texto={sinAnsi(d.stderr)} tono="error" rotulo="stderr" /> : null}
-            {!d.stdout && !d.stderr && <Bloque texto={sinAnsi(d.salida) || "Sin salida"} tono="suave" />}
+            {!d.stdout && !d.stderr && <Bloque texto={sinAnsi(d.salida) || t("Sin salida")} tono="suave" />}
           </>
         ) : (
-          <Bloque texto={sinAnsi(d.salida) || "Sin salida"} tono={d.error ? "error" : "suave"} />
+          <Bloque texto={sinAnsi(d.salida) || t("Sin salida")} tono={d.error ? "error" : "suave"} />
         )}
       </>
     );
@@ -102,7 +103,7 @@ function Estilizado({ d }: { d: DetallePaso }): ReactNode {
   return (
     <>
       {d.orden && d.orden !== "—" && <Bloque texto={d.orden} />}
-      <Bloque texto={sinAnsi(d.salida) || "Sin salida"} tono={d.error ? "error" : "suave"} />
+      <Bloque texto={sinAnsi(d.salida) || t("Sin salida")} tono={d.error ? "error" : "suave"} />
     </>
   );
 }
@@ -112,8 +113,8 @@ function Crudo({ d }: { d: DetallePaso }) {
   const salida = d.salida_cruda ?? (d.tipo === "Responde" ? d.salida : undefined);
   return (
     <>
-      <Bloque texto={entrada ?? d.orden ?? ""} rotulo={d.tipo === "Pide" ? "Mensaje" : "Entrada (input de la herramienta)"} />
-      {(salida ?? d.salida) && <Bloque texto={salida ?? d.salida} tono="suave" rotulo={d.tipo === "Responde" ? "Texto" : "Resultado (tool_result)"} />}
+      <Bloque texto={entrada ?? d.orden ?? ""} rotulo={d.tipo === "Pide" ? t("Mensaje") : t("Entrada (input de la herramienta)")} />
+      {(salida ?? d.salida) && <Bloque texto={salida ?? d.salida} tono="suave" rotulo={d.tipo === "Responde" ? t("Texto") : t("Resultado (tool_result)")} />}
     </>
   );
 }

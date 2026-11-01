@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import {
   cuotaEn,
   curva,
@@ -29,7 +30,7 @@ const BARRA = {
 } as const;
 const PUNTO = { Claude: "bg-serie-claude", Codex: "bg-serie-codex", sesion: "bg-borde-fuerte" } as const;
 const RAYADO = "repeating-linear-gradient(135deg, var(--aviso) 0 3px, transparent 3px 7px)";
-const TEXTO_DIARIO = "Su transcrito ya se borró: la barra sale del diario, sin cruces ni pasos.";
+const TEXTO_DIARIO = t("Su transcrito ya se borró: la barra sale del diario, sin cruces ni pasos.");
 
 function leerSesiones(): boolean {
   try {
@@ -90,7 +91,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
   }, [elegida, primera]);
   const sel = filas.find((f) => f.id === elegida) ?? filas.find((f) => f.tipo !== "sesion") ?? filas[0];
   const hoy = resp ? resp.ahora.slice(0, 10) : "";
-  const p = (t: number) => `${pct(t, ini, fin)}%`;
+  const p = (ms: number) => `${pct(ms, ini, fin)}%`;
   const claude = resp?.cuota.claude;
   const codex = resp?.cuota.codex;
   const hayCuota = !!(curva(claude, ini, fin, ALTO_CUOTA) || curva(codex, ini, fin, ALTO_CUOTA));
@@ -119,16 +120,16 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
   })();
 
   return (
-    <main id="contenido" tabIndex={-1} aria-label="Línea de tiempo" className="relative mx-auto flex w-full max-w-[1520px] flex-col gap-4 p-5">
+    <main id="contenido" tabIndex={-1} aria-label={t("Línea de tiempo")} className="relative mx-auto flex w-full max-w-[1520px] flex-col gap-4 p-5">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex min-w-0 flex-[1_1_32rem] flex-col gap-1">
           <h1 className="m-0 text-titulo font-semibold">
-            {resp && filas.length ? `${nombreDia(resp.dia, hoy)}, de ${hhmm(ini)} a ${hhmm(fin)}` : "Línea de tiempo"}
+            {resp && filas.length ? t("{dia}, de {de} a {a}", { dia: nombreDia(resp.dia, hoy), de: hhmm(ini), a: hhmm(fin) }) : t("Línea de tiempo")}
           </h1>
-          <p className="m-0 max-w-3xl text-suave">Cada agente es una barra sobre el reloj. Arriba, la cuota de la ventana de 5 h; abajo, cuántos trabajaban a la vez.</p>
+          <p className="m-0 max-w-3xl text-suave">{t("Cada agente es una barra sobre el reloj. Arriba, la cuota de la ventana de 5 h; abajo, cuántos trabajaban a la vez.")}</p>
         </div>
         {resp && resp.dias.length > 0 && (
-          <div role="group" aria-label="Día" className="flex max-w-full gap-0.5 overflow-x-auto rounded-control bg-elevado p-[3px]">
+          <div role="group" aria-label={t("Día")} className="flex max-w-full gap-0.5 overflow-x-auto rounded-control bg-elevado p-[3px]">
             {resp.dias.slice(0, 7).map((d) => {
               const on = d === resp.dia;
               return (
@@ -148,7 +149,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
             {resp.dias.length > 7 && (
               <input
                 type="date"
-                aria-label="Otro día"
+                aria-label={t("Otro día")}
                 min={resp.dias.reduce((a, b) => (a < b ? a : b))}
                 max={hoy}
                 value={resp.dias.slice(0, 7).includes(resp.dia) ? "" : resp.dia}
@@ -166,13 +167,13 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
           onClick={alternarSesiones}
           className="h-9 rounded-control border border-borde bg-superficie px-3 text-rotulo transition-colors hover:border-borde-fuerte"
         >
-          {sesiones ? "Ocultar las sesiones" : "Mostrar las sesiones"}
+          {sesiones ? t("Ocultar las sesiones") : t("Mostrar las sesiones")}
         </button>
       </div>
 
-      {error && !resp && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">No se pudo leer la línea de tiempo. Se reintenta con el próximo aviso.</p>}
+      {error && !resp && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudo leer la línea de tiempo. Se reintenta con el próximo aviso.")}</p>}
 
-      <section aria-label="Agentes sobre el reloj" className="rounded-tarjeta border border-borde bg-superficie p-4">
+      <section aria-label={t("Agentes sobre el reloj")} className="rounded-tarjeta border border-borde bg-superficie p-4">
         {/* La lectura del puntero: alto fijo y columnas fijas, para que nada salte al moverlo (lo que cambia en vivo no mueve el diseño). */}
         <div className="dato mb-2 flex h-5 items-center gap-0 overflow-hidden text-[12.5px] whitespace-nowrap">
           {lecturaCursor ? (
@@ -187,11 +188,11 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                 Codex {lecturaCursor.codex === null ? "—" : `${Math.round(lecturaCursor.codex)} %`}
               </span>
               <span className="text-suave">
-                {lecturaCursor.n} {lecturaCursor.n === 1 ? "agente" : "agentes"} a la vez
+                {lecturaCursor.n === 1 ? t("1 agente a la vez") : t("{n} agentes a la vez", { n: lecturaCursor.n })}
               </span>
             </>
           ) : (
-            <span className="text-tenue">Pasa el puntero por el reloj para leer la cuota y cuántos trabajaban.</span>
+            <span className="text-tenue">{t("Pasa el puntero por el reloj para leer la cuota y cuántos trabajaban.")}</span>
           )}
         </div>
 
@@ -200,8 +201,8 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
             {/* La cuota de 5 h. */}
             <div className="grid h-[72px] grid-cols-[14rem_minmax(0,1fr)] items-end gap-3">
               <span className="flex flex-col pb-1 text-ayuda text-suave">
-                <span>Cuota, ventana de 5 h</span>
-                {!hayCuota && resp && <span className="text-tenue">sin lecturas de Cuotas este día</span>}
+                <span>{t("Cuota, ventana de 5 h")}</span>
+                {!hayCuota && resp && <span className="text-tenue">{t("sin lecturas de Cuotas este día")}</span>}
               </span>
               <div ref={plot} className="relative border-b border-borde" style={{ height: ALTO_CUOTA }}>
                 <svg aria-hidden="true" width="100%" height={ALTO_CUOTA} viewBox={`0 0 1000 ${ALTO_CUOTA}`} preserveAspectRatio="none" className="block overflow-visible">
@@ -217,19 +218,19 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
             <div className="grid h-6 grid-cols-[14rem_minmax(0,1fr)] gap-3">
               <span />
               <div className="relative">
-                {ticks.map((t, i) => (
+                {ticks.map((tk, i) => (
                   <span
-                    key={t}
+                    key={tk}
                     className="dato absolute top-1 text-[11.5px] text-tenue"
-                    style={{ left: p(t), transform: pct(t, ini, fin) < 1 ? "none" : i === ticks.length - 1 && pct(t, ini, fin) > 97 ? "translateX(-100%)" : "translateX(-50%)" }}
+                    style={{ left: p(tk), transform: pct(tk, ini, fin) < 1 ? "none" : i === ticks.length - 1 && pct(tk, ini, fin) > 97 ? "translateX(-100%)" : "translateX(-50%)" }}
                   >
-                    {hhmm(t)}
+                    {hhmm(tk)}
                   </span>
                 ))}
               </div>
             </div>
 
-            {resp && filas.length === 0 && <p className="m-0 border-t border-borde px-1 py-6 text-suave">Ningún agente este día en {resp.proyecto}.</p>}
+            {resp && filas.length === 0 && <p className="m-0 border-t border-borde px-1 py-6 text-suave">{t("Ningún agente este día en {proyecto}.", { proyecto: resp.proyecto })}</p>}
             {!resp && !error && [0, 1, 2, 3].map((i) => <div key={i} className="esqueleto my-1 h-[30px] rounded-control" aria-hidden="true" />)}
 
             <ul className="m-0 list-none p-0">
@@ -245,16 +246,20 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                       <span className={`truncate text-rotulo ${f.tipo === "sesion" ? "text-suave" : ""}`} title={`${f.nombre}${f.clase ? ` · ${f.clase}` : ""}`}>
                         {f.nombre}
                       </span>
-                      {f.diario && <span className="shrink-0 text-ayuda text-tenue" title={TEXTO_DIARIO}>diario</span>}
+                      {f.diario && <span className="shrink-0 text-ayuda text-tenue" title={TEXTO_DIARIO}>{t("diario")}</span>}
                     </span>
                     <div className="relative h-full">
-                      {ticks.map((t) => (
-                        <span key={t} aria-hidden="true" className="absolute inset-y-0 w-px bg-borde/70" style={{ left: p(t) }} />
+                      {ticks.map((tk) => (
+                        <span key={tk} aria-hidden="true" className="absolute inset-y-0 w-px bg-borde/70" style={{ left: p(tk) }} />
                       ))}
                       <button
                         type="button"
                         aria-pressed={on}
-                        aria-label={`${f.nombre}, de ${hhmm(f.a)} a ${hhmm(f.b)}${f.vivo ? ", sigue" : ""}`}
+                        aria-label={
+                          f.vivo
+                            ? t("{nombre}, de {de} a {a}, sigue", { nombre: f.nombre, de: hhmm(f.a), a: hhmm(f.b) })
+                            : t("{nombre}, de {de} a {a}", { nombre: f.nombre, de: hhmm(f.a), a: hhmm(f.b) })
+                        }
                         onFocus={() => setElegida(f.id)}
                         onClick={() => setElegida(f.id)}
                         onDoubleClick={() => {
@@ -266,24 +271,25 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                         {exceso && <span aria-hidden="true" className="absolute inset-y-0 right-0" style={{ width: exceso, background: RAYADO }} />}
                       </button>
                       {f.choques.map((c) => {
-                        const t = Date.parse(c.hora);
-                        if (t < ini || t > fin) return null;
-                        const texto = `${hhmm(t)} · editó ${c.ruta}, que ${c.otro} también editaba`;
+                        const ms = Date.parse(c.hora);
+                        if (ms < ini || ms > fin) return null;
+                        const texto = t("{hora} · editó {ruta}, que {otro} también editaba", { hora: hhmm(ms), ruta: c.ruta, otro: c.otro });
+                        const abrir = t("{texto}. Abrir a {otro}", { texto, otro: c.otro });
                         // La marca abre al otro agente; su área de clic es más ancha que la raya (≥ 12 px).
                         return c.otro_id ? (
                           <button
                             key={`${c.ruta}${c.hora}`}
                             type="button"
-                            title={`${texto}. Abrir a ${c.otro}`}
-                            aria-label={`${texto}. Abrir a ${c.otro}`}
+                            title={abrir}
+                            aria-label={abrir}
                             onClick={() => alAbrirAgente(c.otro_id!)}
                             className="group absolute inset-y-0 w-3 -translate-x-1/2"
-                            style={{ left: p(t) }}
+                            style={{ left: p(ms) }}
                           >
                             <span aria-hidden="true" className="absolute inset-y-1 left-1/2 w-[3px] -translate-x-1/2 rounded-full bg-error group-hover:w-[5px]" />
                           </button>
                         ) : (
-                          <span key={`${c.ruta}${c.hora}`} title={texto} className="absolute top-1 bottom-1 w-[3px] -translate-x-1/2 rounded-full bg-error" style={{ left: p(t) }} />
+                          <span key={`${c.ruta}${c.hora}`} title={texto} className="absolute top-1 bottom-1 w-[3px] -translate-x-1/2 rounded-full bg-error" style={{ left: p(ms) }} />
                         );
                       })}
                     </div>
@@ -295,7 +301,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
             {/* A la vez. */}
             {filas.length > 0 && (
               <div className="grid grid-cols-[14rem_minmax(0,1fr)] items-end gap-3 border-t border-borde-fuerte pt-1.5">
-                <span className="pb-1 text-ayuda text-suave">A la vez (sin las sesiones)</span>
+                <span className="pb-1 text-ayuda text-suave">{t("A la vez (sin las sesiones)")}</span>
                 <div aria-hidden="true" className="relative" style={{ height: ALTO_PARALELO }}>
                   {vez.map((v) =>
                     v.n ? (
@@ -331,52 +337,52 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
           </span>
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true" className={`h-2.5 w-4 rounded-[3px] border ${BARRA.sesion}`} />
-            sesión
+            {t("sesión")}
           </span>
-          <span className="flex items-center gap-1.5" title={resp?.fuente ? `La regla está en ${resp.fuente}` : "Tope por omisión: AGENTS.md no lo escribe"}>
+          <span className="flex items-center gap-1.5" title={resp?.fuente ? t("La regla está en {fuente}", { fuente: resp.fuente }) : t("Tope por omisión: AGENTS.md no lo escribe")}>
             <span aria-hidden="true" className="h-2.5 w-4 rounded-[3px]" style={{ background: RAYADO }} />
-            pasado de {resp?.tope_min ?? 30} min
+            {t("pasado de {min} min", { min: resp?.tope_min ?? 30 })}
           </span>
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true" className="h-3 w-[3px] rounded-full bg-error" />
-            editó un archivo que otro agente vivo también editaba
+            {t("editó un archivo que otro agente vivo también editaba")}
           </span>
         </div>
       </section>
 
       {/* El agente elegido: alto fijo (lo que cambia en vivo no mueve el diseño). */}
-      <section aria-label="Agente elegido" className="grid min-h-[76px] grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] items-center gap-3 rounded-tarjeta border border-borde-fuerte bg-superficie px-4 py-3">
+      <section aria-label={t("Agente elegido")}className="grid min-h-[76px] grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] items-center gap-3 rounded-tarjeta border border-borde-fuerte bg-superficie px-4 py-3">
         {sel ? (
           <>
             <span className="flex min-w-0 flex-col">
-              <span className="text-ayuda text-tenue">{sel.tipo === "sesion" ? "Sesión" : sel.tipo === "codex" ? "Llamada a Codex" : "Agente"}</span>
+              <span className="text-ayuda text-tenue">{sel.tipo === "sesion" ? t("Sesión") : sel.tipo === "codex" ? t("Llamada a Codex") : t("Agente")}</span>
               <span className="truncate font-semibold" title={sel.nombre}>
                 {sel.nombre}
               </span>
             </span>
             <span className="flex min-w-0 flex-col">
-              <span className="text-ayuda text-tenue">Clase y modelo</span>
+              <span className="text-ayuda text-tenue">{t("Clase y modelo")}</span>
               <span className="dato truncate" title={sel.clase}>
                 {sel.clase || "—"}
               </span>
             </span>
             <span className="flex flex-col">
-              <span className="text-ayuda text-tenue">De a</span>
+              <span className="text-ayuda text-tenue">{t("De a")}</span>
               <span className="dato">
-                {hhmm(sel.a)} – {sel.vivo ? "sigue" : hhmm(sel.b)}
+                {hhmm(sel.a)} – {sel.vivo ? t("sigue") : hhmm(sel.b)}
               </span>
             </span>
             <span className="flex flex-col">
-              <span className="text-ayuda text-tenue">Duración</span>
+              <span className="text-ayuda text-tenue">{t("Duración")}</span>
               <span className={`dato ${sel.excede ? "text-aviso" : ""}`}>
                 {minutos(sel.b - sel.a)}
-                {sel.excede ? ` · pasó de ${resp?.tope_min}` : ""}
+                {sel.excede ? ` · ${t("pasó de {min}", { min: resp?.tope_min ?? 30 })}` : ""}
               </span>
             </span>
             <span className="flex min-w-0 flex-col">
-              <span className="text-ayuda text-tenue">En paralelo con</span>
+              <span className="text-ayuda text-tenue">{t("En paralelo con")}</span>
               <span className="truncate" title={enParaleloCon(sel, filas).join(", ")}>
-                {enParaleloCon(sel, filas).join(", ") || "ninguno"}
+                {enParaleloCon(sel, filas).join(", ") || t("ninguno")}
               </span>
             </span>
             {sel.diario ? (
@@ -387,12 +393,12 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                 onClick={() => alAbrirAgente(sel.id)}
                 className="h-9 justify-self-start rounded-control border border-borde bg-elevado px-3 text-rotulo transition-colors hover:border-borde-fuerte"
               >
-                Abrir {sel.tipo === "sesion" ? "la sesión" : "el agente"}
+                {sel.tipo === "sesion" ? t("Abrir la sesión") : t("Abrir el agente")}
               </button>
             )}
           </>
         ) : (
-          <span className="text-tenue">Elige una barra para ver al agente.</span>
+          <span className="text-tenue">{t("Elige una barra para ver al agente.")}</span>
         )}
       </section>
     </main>

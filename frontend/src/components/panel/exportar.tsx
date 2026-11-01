@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconoCerrar } from "@/components/ui/iconos";
 import { api, type OpcionesExportar } from "@/lib/api";
+import { t, decimal, tServidor } from "@/lib/i18n";
 
 const SECCIONES: { id: keyof Omit<OpcionesExportar, "salidas">; nombre: string; nota: string }[] = [
   { id: "encargo", nombre: "Encargo", nota: "la asignación y el texto que recibió" },
@@ -30,7 +31,7 @@ function leerOpciones(): OpcionesExportar {
   }
 }
 
-const kb = (n: number) => `${(n / 1024).toFixed(1).replace(".", ",")} KB`;
+const kb = (n: number) => `${decimal(n / 1024)} KB`;
 
 /**
  * Exportar un agente como Markdown: el servidor lo arma con las secciones
@@ -58,7 +59,7 @@ export function Exportar({ id, nombre, alCerrar }: { id: string; nombre: string;
         setError(null);
       })
       .catch((e: unknown) => {
-        if (!(e instanceof DOMException && e.name === "AbortError")) setError(e instanceof Error ? e.message : "no se pudo armar");
+        if (!(e instanceof DOMException && e.name === "AbortError")) setError(e instanceof Error ? tServidor(e.message) : t("no se pudo armar"));
       });
     return () => c.abort();
   }, [id, op]);
@@ -77,7 +78,7 @@ export function Exportar({ id, nombre, alCerrar }: { id: string; nombre: string;
       await navigator.clipboard.writeText(md.markdown);
       setCopiado(true);
     } catch {
-      setError("El navegador no dejó copiar; usa Descargar.");
+      setError(t("El navegador no dejó copiar; usa Descargar."));
     }
   }
 
@@ -103,11 +104,11 @@ export function Exportar({ id, nombre, alCerrar }: { id: string; nombre: string;
       <div className="flex items-center gap-3 border-b border-borde px-5 py-3.5">
         <div className="flex min-w-0 flex-1 flex-col">
           <h2 id="exportar-titulo" className="m-0 truncate text-encabezado font-semibold">
-            Exportar {md?.nombre ?? nombre}
+            {t("Exportar {nombre}", { nombre: md?.nombre ?? nombre })}
           </h2>
-          <span className="text-ayuda text-suave">Un Markdown para adjuntar a la trazabilidad.</span>
+          <span className="text-ayuda text-suave">{t("Un Markdown para adjuntar a la trazabilidad.")}</span>
         </div>
-        <button type="button" onClick={() => dialogo.current?.close()} aria-label="Cerrar" className="grid size-9 place-items-center rounded-control hover:bg-elevado">
+        <button type="button" onClick={() => dialogo.current?.close()} aria-label={t("Cerrar")} className="grid size-9 place-items-center rounded-control hover:bg-elevado">
           <IconoCerrar className="size-4" />
         </button>
       </div>
@@ -115,23 +116,23 @@ export function Exportar({ id, nombre, alCerrar }: { id: string; nombre: string;
       <div className="flex flex-wrap">
         <div className="flex flex-[1_1_18rem] flex-col gap-4 border-borde p-5 md:border-r">
           <fieldset className="m-0 flex flex-col gap-1 border-0 p-0">
-            <legend className="pb-1.5 font-semibold">Qué incluir</legend>
+            <legend className="pb-1.5 font-semibold">{t("Qué incluir")}</legend>
             {SECCIONES.map((s) => (
               <label key={s.id} className={`flex cursor-pointer items-start gap-2.5 rounded-control px-2.5 py-2 ${op[s.id] ? "bg-seleccion" : "hover:bg-elevado/60"}`}>
                 <input type="checkbox" checked={op[s.id]} onChange={() => cambiar({ ...op, [s.id]: !op[s.id] })} className="mt-0.5 size-4 accent-[var(--acento)]" />
                 <span className="flex flex-col">
-                  <span className="font-medium">{s.nombre}</span>
-                  <span className="text-ayuda text-suave">{s.nota}</span>
+                  <span className="font-medium">{t(s.nombre)}</span>
+                  <span className="text-ayuda text-suave">{t(s.nota)}</span>
                 </span>
               </label>
             ))}
           </fieldset>
           <fieldset className="m-0 flex flex-col gap-0.5 border-0 p-0" disabled={!op.pasos}>
-            <legend className="pb-1.5 font-semibold">Salidas de las órdenes</legend>
+            <legend className="pb-1.5 font-semibold">{t("Salidas de las órdenes")}</legend>
             {SALIDAS.map((s) => (
               <label key={s.id} className={`flex cursor-pointer items-center gap-2.5 rounded-control px-2.5 py-1.5 ${op.pasos ? "" : "text-tenue"}`}>
                 <input type="radio" name="salidas" checked={op.salidas === s.id} onChange={() => cambiar({ ...op, salidas: s.id })} className="size-4 accent-[var(--acento)]" />
-                {s.nombre}
+                {t(s.nombre)}
               </label>
             ))}
           </fieldset>
@@ -139,22 +140,22 @@ export function Exportar({ id, nombre, alCerrar }: { id: string; nombre: string;
 
         <div className="flex min-w-0 flex-[999_1_30rem] flex-col gap-2 p-5">
           <span className="flex h-5 items-center gap-2.5">
-            <span className="font-semibold">Vista previa</span>
+            <span className="font-semibold">{t("Vista previa")}</span>
             <span className="dato truncate text-ayuda text-suave">{md ? `${md.archivo} · ${kb(bytes)}` : ""}</span>
           </span>
           <pre className="dato scroll-interno m-0 h-[min(29rem,55vh)] overflow-auto rounded-control border border-borde bg-fondo px-3.5 py-3 text-[12.5px] leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap">
-            {error ? <span className="text-error">No se pudo armar: {error}</span> : md ? md.markdown : "Armando…"}
+            {error ? <span className="text-error">{t("No se pudo armar: {error}", { error })}</span> : md ? md.markdown : t("Armando…")}
           </pre>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5 border-t border-borde px-5 py-3.5">
-        <span className="flex-[1_1_20rem] text-ayuda text-suave">Los secretos se tapan con la misma regla del panel. El panel no escribe nada en el disco.</span>
+        <span className="flex-[1_1_20rem] text-ayuda text-suave">{t("Los secretos se tapan con la misma regla del panel. El panel no escribe nada en el disco.")}</span>
         <span role="status" className="w-20 text-right text-ayuda text-ok">
-          {copiado ? "Copiado" : ""}
+          {copiado ? t("Copiado") : ""}
         </span>
         <button type="button" disabled={!md} onClick={copiar} className="h-9 rounded-control border border-borde-fuerte px-3.5 font-medium hover:bg-elevado disabled:text-tenue">
-          Copiar
+          {t("Copiar")}
         </button>
         <button
           type="button"
@@ -162,7 +163,7 @@ export function Exportar({ id, nombre, alCerrar }: { id: string; nombre: string;
           onClick={descargar}
           className="h-9 rounded-control bg-acento px-4 font-medium text-sobre-acento hover:bg-acento-fuerte disabled:bg-elevado disabled:text-tenue"
         >
-          Descargar .md
+          {t("Descargar .md")}
         </button>
       </div>
     </dialog>

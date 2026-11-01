@@ -1,6 +1,8 @@
 // Las estadísticas por clase: tipos de /api/estadisticas y lo que la sección calcula para
 // dibujar, puro para poder probarlo. Las medianas, los p90 y la matriz los decide el backend (internal/estadisticas).
 
+import { decimal, t, tServidor } from "./i18n.ts";
+
 export type PeriodoEstadisticas = "semana" | "mes" | "fase";
 export type MedidaEstadisticas = "minutos" | "salida" | "nuevos";
 
@@ -84,18 +86,16 @@ export interface InformeEstadisticas {
 /** Menos de esto, §12 de AGENTES.md no saca conclusiones de una clase. */
 export const MINIMO_SENAL = 5;
 
-const coma = (n: number, dec = 1) => (Number.isFinite(n) ? n : 0).toFixed(dec).replace(".", ",");
-
 /** Tokens con un decimal fijo: «41,1 k», «1,19 M». */
 export function miles(n: number): string {
   if (n < 1000) return String(Math.round(n));
-  if (n < 1_000_000) return `${coma(n / 1000)} k`;
-  return `${coma(n / 1_000_000, 2)} M`;
+  if (n < 1_000_000) return `${decimal(n / 1000)} k`;
+  return `${decimal(n / 1_000_000, 2)} M`;
 }
 
 /** Una cifra de la medida elegida, siempre con los mismos decimales (lo que cambia en vivo no mueve el diseño). */
 export function cifra(medida: MedidaEstadisticas, v: number): string {
-  return medida === "minutos" ? `${coma(v)} min` : miles(v);
+  return medida === "minutos" ? `${decimal(v)} min` : miles(v);
 }
 
 /** El valor de la medida en una clase. */
@@ -126,27 +126,28 @@ export function lectura(c: ClaseEstadistica, m: MedidaEstadisticas): Lectura {
   const partes: string[] = [];
   let tono: Lectura["tono"] = "suave";
   if (m === "minutos") {
+    const fuente = tServidor(c.presupuesto_fuente);
     if (c.minutos.p90 > c.presupuesto) {
-      partes.push(`El p90 pasa del presupuesto de ${coma(c.presupuesto, 0)} min (${c.presupuesto_fuente}): 1 de cada 10 se pasa.`);
+      partes.push(t("El p90 pasa del presupuesto de {presupuesto} min ({fuente}): 1 de cada 10 se pasa.", { presupuesto: decimal(c.presupuesto, 0), fuente }));
       tono = "aviso";
     } else {
-      partes.push(`Dentro del presupuesto de ${coma(c.presupuesto, 0)} min (${c.presupuesto_fuente}), incluso en el p90.`);
+      partes.push(t("Dentro del presupuesto de {presupuesto} min ({fuente}), incluso en el p90.", { presupuesto: decimal(c.presupuesto, 0), fuente }));
       tono = "ok";
     }
   } else if (m === "salida") {
-    partes.push("Tokens que escribió el modelo, por agente.");
+    partes.push(t("Tokens que escribió el modelo, por agente."));
   } else {
-    partes.push("Entrada que no vino de la caché, por agente: muchos indican demasiado contexto (§9).");
+    partes.push(t("Entrada que no vino de la caché, por agente: muchos indican demasiado contexto (§9)."));
   }
   if (c.matriz) {
     const fuera = c.n - c.en_matriz;
-    partes.push(fuera === 0 ? `Todos con la matriz (${c.matriz}).` : `${fuera} de ${c.n} fuera de la matriz (${c.matriz}).`);
+    partes.push(fuera === 0 ? t("Todos con la matriz ({matriz}).", { matriz: c.matriz }) : t("{fuera} de {n} fuera de la matriz ({matriz}).", { fuera, n: c.n, matriz: c.matriz }));
     if (fuera > 0 && tono === "ok") tono = "aviso";
   } else if (c.clase !== "—") {
-    partes.push("La matriz no fija esta clase para este proveedor.");
+    partes.push(t("La matriz no fija esta clase para este proveedor."));
   }
   if (c.n < MINIMO_SENAL) {
-    partes.push(`Con ${c.n} ${c.n === 1 ? "tarea" : "tareas"}, §12 todavía no saca conclusiones.`);
+    partes.push(c.n === 1 ? t("Con 1 tarea, §12 todavía no saca conclusiones.") : t("Con {n} tareas, §12 todavía no saca conclusiones.", { n: c.n }));
     if (tono === "aviso") tono = "suave";
   }
   return { texto: partes.join(" "), tono };
@@ -154,7 +155,7 @@ export function lectura(c: ClaseEstadistica, m: MedidaEstadisticas): Lectura {
 
 /** La celda de la tabla clase × modelo: «21,9 (5)», o «—» si no hay agentes. */
 export function celdaTexto(c: CeldaEstadistica | undefined): string {
-  return c ? `${coma(c.minutos)} (${c.n})` : "—";
+  return c ? `${decimal(c.minutos)} (${c.n})` : "—";
 }
 
 /** Las clases de la tabla clase × modelo, en el orden de las barras y sin repetir. */

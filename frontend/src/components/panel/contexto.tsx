@@ -2,23 +2,24 @@
 
 import { type KeyboardEvent, type MouseEvent, useEffect, useId, useRef, useState } from "react";
 import { type Agente, api, type ContextoAgente } from "@/lib/api";
+import { decimal, t, tServidor } from "@/lib/i18n";
 import { hora } from "@/lib/formato";
 import { tokensCortos } from "@/lib/hilos";
 import { repartirRotulos } from "@/lib/rotulos";
 
 type Pestana = "contexto" | "lleno" | "cache" | "peticiones";
 
-/** Un decimal siempre y coma: «108,0 k». Para la lectura del gráfico, que no debe bailar (lo que cambia en vivo no mueve el diseño). */
-const fijo = (n: number) => (n / 1000).toFixed(1).replace(".", ",") + " k";
-const pct = (n: number, de: number) => (de ? ((n / de) * 100).toFixed(1).replace(".", ",") : "0,0") + " %";
+/** Un decimal siempre (coma en español, punto en inglés): «108,0 k». Para la lectura del gráfico, que no debe bailar (lo que cambia en vivo no mueve el diseño). */
+const fijo = (n: number) => decimal(n / 1000, 1) + " k";
+const pct = (n: number, de: number) => (de ? decimal((n / de) * 100, 1) : decimal(0, 1)) + " %";
 
 function Totales({ a }: { a: Agente }) {
-  const t = a.tokens;
+  const tk = a.tokens;
   const celdas = [
-    { k: "Entrada sin caché", v: tokensCortos(t.entrada), nota: "tokens que no estaban en caché", color: "bg-texto" },
-    { k: "Caché escrita", v: tokensCortos(t.cache_escrita), nota: "lo nuevo de cada petición", color: "bg-acento" },
-    { k: "Caché leída", v: tokensCortos(t.cache_leida), nota: "el prefijo reutilizado", color: "bg-borde-campo" },
-    { k: "Salida", v: tokensCortos(t.salida), nota: "respuestas y llamadas", color: "bg-opcional" },
+    { k: t("Entrada sin caché"), v: tokensCortos(tk.entrada), nota: t("tokens que no estaban en caché"), color: "bg-texto" },
+    { k: t("Caché escrita"), v: tokensCortos(tk.cache_escrita), nota: t("lo nuevo de cada petición"), color: "bg-acento" },
+    { k: t("Caché leída"), v: tokensCortos(tk.cache_leida), nota: t("el prefijo reutilizado"), color: "bg-borde-campo" },
+    { k: t("Salida"), v: tokensCortos(tk.salida), nota: t("respuestas y llamadas"), color: "bg-opcional" },
   ];
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-2.5">
@@ -64,7 +65,7 @@ function Grafico({ c }: { c: ContextoAgente }) {
   ps.forEach((p, i) => {
     if (i === 0) return;
     const q = ps[i - 1];
-    if (p.etapa !== q.etapa || p.turno !== q.turno) cortes.push({ i, texto: p.etapa || `Turno ${p.turno}` });
+    if (p.etapa !== q.etapa || p.turno !== q.turno) cortes.push({ i, texto: p.etapa || t("Turno {n}", { n: p.turno }) });
   });
   const rotulos = repartirRotulos(
     cortes.map((k) => (X(k.i) / 600) * ancho),
@@ -96,21 +97,19 @@ function Grafico({ c }: { c: ContextoAgente }) {
     setHov(Math.max(0, Math.min(n - 1, i)));
   }
 
-  if (n === 0) return <p className="m-0 text-rotulo text-suave">Todavía no hay peticiones.</p>;
+  if (n === 0) return <p className="m-0 text-rotulo text-suave">{t("Todavía no hay peticiones.")}</p>;
   const xPct = h === null ? 0 : (X(h) / 600) * 100;
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex justify-between text-ayuda text-suave">
-        <span>
-          Contexto por petición ({n} {n === 1 ? "petición" : "peticiones"})
-        </span>
-        <span className="dato">máximo {tokensCortos(Math.max(...ps.map((q) => q.contexto)))}</span>
+        <span>{n === 1 ? t("Contexto por petición (1 petición)") : t("Contexto por petición ({n} peticiones)", { n })}</span>
+        <span className="dato">{t("máximo {valor}", { valor: tokensCortos(Math.max(...ps.map((q) => q.contexto))) })}</span>
       </div>
       <div
         ref={caja}
         tabIndex={0}
         role="img"
-        aria-label={`Contexto por petición, de ${tokensCortos(ps[0].contexto)} a ${tokensCortos(ps[n - 1].contexto)}. Pasa el puntero o usa las flechas para ver cada petición.`}
+        aria-label={t("Contexto por petición, de {de} a {a}. Pasa el puntero o usa las flechas para ver cada petición.", { de: tokensCortos(ps[0].contexto), a: tokensCortos(ps[n - 1].contexto) })}
         aria-describedby={`${base}-lectura`}
         onMouseMove={mover}
         onMouseLeave={() => setHov(null)}
@@ -168,25 +167,23 @@ function Grafico({ c }: { c: ContextoAgente }) {
               style={{ left: `${xPct}%`, transform: xPct > 50 ? "translateX(calc(-100% - 14px))" : "translateX(14px)" }}
             >
               <div className="flex justify-between text-suave">
-                <span>
-                  Petición {h + 1} de {n}
-                </span>
+                <span>{t("Petición {i} de {n}", { i: h + 1, n })}</span>
                 <span className="dato">{hora(new Date(p.hora))}</span>
               </div>
               <div className="dato text-base text-texto">
                 {fijo(p.contexto)} <span className="text-ayuda text-suave">· {pct(p.contexto, c.ventana)}</span>
               </div>
               <div className="flex justify-between text-suave">
-                <span>Desde la anterior</span>
-                <span className="dato text-texto">{h ? `${delta >= 0 ? "+" : "−"}${fijo(Math.abs(delta))}` : "primera"}</span>
+                <span>{t("Desde la anterior")}</span>
+                <span className="dato text-texto">{h ? `${delta >= 0 ? "+" : "−"}${fijo(Math.abs(delta))}` : t("primera")}</span>
               </div>
               <div className="flex justify-between text-suave">
-                <span>Salida de la respuesta</span>
+                <span>{t("Salida de la respuesta")}</span>
                 <span className="dato text-opcional">↑ {fijo(p.salida)}</span>
               </div>
               <div className="flex justify-between gap-2 text-suave">
-                <span>Etapa</span>
-                <span className="truncate text-acento-fuerte">{p.etapa || `turno ${p.turno}`}</span>
+                <span>{t("Etapa")}</span>
+                <span className="truncate text-acento-fuerte">{p.etapa || t("turno {n}", { n: p.turno })}</span>
               </div>
             </div>
           </>
@@ -196,22 +193,20 @@ function Grafico({ c }: { c: ContextoAgente }) {
       <div className="flex h-6 items-center overflow-hidden rounded-chip bg-elevado/55 px-2.5 text-ayuda whitespace-nowrap text-tenue">
         {p && h !== null ? (
           <>
-            <span className="dato w-[8.5rem] shrink-0">
-              Petición {String(h + 1).padStart(String(n).length, " ")} de {n}
-            </span>
+            <span className="dato w-[8.5rem] shrink-0">{t("Petición {i} de {n}", { i: String(h + 1).padStart(String(n).length, " "), n })}</span>
             <span className="dato w-[3.25rem] shrink-0 text-suave">{hora(new Date(p.hora))}</span>
             <span className="dato w-[9.5rem] shrink-0 text-texto">
               {fijo(p.contexto)} · {pct(p.contexto, c.ventana)}
             </span>
-            <span className="dato w-[4.75rem] shrink-0 text-texto">{h ? `${delta >= 0 ? "+" : "−"}${fijo(Math.abs(delta))}` : "primera"}</span>
+            <span className="dato w-[4.75rem] shrink-0 text-texto">{h ? `${delta >= 0 ? "+" : "−"}${fijo(Math.abs(delta))}` : t("primera")}</span>
             <span className="min-w-0 flex-1 truncate text-acento-fuerte">{p.resumen || p.etapa}</span>
           </>
         ) : (
-          <span className="min-w-0 flex-1 truncate">Pasa el puntero por la curva, o enfócala y usa las flechas, para ver cada petición.</span>
+          <span className="min-w-0 flex-1 truncate">{t("Pasa el puntero por la curva, o enfócala y usa las flechas, para ver cada petición.")}</span>
         )}
       </div>
       <span id={`${base}-lectura`} aria-live="polite" className="sr-only">
-        {p && h !== null ? `Petición ${h + 1} a las ${hora(new Date(p.hora))}: ${fijo(p.contexto)}, ${pct(p.contexto, c.ventana)} de la ventana. ${p.resumen}` : ""}
+        {p && h !== null ? t("Petición {i} a las {hora}: {contexto}, {pct} de la ventana. {resumen}", { i: h + 1, hora: hora(new Date(p.hora)), contexto: fijo(p.contexto), pct: pct(p.contexto, c.ventana), resumen: p.resumen }) : ""}
       </span>
       <p className="m-0 h-[18px] truncate text-ayuda text-tenue" title={notaCompactaciones(c)}>
         {notaCompactaciones(c)}
@@ -221,9 +216,12 @@ function Grafico({ c }: { c: ContextoAgente }) {
 }
 
 function notaCompactaciones(c: ContextoAgente): string {
-  if (c.compactaciones.length === 0) return "Sin compactaciones. Cuando ocurren, se marcan en ámbar con los tokens de antes y después.";
+  if (c.compactaciones.length === 0) return t("Sin compactaciones. Cuando ocurren, se marcan en ámbar con los tokens de antes y después.");
   const k = c.compactaciones[c.compactaciones.length - 1];
-  return `${c.compactaciones.length === 1 ? "Una compactación" : `${c.compactaciones.length} compactaciones`}; la última a las ${hora(new Date(k.hora))}: ${tokensCortos(k.antes)} → ${tokensCortos(k.despues)} (${k.motivo === "auto" ? "automática" : "pedida"}).`;
+  const vars = { hora: hora(new Date(k.hora)), antes: tokensCortos(k.antes), despues: tokensCortos(k.despues), motivo: k.motivo === "auto" ? t("automática") : t("pedida") };
+  return c.compactaciones.length === 1
+    ? t("Una compactación; la última a las {hora}: {antes} → {despues} ({motivo}).", vars)
+    : t("{n} compactaciones; la última a las {hora}: {antes} → {despues} ({motivo}).", { ...vars, n: c.compactaciones.length });
 }
 
 function Medidor({ c }: { c: ContextoAgente }) {
@@ -231,20 +229,18 @@ function Medidor({ c }: { c: ContextoAgente }) {
   if (!ult) return null;
   const libre = Math.max(0, c.ventana - ult.contexto);
   const partes = [
-    { k: "Prefijo reutilizado (caché leída)", v: ult.cache_leida, color: "bg-borde-campo", borde: "" },
-    { k: "Nuevo en esta petición (caché escrita)", v: ult.cache_escrita, color: "bg-acento", borde: "" },
-    { k: "Entrada sin caché", v: ult.entrada, color: "bg-texto", borde: "" },
-    { k: "Libre", v: libre, color: "bg-transparent", borde: "border border-borde-fuerte" },
+    { k: t("Prefijo reutilizado (caché leída)"), v: ult.cache_leida, color: "bg-borde-campo", borde: "" },
+    { k: t("Nuevo en esta petición (caché escrita)"), v: ult.cache_escrita, color: "bg-acento", borde: "" },
+    { k: t("Entrada sin caché"), v: ult.entrada, color: "bg-texto", borde: "" },
+    { k: t("Libre"), v: libre, color: "bg-transparent", borde: "border border-borde-fuerte" },
   ];
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <span className="font-semibold">{pct(ult.contexto, c.ventana)} usado</span>
-        <span className="dato text-rotulo text-suave">
-          {tokensCortos(ult.contexto)} de {c.ventana === 1_000_000 ? "1 M" : "200 k"}
-        </span>
+        <span className="font-semibold">{t("{pct} usado", { pct: pct(ult.contexto, c.ventana) })}</span>
+        <span className="dato text-rotulo text-suave">{t("{valor} de {max}", { valor: tokensCortos(ult.contexto), max: c.ventana === 1_000_000 ? "1 M" : "200 k" })}</span>
       </div>
-      <div role="img" aria-label={`Contexto de la última petición: ${tokensCortos(ult.contexto)} de ${tokensCortos(c.ventana)}`} className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-elevado">
+      <div role="img" aria-label={t("Contexto de la última petición: {valor} de {max}", { valor: tokensCortos(ult.contexto), max: tokensCortos(c.ventana) })} className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-elevado">
         {partes.slice(0, 3).map((p) => (p.v > 0 ? <span key={p.k} className={`h-2.5 ${p.color}`} style={{ width: `${(p.v / c.ventana) * 100}%`, minWidth: 2 }} /> : null))}
       </div>
       <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
@@ -258,7 +254,9 @@ function Medidor({ c }: { c: ContextoAgente }) {
         ))}
       </ul>
       <p className="m-0 text-ayuda text-tenue">
-        De la última petición a la API. La ventana se infiere ({c.ventana === 1_000_000 ? "una petición pasó de 200 k" : "ninguna pasó de 200 k"}). El reparto que muestra Claude Code (herramientas del sistema, MCP, memoria, skills) no queda en el transcrito: aquí no se inventa.
+        {t("De la última petición a la API. La ventana se infiere ({detalle}). El reparto que muestra Claude Code (herramientas del sistema, MCP, memoria, skills) no queda en el transcrito: aquí no se inventa.", {
+          detalle: c.ventana === 1_000_000 ? t("una petición pasó de 200 k") : t("ninguna pasó de 200 k"),
+        })}
       </p>
     </div>
   );
@@ -271,10 +269,10 @@ function Lleno({ c, alIrAPaso }: { c: ContextoAgente; alIrAPaso: (n: number) => 
   return (
     <div className="flex flex-wrap gap-6">
       <div className="flex min-w-0 flex-[1_1_20rem] flex-col gap-2.5">
-        <span className="text-ayuda text-suave">Qué llenó el contexto (resultados de herramientas ≈ bytes ÷ 4, y lo que generó la IA)</span>
+        <span className="text-ayuda text-suave">{t("Qué llenó el contexto (resultados de herramientas ≈ bytes ÷ 4, y lo que generó la IA)")}</span>
         {c.lleno.map((l, i) => (
           <div key={l.categoria} className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)_4.5rem_2.75rem] items-center gap-2.5 text-rotulo">
-            <span className="truncate">{l.categoria}</span>
+            <span className="truncate">{t(l.categoria)}</span>
             <span className="h-2 rounded-full bg-elevado">
               <span className={`block h-2 rounded-full ${color[i % color.length]}`} style={{ width: `${(l.tokens / max) * 100}%` }} />
             </span>
@@ -284,7 +282,7 @@ function Lleno({ c, alIrAPaso }: { c: ContextoAgente; alIrAPaso: (n: number) => 
         ))}
       </div>
       <div className="flex min-w-0 flex-[1_1_20rem] flex-col gap-1.5">
-        <span className="text-ayuda text-suave">Los cinco resultados más pesados (llevan a su paso)</span>
+        <span className="text-ayuda text-suave">{t("Los cinco resultados más pesados (llevan a su paso)")}</span>
         {c.pesados.map((p) => (
           <button
             key={p.n}
@@ -294,7 +292,7 @@ function Lleno({ c, alIrAPaso }: { c: ContextoAgente; alIrAPaso: (n: number) => 
           >
             <span className="dato text-ayuda text-tenue">{hora(new Date(p.hora))}</span>
             <span className="truncate text-rotulo">
-              {p.tipo} · {p.resumen}
+              {t(p.tipo)} · {p.resumen}
             </span>
             <span className="dato text-right text-rotulo">{tokensCortos(p.tokens)}</span>
           </button>
@@ -305,23 +303,31 @@ function Lleno({ c, alIrAPaso }: { c: ContextoAgente; alIrAPaso: (n: number) => 
 }
 
 function Cache({ a }: { a: Agente }) {
-  const t = a.tokens;
-  const total = t.cache_leida + t.cache_escrita + t.entrada;
-  const acierto = total ? (t.cache_leida / total) * 100 : 0;
+  const tk = a.tokens;
+  const total = tk.cache_leida + tk.cache_escrita + tk.entrada;
+  const acierto = total ? (tk.cache_leida / total) * 100 : 0;
   return (
     <div className="flex flex-wrap items-center gap-6">
       <div className="flex shrink-0 flex-col gap-1">
-        <span className="dato text-cifra-grande font-medium tracking-tight">{acierto.toFixed(1).replace(".", ",")} %</span>
-        <span className="text-rotulo text-suave">de la entrada salió de la caché</span>
+        <span className="dato text-cifra-grande font-medium tracking-tight">{decimal(acierto, 1)} %</span>
+        <span className="text-rotulo text-suave">{t("de la entrada salió de la caché")}</span>
       </div>
       <div className="flex min-w-0 flex-[1_1_22rem] flex-col gap-2.5">
-        <div role="img" aria-label={`Caché leída ${tokensCortos(t.cache_leida)}, caché escrita ${tokensCortos(t.cache_escrita)}, sin caché ${tokensCortos(t.entrada)}`} className="flex h-3 gap-0.5 overflow-hidden rounded-full">
-          <span className="bg-borde-campo" style={{ width: `${(t.cache_leida / Math.max(1, total)) * 100}%` }} />
-          <span className="bg-acento" style={{ width: `${(t.cache_escrita / Math.max(1, total)) * 100}%`, minWidth: 3 }} />
-          <span className="bg-texto" style={{ width: `${(t.entrada / Math.max(1, total)) * 100}%`, minWidth: 3 }} />
+        <div
+          role="img"
+          aria-label={t("Caché leída {leida}, caché escrita {escrita}, sin caché {entrada}", { leida: tokensCortos(tk.cache_leida), escrita: tokensCortos(tk.cache_escrita), entrada: tokensCortos(tk.entrada) })}
+          className="flex h-3 gap-0.5 overflow-hidden rounded-full"
+        >
+          <span className="bg-borde-campo" style={{ width: `${(tk.cache_leida / Math.max(1, total)) * 100}%` }} />
+          <span className="bg-acento" style={{ width: `${(tk.cache_escrita / Math.max(1, total)) * 100}%`, minWidth: 3 }} />
+          <span className="bg-texto" style={{ width: `${(tk.entrada / Math.max(1, total)) * 100}%`, minWidth: 3 }} />
         </div>
         <p className="m-0 text-rotulo text-suave">
-          De cada 100 tokens de entrada, {Math.round(acierto)} se leyeron de la caché (el prefijo que no cambió), {Math.round((t.cache_escrita / Math.max(1, total)) * 100)} se escribieron nuevos y casi ninguno entró sin caché. Por eso {tokensCortos(t.cache_leida)} leídos no pesan como {tokensCortos(t.cache_leida)} nuevos.
+          {t("De cada 100 tokens de entrada, {leidos} se leyeron de la caché (el prefijo que no cambió), {escritos} se escribieron nuevos y casi ninguno entró sin caché. Por eso {tokens} leídos no pesan como {tokens} nuevos.", {
+            leidos: Math.round(acierto),
+            escritos: Math.round((tk.cache_escrita / Math.max(1, total)) * 100),
+            tokens: tokensCortos(tk.cache_leida),
+          })}
         </p>
       </div>
     </div>
@@ -333,11 +339,11 @@ function Peticiones({ c }: { c: ContextoAgente }) {
   const filas = (orden === "recientes" ? [...c.peticiones].reverse() : [...c.peticiones].sort((x, y) => y.cache_escrita + y.entrada - (x.cache_escrita + x.entrada))).slice(0, 10);
   return (
     <div className="flex flex-col gap-2.5">
-      <div role="group" aria-label="Orden" className="flex gap-0.5 self-start rounded-control bg-elevado p-[3px]">
+      <div role="group" aria-label={t("Orden")} className="flex gap-0.5 self-start rounded-control bg-elevado p-[3px]">
         {(
           [
-            ["recientes", "Las últimas"],
-            ["pesadas", "Las que más contexto nuevo escribieron"],
+            ["recientes", t("Las últimas")],
+            ["pesadas", t("Las que más contexto nuevo escribieron")],
           ] as const
         ).map(([id, nombre]) => (
           <button
@@ -355,11 +361,11 @@ function Peticiones({ c }: { c: ContextoAgente }) {
         <table className="w-full border-collapse text-rotulo">
           <thead>
             <tr className="bg-elevado text-left text-suave">
-              <th className="px-3 py-2 font-medium">Hora</th>
-              <th className="px-2 py-2 font-medium">Petición</th>
-              <th className="px-2 py-2 text-right font-medium">Contexto</th>
-              <th className="px-2 py-2 text-right font-medium">Caché escrita</th>
-              <th className="px-3 py-2 text-right font-medium">Salida</th>
+              <th className="px-3 py-2 font-medium">{t("Hora")}</th>
+              <th className="px-2 py-2 font-medium">{t("Petición")}</th>
+              <th className="px-2 py-2 text-right font-medium">{t("Contexto")}</th>
+              <th className="px-2 py-2 text-right font-medium">{t("Caché escrita")}</th>
+              <th className="px-3 py-2 text-right font-medium">{t("Salida")}</th>
             </tr>
           </thead>
           <tbody>
@@ -401,25 +407,25 @@ export function ContextoTokens({ a, version, alIrAPaso }: { a: Agente; version: 
         setError(null);
       })
       .catch((e: Error) => {
-        if (e.name !== "AbortError") setError(e.message);
+        if (e.name !== "AbortError") setError(tServidor(e.message));
       });
     return () => control.abort();
   }, [a.id, version, esCodex]);
 
   const pestanas: [Pestana, string][] = [
-    ["contexto", "Contexto"],
-    ["lleno", "Qué lo llenó"],
-    ["cache", "Caché"],
-    ["peticiones", "Por petición"],
+    ["contexto", t("Contexto")],
+    ["lleno", t("Qué lo llenó")],
+    ["cache", t("Caché")],
+    ["peticiones", t("Por petición")],
   ];
   return (
     <section aria-labelledby={`${base}-t`} className="flex flex-col gap-4 rounded-tarjeta border border-borde bg-superficie px-6 py-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={`${base}-t`} className="m-0 text-encabezado font-semibold">
-          Contexto y tokens
+          {t("Contexto y tokens")}
         </h2>
         {!esCodex && (
-          <div role="tablist" aria-label="Vistas de tokens" className="flex gap-0.5 rounded-control bg-elevado p-[3px]">
+          <div role="tablist" aria-label={t("Vistas de tokens")} className="flex gap-0.5 rounded-control bg-elevado p-[3px]">
             {pestanas.map(([id, nombre]) => (
               <button
                 key={id}
@@ -442,12 +448,12 @@ export function ContextoTokens({ a, version, alIrAPaso }: { a: Agente; version: 
       <Totales a={a} />
       {esCodex ? (
         <p className="m-0 text-rotulo text-suave">
-          Codex informa sus tokens una vez, al terminar cada turno: no hay serie por petición. Los pasos de la llamada, con cada orden y su salida, están en la actividad.
+          {t("Codex informa sus tokens una vez, al terminar cada turno: no hay serie por petición. Los pasos de la llamada, con cada orden y su salida, están en la actividad.")}
         </p>
       ) : error ? (
-        <p className="m-0 text-rotulo text-error">No se pudo leer el contexto: {error}</p>
+        <p className="m-0 text-rotulo text-error">{t("No se pudo leer el contexto: {error}", { error })}</p>
       ) : !c ? (
-        <div className="esqueleto h-40 rounded-panel" aria-label="Cargando el contexto" />
+        <div className="esqueleto h-40 rounded-panel" aria-label={t("Cargando el contexto")} />
       ) : (
         <div id={`${base}-panel`} role="tabpanel" aria-labelledby={`${base}-${pestana}`}>
           {pestana === "contexto" && (
