@@ -38,6 +38,18 @@ type Entorno struct {
 	// Principal: la herramienta con más sesiones en los últimos 30 días («claude» o «codex»); vacía si ninguna.
 	Principal string `json:"principal"`
 	Registro  string `json:"registro"`
+	// Registrados: los proyectos de proyectos.json, con lo que ya tiene cada uno (para quitarlos o ver su conexión).
+	Registrados []ProyectoRegistrado `json:"registrados"`
+}
+
+// ProyectoRegistrado: un proyecto del registro con sus marcas.
+type ProyectoRegistrado struct {
+	Nombre string         `json:"nombre"`
+	Ruta   string         `json:"ruta"`
+	Sigla  string         `json:"sigla"`
+	Nivel  int            `json:"nivel"`
+	Existe bool           `json:"existe"`
+	Marcas entorno.Marcas `json:"marcas"`
 }
 
 // CarpetaReciente: una carpeta donde trabajaron agentes, con lo que ya tiene. El nombre es el de la carpeta, que es
@@ -165,9 +177,25 @@ func esCarpeta(ruta string) bool {
 	return err == nil && fi.IsDir()
 }
 
-func (s *Servidor) verEntorno(w http.ResponseWriter, _ *http.Request) {
+func (s *Servidor) verEntorno(w http.ResponseWriter, r *http.Request) {
+	// «Comprobar de nuevo» en el asistente: sin la caché, para ver ya lo que se acaba de instalar o conectar.
+	if r.URL.Query().Get("fresco") == "1" {
+		s.cacheEnt.mu.Lock()
+		s.cacheEnt.hs = nil
+		s.cacheEnt.mu.Unlock()
+	}
 	e := Entorno{Sistema: runtime.GOOS, Arquitectura: runtime.GOARCH, Version: Version, Herramientas: s.herramientas(),
-		Carpetas: s.carpetasRecientes(), Registro: s.RutaRegistro}
+		Carpetas: s.carpetasRecientes(), Registro: s.RutaRegistro, Registrados: []ProyectoRegistrado{}}
+	for _, p := range s.listaProyectos() {
+		if !p.Registrado {
+			continue
+		}
+		pr := ProyectoRegistrado{Nombre: p.Nombre, Ruta: p.Raiz, Sigla: p.Sigla, Nivel: p.Nivel, Existe: esCarpeta(p.Raiz)}
+		if pr.Existe {
+			pr.Marcas = entorno.MarcasDe(p.Raiz)
+		}
+		e.Registrados = append(e.Registrados, pr)
+	}
 	claude, codex := 0, 0
 	for _, c := range e.Carpetas {
 		claude += c.Claude
@@ -190,8 +218,9 @@ func (s *Servidor) puerta() (*configurar.Puerta, error) {
 		}
 		s.puertaConf = &configurar.Puerta{
 			Dir: s.Datos,
+			// La lista cerrada: el registro de proyectos y las preferencias de Atalaya.
 			Permitido: func(r string) bool {
-				return s.RutaRegistro != "" && configurar.MismaRuta(r, s.RutaRegistro)
+				return (s.RutaRegistro != "" && configurar.MismaRuta(r, s.RutaRegistro)) || configurar.MismaRuta(r, s.rutaPreferencias())
 			},
 			Programas: map[string]string{},
 			Ahora:     s.ahora,
@@ -342,6 +371,72 @@ func (s *Servidor) proponerProyectos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	prop, err := pu.Proponer("proyectos", resumen, []configurar.Cambio{{Tipo: configurar.Archivo, Ruta: s.RutaRegistro, Despues: texto}})
+	if err != nil {
+		fallo(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	escribir(w, prop)
+}
+
+// Preferencias: lo que la persona eligió en el asistente, en config.json de la carpeta de Atalaya.
+type Preferencias struct {
+	// Principal: la herramienta que coordina («claude» o «codex»); Secundario: la otra, o vacía si solo usa una.
+	Principal  string `json:"principal,omitempty"`
+	Secundario string `json:"secundario,omitempty"`
+	// Asistente: el asistente de primera vez ya se terminó o se saltó (no vuelve a abrirse solo).
+	Asistente bool `json:"asistente,omitempty"`
+}
+
+func (s *Servidor) rutaPreferencias() string {
+	if s.Datos == "" {
+		return ""
+	}
+	return filepath.Join(s.Datos, "config.json")
+}
+
+// preferencias: las guardadas; sin archivo (o roto), las de fábrica.
+func (s *Servidor) preferencias() Preferencias {
+	var p Preferencias
+	if r := s.rutaPreferencias(); r != "" {
+		if b, err := os.ReadFile(r); err == nil {
+			_ = json.Unmarshal(b, &p)
+		}
+	}
+	return p
+}
+
+func (s *Servidor) verPreferencias(w http.ResponseWriter, _ *http.Request) {
+	escribir(w, s.preferencias())
+}
+
+func (s *Servidor) proponerPreferencias(w http.ResponseWriter, r *http.Request) {
+	if !delPanel(r) {
+		fallo(w, http.StatusForbidden, "solo el panel puede cambiar la configuración")
+		return
+	}
+	var p Preferencias
+	if !leerCuerpo(w, r, &p) {
+		return
+	}
+	herr := map[string]bool{"claude": true, "codex": true}
+	if !herr[p.Principal] || (p.Secundario != "" && (!herr[p.Secundario] || p.Secundario == p.Principal)) {
+		fallo(w, http.StatusBadRequest, "el principal es claude o codex, y el secundario el otro o ninguno")
+		return
+	}
+	pu, err := s.puerta()
+	if err != nil {
+		fallo(w, http.StatusConflict, err.Error())
+		return
+	}
+	b, _ := json.MarshalIndent(p, "", "  ")
+	nombres := map[string]string{"claude": "Claude Code", "codex": "Codex"}
+	resumen := "Preferencias: coordina " + nombres[p.Principal]
+	if p.Secundario != "" {
+		resumen += ", con " + nombres[p.Secundario] + " de secundario"
+	} else {
+		resumen += ", sin secundario"
+	}
+	prop, err := pu.Proponer("preferencias", resumen, []configurar.Cambio{{Tipo: configurar.Archivo, Ruta: s.rutaPreferencias(), Despues: string(b) + "\n"}})
 	if err != nil {
 		fallo(w, http.StatusBadRequest, err.Error())
 		return

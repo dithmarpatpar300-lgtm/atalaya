@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { haceCuanto, porcentaje, tokens } from "./formato.ts";
 import { EN_AGENTES } from "./i18n/en-agentes.ts";
 import { EN_CABECERA } from "./i18n/en-cabecera.ts";
+import { EN_CONFIGURAR } from "./i18n/en-configurar.ts";
 import { EN_VISTAS } from "./i18n/en-vistas.ts";
 import { decimal, fijarIdioma, t } from "./i18n.ts";
 
@@ -31,7 +32,7 @@ test("decimal y formato: coma en español, punto en inglés", () => {
 // Cada diccionario es de un área; una clave en dos daría la traducción del último que se mezcla.
 test("los diccionarios no repiten claves y respetan los huecos", () => {
   const vistas = new Map<string, string>();
-  for (const [area, dic] of Object.entries({ EN_CABECERA, EN_AGENTES, EN_VISTAS })) {
+  for (const [area, dic] of Object.entries({ EN_CABECERA, EN_AGENTES, EN_VISTAS, EN_CONFIGURAR })) {
     for (const [es, en] of Object.entries(dic)) {
       assert.ok(!vistas.has(es), `«${es}» está en ${vistas.get(es)} y en ${area}`);
       vistas.set(es, area);

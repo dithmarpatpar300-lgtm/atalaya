@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { IconoBuscar } from "@/components/ui/iconos";
+import { IconoAjustes, IconoBuscar } from "@/components/ui/iconos";
 import { Marca } from "@/components/ui/marca";
 import type { ProyectoResumen } from "@/lib/api";
 import type { Conexion } from "@/lib/vivo";
@@ -10,7 +10,8 @@ import { BotonIdioma } from "./boton-idioma";
 import { MenuTema } from "./menu-tema";
 import { SelectorProyecto } from "./selector-proyecto";
 
-export type Seccion = "proyectos" | "decisiones" | "agentes" | "linea" | "avance" | "salud" | "estadisticas" | "datapedia" | "consultas";
+// «configurar» no es una pestaña: se abre con el engranaje (y sola, la primera vez).
+export type Seccion = "proyectos" | "decisiones" | "agentes" | "linea" | "avance" | "salud" | "estadisticas" | "datapedia" | "consultas" | "configurar";
 
 const TEXTO_CONEXION: Record<Conexion, string> = { conectando: "Conectando", "en vivo": "En vivo", reconectando: "Reconectando" };
 
@@ -128,6 +129,17 @@ export function Cabecera({
         </span>
 
         {campana}
+        <a
+          href="#configurar"
+          aria-current={seccion === "configurar" ? "page" : undefined}
+          aria-label={t("Configurar Atalaya")}
+          title={t("Configurar Atalaya")}
+          className={`grid size-[34px] shrink-0 place-items-center rounded-full border transition-colors duration-150 ${
+            seccion === "configurar" ? "border-acento bg-elevado text-texto" : "border-borde text-suave hover:border-borde-fuerte hover:bg-elevado hover:text-texto"
+          }`}
+        >
+          <IconoAjustes className="size-[15px]" />
+        </a>
         <BotonIdioma />
         <MenuTema />
       </div>

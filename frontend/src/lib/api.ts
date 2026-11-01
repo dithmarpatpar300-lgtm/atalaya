@@ -304,6 +304,106 @@ export interface Consulta {
   origen?: "transcrito" | "memoria" | "transcrito+memoria";
 }
 
+/** Claude Code o Codex en este equipo (servidor/configurar.go, internal/entorno). */
+export interface Herramienta {
+  id: "claude" | "codex";
+  nombre: string;
+  instalada: boolean;
+  ruta?: string;
+  version?: string;
+  datos: string;
+  datos_existen: boolean;
+  /** Ya tiene el servidor MCP de Atalaya en su configuración global. */
+  mcp: boolean;
+}
+
+/** Lo que una carpeta ya tiene. */
+export interface Marcas {
+  agents_md: boolean;
+  claude_md: boolean;
+  mcp_json: boolean;
+  mcp_atalaya: boolean;
+  trazabilidad: boolean;
+}
+
+/** Una carpeta donde trabajaron agentes en los últimos 30 días. */
+export interface CarpetaReciente {
+  ruta: string;
+  nombre: string;
+  claude: number;
+  codex: number;
+  ultimo: string;
+  registrada: boolean;
+  marcas: Marcas;
+}
+
+/** Lo que el asistente sabe del equipo antes de preguntar. */
+export interface Entorno {
+  sistema: string;
+  arquitectura: string;
+  version: string;
+  herramientas: Herramienta[];
+  carpetas: CarpetaReciente[];
+  /** La más usada en 30 días; vacía si ninguna. */
+  principal: "" | "claude" | "codex";
+  registro: string;
+  /** Los proyectos de proyectos.json, con lo que tiene cada uno. */
+  registrados: ProyectoRegistrado[];
+}
+
+/** Un proyecto del registro, con sus marcas. */
+export interface ProyectoRegistrado {
+  nombre: string;
+  ruta: string;
+  sigla: string;
+  nivel: number;
+  existe: boolean;
+  marcas: Marcas;
+}
+
+/** Una de las cosas que hace un cambio de configuración. */
+export interface CambioConf {
+  tipo: "archivo" | "orden";
+  ruta?: string;
+  existia?: boolean;
+  antes?: string;
+  despues?: string;
+  programa?: string;
+  argumentos?: string[];
+  deshacer?: string[];
+}
+
+/** La vista previa de un cambio: se aplica con su id. */
+export interface Propuesta {
+  id: string;
+  operacion: string;
+  resumen: string;
+  cambios: CambioConf[];
+  creada: string;
+}
+
+/** Una línea del historial de cambios. */
+export interface EntradaCambio {
+  id: string;
+  hora: string;
+  operacion: string;
+  resumen: string;
+  cambios: CambioConf[];
+  salida?: string;
+  error?: string;
+  deshace?: string;
+  deshecha?: boolean;
+}
+
+export type HerramientaId = "claude" | "codex";
+
+/** Lo que la persona eligió en el asistente. */
+export interface Preferencias {
+  principal?: HerramientaId;
+  secundario?: HerramientaId;
+  asistente?: boolean;
+}
+
 /** Lanza el error que manda el servidor (`{ error }`) o, si no trae uno, el código. */
 async function siFallo(r: Response) {
   if (r.ok) return;
@@ -383,6 +483,15 @@ export const api = {
     await escribirPanel(`/api/preguntas/${encodeURIComponent(id)}/responder`, cuerpo);
   },
   linea: (proyecto: string, dia: string, senal?: AbortSignal) => pedir<RespuestaLinea>(`/api/linea?${new URLSearchParams({ proyecto, dia })}`, senal),
+  // La configuración desde el panel (servidor/configurar.go): primero la vista previa, después aplicar con su id.
+  entorno: (senal?: AbortSignal) => pedir<Entorno>("/api/entorno", senal),
+  preferencias: (senal?: AbortSignal) => pedir<Preferencias>("/api/configurar/preferencias", senal),
+  historialCambios: (senal?: AbortSignal) => pedir<EntradaCambio[]>("/api/configurar/historial", senal),
+  proponerProyectos: (p: { agregar?: { ruta: string; nivel: number; sigla?: string }[]; quitar?: string[] }) =>
+    escribirPanel<Propuesta>("/api/configurar/proyectos", p),
+  proponerPreferencias: (p: Preferencias) => escribirPanel<Propuesta>("/api/configurar/preferencias", p),
+  aplicarCambio: (id: string) => escribirPanel<EntradaCambio>("/api/configurar/aplicar", { id }),
+  deshacerCambio: (id: string) => escribirPanel<EntradaCambio>("/api/configurar/deshacer", { id }),
 };
 
 export const esActivo = (e: EstadoAgente) => e === "Trabajando" || e === "En espera";

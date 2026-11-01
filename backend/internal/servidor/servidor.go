@@ -263,6 +263,8 @@ func (s *Servidor) Handler() http.Handler {
 	mux.HandleFunc("GET /api/entorno", s.verEntorno)
 	mux.HandleFunc("GET /api/configurar/historial", s.verHistorialConfiguracion)
 	mux.HandleFunc("POST /api/configurar/proyectos", s.proponerProyectos)
+	mux.HandleFunc("GET /api/configurar/preferencias", s.verPreferencias)
+	mux.HandleFunc("POST /api/configurar/preferencias", s.proponerPreferencias)
 	mux.HandleFunc("POST /api/configurar/aplicar", s.aplicarConfiguracion)
 	mux.HandleFunc("POST /api/configurar/deshacer", s.deshacerConfiguracion)
 	if s.Web != nil {

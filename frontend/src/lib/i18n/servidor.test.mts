@@ -4,6 +4,28 @@ import { fijarIdioma, tServidor } from "../i18n.ts";
 import { PATRONES_SERVIDOR } from "./servidor.ts";
 
 const ejemplos = [
+  // La configuración desde el panel
+  "Deshacer: Registro de proyectos: agregar Tienda (nivel 2)",
+  "Registro de proyectos: agregar Tienda (nivel 2), quitar Blog",
+  "Preferencias: coordina Codex, con Claude Code de secundario",
+  "Preferencias: coordina Claude Code, sin secundario",
+  "solo el panel puede cambiar la configuración",
+  '"proyectos/x" no es una ruta completa',
+  "C:\\Proyectos\\Tienda\\no-existe no es una carpeta de este equipo",
+  "el nivel va de 0 a 3, vino 7",
+  'la sigla "<b>": de una a tres letras o cifras',
+  'C:\\Proyectos\\Blog ya está en el registro (como "Blog")',
+  '"Tienda" no está en el registro',
+  "no hay nada que agregar ni quitar",
+  "proyectos.json no es una lista de proyectos: unexpected end of JSON input: arréglalo a mano antes de cambiarlo desde el panel",
+  "el principal es claude o codex, y el secundario el otro o ninguno",
+  "no hay una vista previa con ese id (vence a los 10 min): vuelve a pedirla",
+  "el archivo cambió desde la vista previa: vuelve a pedirla (C:\\Atalaya\\proyectos.json)",
+  "el archivo cambió después de aplicarlo; deshacerlo pisaría esos cambios (C:\\Atalaya\\proyectos.json)",
+  "ese cambio ya se deshizo",
+  "ese cambio no está en el historial",
+  "Atalaya corre sin carpeta de datos: no puede guardar copias ni el historial de cambios",
+  "Atalaya corre sin registro de proyectos (-proyectos)",
   "Aviso a los 25 min y alerta al cumplirse. El presupuesto del encargo manda si lo trae.",
   "De la ventana que se infiere de las peticiones del agente.",
   "Trabajando, pero sin pasos nuevos: suele ser una orden larga que no termina.",
@@ -145,6 +167,9 @@ test("traduce cada patrón completo y conserva lo desconocido", () => {
     });
     assert.equal(tServidor("la primera línea dice 40 % y los paquetes dan 41,5 %"), "the first line says 40% and the packages yield 41.5%");
     assert.equal(tServidor("Texto escrito por una persona"), "Texto escrito por una persona");
+    // Los resúmenes de la configuración traducen cada parte, y «Deshacer» traduce lo que deshace.
+    assert.equal(tServidor("Deshacer: Registro de proyectos: agregar Tienda (nivel 2), quitar Blog"), "Undo: Project registry: add Tienda (level 2), remove Blog");
+    assert.equal(tServidor("Preferencias: coordina Codex, con Claude Code de secundario"), "Preferences: Codex coordinates, with Claude Code as secondary");
   } finally {
     fijarIdioma("es");
   }

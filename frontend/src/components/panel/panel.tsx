@@ -19,6 +19,7 @@ import { t } from "@/lib/i18n";
 import { useEventos } from "@/lib/vivo";
 import { Actividad } from "./actividad";
 import { BandaAlerta } from "./banda-alerta";
+import { CLAVE_SALTADO, Configurar } from "./configurar";
 import { Consultas } from "./consultas";
 import { Avance } from "./avance";
 import { Decisiones } from "./decisiones";
@@ -53,7 +54,7 @@ function suscribirAncla(f: () => void) {
   window.addEventListener("hashchange", f);
   return () => window.removeEventListener("hashchange", f);
 }
-const SECCIONES: Seccion[] = ["proyectos", "decisiones", "agentes", "linea", "avance", "salud", "estadisticas", "datapedia", "consultas"];
+const SECCIONES: Seccion[] = ["proyectos", "decisiones", "agentes", "linea", "avance", "salud", "estadisticas", "datapedia", "consultas", "configurar"];
 // Sin ancla, la portada: todos los proyectos.
 const leerSeccion = (): Seccion => SECCIONES.find((s) => window.location.hash === `#${s}`) ?? "proyectos";
 
@@ -64,6 +65,7 @@ function useSeccion(): Seccion {
 export function Panel() {
   const [vista, setVista] = useState<{ proyecto: string; filtro: Filtro } | null>(null);
   const [proyectos, setProyectos] = useState<ProyectoResumen[]>([]);
+  const primeraVista = useRef(false);
   const [pendientes, setPendientes] = useState(0);
   const [cuotas, setCuotas] = useState<EstadoCuotas | null>(null);
   const [leyendo, setLeyendo] = useState(false);
@@ -91,6 +93,22 @@ export function Panel() {
       .proyectos()
       .then((ps) => {
         setProyectos(ps);
+        // La primera vez (ningún proyecto y el asistente sin terminar ni saltar), se abre Configurar.
+        if (!primeraVista.current) {
+          primeraVista.current = true;
+          let saltado = false;
+          try {
+            saltado = localStorage.getItem(CLAVE_SALTADO) === "1";
+          } catch {}
+          if (ps.length === 0 && !window.location.hash && !saltado) {
+            api
+              .preferencias()
+              .then((p) => {
+                if (!p.asistente && !window.location.hash) window.location.hash = "configurar";
+              })
+              .catch(() => {});
+          }
+        }
         setVista((v) => (v && !v.proyecto && ps.length ? { ...v, proyecto: ps[0].nombre } : v));
       })
       .catch(() => {});
@@ -395,7 +413,7 @@ export function Panel() {
         alElegirProyecto={elegirProyecto}
         conexion={conexion}
         seccion={seccion}
-        cuentas={{ proyectos: null, decisiones: pendientes, agentes: proyecto ? agentes.filter((a) => enFiltro(a, filtro)).length : null, linea: null, avance: null, salud: null, estadisticas: null, datapedia: totalDocs, consultas: null }}
+        cuentas={{ proyectos: null, decisiones: pendientes, agentes: proyecto ? agentes.filter((a) => enFiltro(a, filtro)).length : null, linea: null, avance: null, salud: null, estadisticas: null, datapedia: totalDocs, consultas: null, configurar: null }}
         alAbrirPaleta={() => setPaleta(true)}
         campana={
           <Campana
@@ -413,7 +431,9 @@ export function Panel() {
       />
       {banda && <BandaAlerta key={banda.id} alerta={banda} reglas={alertas.reglas} alVer={() => abrirDesdeAlerta(banda.agente)} alVisto={() => marcarVistas([banda.id])} />}
       <Paleta abierta={paleta} alCerrar={() => setPaleta(false)} agentes={agentes} proyectos={proyectos} proyecto={proyecto} acciones={accionesPaleta} />
-      {seccion === "datapedia" ? (
+      {seccion === "configurar" ? (
+        <Configurar alTerminar={() => (window.location.hash = "proyectos")} />
+      ) : seccion === "datapedia" ? (
         <Datapedia proyecto={proyecto} version={versionDatapedia} alAbrirTraza={abrirTraza} alAbrirPaso={abrirPaso} abrir={abrirDoc} />
       ) : seccion === "consultas" ? (
         <Consultas version={versionConsultas} alAbrirAgente={(c) => c.agente && abrirAgente({ id: c.agente, proyecto: c.proyecto, paso: c.paso >= 0 ? c.paso : undefined })} />

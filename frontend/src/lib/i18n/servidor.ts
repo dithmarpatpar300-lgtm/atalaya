@@ -1,7 +1,39 @@
 // Los textos que arma el servidor en español (alertas, salud, notas de estadísticas y del avance), en inglés: cada
 // patrón es la frase del servidor con sus partes variables como grupos, y el reemplazo la misma frase en inglés con
-// $1, $2… Van de la más específica a la más general: gana la primera que encaja.
-export const PATRONES_SERVIDOR: [RegExp, string][] = [
+// $1, $2… Van de la más específica a la más general: gana la primera que encaja. Cuando una frase junta partes que
+// también hay que traducir (los resúmenes de la configuración), el reemplazo es una función.
+type Reemplazo = string | ((traducir: (s: string) => string, ...grupos: string[]) => string);
+
+/** Las partes de un resumen del registro: «agregar Tienda (nivel 2), quitar Blog». */
+const partesRegistro = (resto: string) =>
+  resto
+    .split(", ")
+    .map((p) => p.replace(/^agregar (.+) \(nivel (\d)\)$/, "add $1 (level $2)").replace(/^quitar (.+)$/, "remove $1"))
+    .join(", ");
+
+export const PATRONES_SERVIDOR: [RegExp, Reemplazo][] = [
+  // La configuración desde el panel (servidor/configurar.go e internal/configurar): resúmenes y errores.
+  [/^Deshacer: (.+)$/, (traducir, resto) => `Undo: ${traducir(resto)}`],
+  [/^Registro de proyectos: (.+)$/, (_, resto) => `Project registry: ${partesRegistro(resto)}`],
+  [/^Preferencias: coordina (Claude Code|Codex), con (Claude Code|Codex) de secundario$/, "Preferences: $1 coordinates, with $2 as secondary"],
+  [/^Preferencias: coordina (Claude Code|Codex), sin secundario$/, "Preferences: $1 coordinates, no secondary"],
+  [/^solo el panel puede cambiar la configuración$/, "only the panel can change the setup"],
+  [/^(.+) no es una ruta completa$/, "$1 is not a full path"],
+  [/^(.+) no es una carpeta de este equipo$/, "$1 is not a folder on this computer"],
+  [/^el nivel va de 0 a 3, vino (-?\d+)$/, "the level goes from 0 to 3, got $1"],
+  [/^la sigla (.+): de una a tres letras o cifras$/, "the short name $1: one to three letters or digits"],
+  [/^(.+) ya está en el registro \(como (.+)\)$/, "$1 is already registered (as $2)"],
+  [/^(.+) no está en el registro$/, "$1 is not in the registry"],
+  [/^no hay nada que agregar ni quitar$/, "there is nothing to add or remove"],
+  [/^(.+): arréglalo a mano antes de cambiarlo desde el panel$/, "$1: fix it by hand before changing it from the panel"],
+  [/^el principal es claude o codex, y el secundario el otro o ninguno$/, "the primary is claude or codex, and the secondary the other one or none"],
+  [/^no hay una vista previa con ese id \(vence a los 10 min\): vuelve a pedirla$/, "there is no preview with that id (they expire after 10 min): request it again"],
+  [/^el archivo cambió desde la vista previa: vuelve a pedirla \((.+)\)$/, "the file changed since the preview: request it again ($1)"],
+  [/^el archivo cambió después de aplicarlo; deshacerlo pisaría esos cambios \((.+)\)$/, "the file changed after it was applied; undoing would overwrite those changes ($1)"],
+  [/^ese cambio ya se deshizo$/, "that change was already undone"],
+  [/^ese cambio no está en el historial$/, "that change is not in the history"],
+  [/^Atalaya corre sin carpeta de datos: no puede guardar copias ni el historial de cambios$/, "Atalaya runs without a data folder: it cannot keep backups or the change history"],
+  [/^Atalaya corre sin registro de proyectos \(-proyectos\)$/, "Atalaya runs without a project registry (-proyectos)"],
   [/^Aviso a los (\d+) min y alerta al cumplirse\. El presupuesto del encargo manda si lo trae\.$/, "Warning at $1 min and alert at the limit. The brief's budget takes precedence if specified."],
   [/^De la ventana que se infiere de las peticiones del agente\.$/, "From the window inferred from the agent's requests."],
   [/^Trabajando, pero sin pasos nuevos: suele ser una orden larga que no termina\.$/, "Working without new steps: usually a long-running command."],

@@ -218,6 +218,30 @@ func TestCarpetasRecientesJuntanLosWorktrees(t *testing.T) {
 	}
 }
 
+// Las preferencias del asistente: solo claude o codex, el secundario distinto del principal; se guardan en la carpeta
+// de Atalaya por la misma puerta y se leen de vuelta.
+func TestPreferencias(t *testing.T) {
+	s, _ := conRegistro(t, "")
+	h := s.Handler()
+	for _, malo := range []string{`{"principal":"gemini"}`, `{"principal":"claude","secundario":"claude"}`, `{"principal":"codex","secundario":"x"}`} {
+		if w := pedir(t, h, "POST", "/api/configurar/preferencias", malo, true); w.Code != http.StatusBadRequest {
+			t.Errorf("%s: %d", malo, w.Code)
+		}
+	}
+	w := pedir(t, h, "POST", "/api/configurar/preferencias", `{"principal":"codex","secundario":"claude","asistente":true}`, true)
+	var prop configurar.Propuesta
+	_ = json.Unmarshal(w.Body.Bytes(), &prop)
+	if w.Code != 200 || prop.Resumen != "Preferencias: coordina Codex, con Claude Code de secundario" {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if w = pedir(t, h, "POST", "/api/configurar/aplicar", `{"id":"`+prop.ID+`"}`, true); w.Code != 200 {
+		t.Fatalf("aplicar: %d %s", w.Code, w.Body)
+	}
+	if p := s.preferencias(); p.Principal != "codex" || p.Secundario != "claude" || !p.Asistente {
+		t.Errorf("guardadas: %+v", p)
+	}
+}
+
 // /api/entorno responde aun sin herramientas que buscar, con el sistema y las carpetas.
 func TestEntornoSinCasa(t *testing.T) {
 	s, _ := conRegistro(t, "")

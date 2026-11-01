@@ -5,6 +5,7 @@
 
 import { EN_AGENTES } from "./i18n/en-agentes.ts";
 import { EN_CABECERA } from "./i18n/en-cabecera.ts";
+import { EN_CONFIGURAR } from "./i18n/en-configurar.ts";
 import { EN_VISTAS } from "./i18n/en-vistas.ts";
 import { PATRONES_SERVIDOR } from "./i18n/servidor.ts";
 
@@ -38,7 +39,7 @@ export function cambiarIdioma(i: Idioma) {
   window.location.reload();
 }
 
-const EN: Record<string, string> = { ...EN_CABECERA, ...EN_AGENTES, ...EN_VISTAS };
+const EN: Record<string, string> = { ...EN_CABECERA, ...EN_AGENTES, ...EN_VISTAS, ...EN_CONFIGURAR };
 
 /**
  * El texto en el idioma del panel. `es` es la frase en español, con huecos {nombre} que llena `vars`:
@@ -54,7 +55,11 @@ export function t(es: string, vars?: Record<string, string | number>): string {
 export function tServidor(texto: string): string {
   if (actual !== "en" || !texto) return texto;
   for (const [patron, en] of PATRONES_SERVIDOR) {
-    if (patron.test(texto)) return texto.replace(patron, en);
+    const m = patron.exec(texto);
+    if (!m) continue;
+    // Un reemplazo puede ser una función: recibe tServidor (para traducir una parte que es otro texto del servidor) y
+    // los grupos del patrón.
+    return typeof en === "string" ? texto.replace(patron, en) : en(tServidor, ...m.slice(1));
   }
   return texto;
 }

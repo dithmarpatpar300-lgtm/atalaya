@@ -5,10 +5,11 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { EN_AGENTES } from "./i18n/en-agentes.ts";
 import { EN_CABECERA } from "./i18n/en-cabecera.ts";
+import { EN_CONFIGURAR } from "./i18n/en-configurar.ts";
 import { EN_VISTAS } from "./i18n/en-vistas.ts";
 
 const src = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EN: Record<string, string> = { ...EN_CABECERA, ...EN_AGENTES, ...EN_VISTAS };
+const EN: Record<string, string> = { ...EN_CABECERA, ...EN_AGENTES, ...EN_VISTAS, ...EN_CONFIGURAR };
 
 /** Cada t("…") con la frase escrita en el código, en todo src/ (sin las pruebas). */
 function clavesDelCodigo(): { clave: string; donde: string }[] {

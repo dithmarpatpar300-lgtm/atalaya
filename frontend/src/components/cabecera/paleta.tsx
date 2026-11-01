@@ -127,6 +127,7 @@ export function Paleta({
       { e: t("Ir a las Estadísticas"), d: t("sección"), f: () => acciones.irA("estadisticas") },
       { e: t("Ir a la Datapedia"), d: t("sección"), f: () => acciones.irA("datapedia") },
       { e: t("Ir a las Consultas"), d: t("sección"), f: () => acciones.irA("consultas") },
+      { e: t("Configurar Atalaya"), d: t("sección"), f: () => acciones.irA("configurar") },
       { e: t("Tema oscuro"), d: t("tema"), f: () => fijarPreferencia("oscuro") },
       { e: t("Tema claro"), d: t("tema"), f: () => fijarPreferencia("claro") },
       { e: t("Tema del sistema"), d: t("tema"), f: () => fijarPreferencia("sistema") },
