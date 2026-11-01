@@ -269,6 +269,7 @@ func (s *Servidor) Handler() http.Handler {
 	mux.HandleFunc("GET /api/alertas", s.verAlertas)
 	mux.HandleFunc("GET /api/pasos", s.buscarPasos)
 	mux.HandleFunc("GET /api/consultas", s.verConsultas)
+	mux.HandleFunc("GET /api/consultas/resumen", s.verResumenConsultas)
 	mux.HandleFunc("GET /api/proceso", s.verProceso)
 	mux.HandleFunc("GET /api/estadisticas", s.verEstadisticas)
 	mux.HandleFunc("GET /api/avance", s.verAvance)

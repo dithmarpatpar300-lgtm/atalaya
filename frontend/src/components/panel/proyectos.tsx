@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { IconoCerrar, IconoCheck } from "@/components/ui/iconos";
 import { api } from "@/lib/api";
 import { t, tServidor } from "@/lib/i18n";
+import { MensajeNivel } from "@/components/ui/tarjeta-alerta";
 import {
   archivosQueTiene,
   chipNivel,
@@ -87,7 +88,7 @@ export function Proyectos({ version, alAbrirProyecto }: { version: number; alAbr
         </span>
       </div>
 
-      {error && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudo leer el portafolio. Se reintenta con el próximo aviso.")}</p>}
+      {error && <MensajeNivel nivel="error">{t("No se pudo leer el portafolio. Se reintenta con el próximo aviso.")}</MensajeNivel>}
 
       <div className="flex flex-wrap items-center gap-2.5">
         <span id={idFiltro} className="text-rotulo text-suave">

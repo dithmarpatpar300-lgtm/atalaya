@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { cuando, tokens } from "@/lib/formato";
 import { decimal, idioma, t, tServidor } from "@/lib/i18n";
 import { FONDO_PROVEEDOR } from "@/lib/proveedor";
+import { MensajeNivel } from "@/components/ui/tarjeta-alerta";
 import {
   ancho,
   celdaTexto,
@@ -164,7 +165,7 @@ export function Estadisticas({ proyecto, version, alAbrirAgente }: { proyecto: s
         />
       </div>
 
-      {error && !inf && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudieron leer las estadísticas. Se reintenta con el próximo aviso.")}</p>}
+      {error && !inf && <MensajeNivel nivel="error">{t("No se pudieron leer las estadísticas. Se reintenta con el próximo aviso.")}</MensajeNivel>}
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3">
         {kpis

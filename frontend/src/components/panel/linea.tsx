@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { MensajeNivel } from "@/components/ui/tarjeta-alerta";
 import {
   cuotaEn,
   curva,
@@ -183,7 +184,7 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
         </button>
       </div>
 
-      {error && !resp && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudo leer la línea de tiempo. Se reintenta con el próximo aviso.")}</p>}
+      {error && !resp && <MensajeNivel nivel="error">{t("No se pudo leer la línea de tiempo. Se reintenta con el próximo aviso.")}</MensajeNivel>}
 
       <section aria-label={t("Agentes sobre el reloj")} className="rounded-tarjeta border border-borde bg-superficie p-4">
         {/* La lectura del puntero: alto fijo y columnas fijas, para que nada salte al moverlo (lo que cambia en vivo no mueve el diseño). */}

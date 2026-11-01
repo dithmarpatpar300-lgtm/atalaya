@@ -345,6 +345,20 @@ func (s *Servidor) queHizo(q, proyecto string) (string, bool) {
 	if q == "" {
 		return "Falta «agente»: su id, su rol, el nombre de su bitácora o parte de su tarea.", true
 	}
+	cands := s.agenteQueHizo(q, proyecto)
+	if len(cands) == 0 {
+		return "No encontré ningún agente que coincida con «" + q + "». Prueba con su id, su rol (codificador, auditor) o el nombre de su bitácora.", false
+	}
+	return s.textoQueHizo(cands), false
+}
+
+// agenteQueHizo: los agentes que coinciden con q, el elegido primero; aparte para que el ahorro (ahorro.go) sepa qué documentos
+// reemplazó la respuesta.
+func (s *Servidor) agenteQueHizo(q, proyecto string) []AgenteVista {
+	q = strings.TrimSpace(q)
+	if q == "" {
+		return nil
+	}
 	nq := claude.Normalizar(q)
 	// El encargo nombra la bitácora y el rol asignado («medidor (general-purpose)»), aunque el tipo del subagente
 	// sea genérico: también se busca ahí.
@@ -368,7 +382,7 @@ func (s *Servidor) queHizo(q, proyecto string) (string, bool) {
 		}
 	}
 	if len(cands) == 0 {
-		return "No encontré ningún agente que coincida con «" + q + "». Prueba con su id, su rol (codificador, auditor) o el nombre de su bitácora.", false
+		return nil
 	}
 	// El id exacto gana: el de una sesión también es prefijo de los de sus subagentes («<sesión>~<sub>»).
 	sort.SliceStable(cands, func(i, j int) bool {
@@ -377,6 +391,11 @@ func (s *Servidor) queHizo(q, proyecto string) (string, bool) {
 		}
 		return cands[i].Ultimo.After(cands[j].Ultimo)
 	})
+	return cands
+}
+
+// textoQueHizo: la respuesta de que_hizo para el primero de cands; los demás van como «otros que coinciden».
+func (s *Servidor) textoQueHizo(cands []AgenteVista) string {
 	a := cands[0]
 	var pasos []claude.Paso
 	var delParche []string
@@ -458,7 +477,7 @@ func (s *Servidor) queHizo(q, proyecto string) (string, bool) {
 			fmt.Fprintf(&b, "  %s · %s · %s · %s\n", nombreAgente(c), c.Estado, s.cuando(c.Ultimo), recortarTexto(c.Tarea, 80))
 		}
 	}
-	return b.String(), false
+	return b.String()
 }
 
 func (s *Servidor) resumenSesionMCP(b *strings.Builder, a AgenteVista) {
@@ -742,6 +761,15 @@ type Consulta struct {
 	Paso     int    `json:"paso"`
 	// Origen: de dónde salió: «transcrito», «memoria» o «transcrito+memoria».
 	Origen string `json:"origen,omitempty"`
+	// Ahorro: lo que la respuesta evitó leer (ahorro.go). Puntero y embebido: sus campos salen en /api/consultas, pero
+	// el registro guardado en el disco (anotarConsulta) no lo lleva y queda igual que antes.
+	*Ahorro
+
+	// Lo que no sale: para el ahorro y las repetidas.
+	argumentosDesconocidos bool     // la traza no los trae (Codex) o no se pudieron releer
+	bytesConocidos         bool     // Bytes es el de la respuesta, no la estimación TokEntra × 4
+	leidas                 []string // las rutas que el agente leyó en sus pasos siguientes (claude.LlamadaCentro.Leidas)
+	tipo                   string   // el de AgenteVista: sesion, subagente o codex
 }
 
 // DiasConsultas: cuántos días de transcritos se miran para rehacer el registro de consultas.
@@ -784,15 +812,32 @@ func (s *Servidor) anotarConsulta(c Consulta) {
 // reinicio de Atalaya, y le suma lo que sabe el registro en memoria de la misma llamada (la misma herramienta, ± 20 s):
 // el cliente, los ms y la respuesta. Lo de la memoria que ningún transcrito registró (un curl de prueba) sale aparte.
 func (s *Servidor) verConsultas(w http.ResponseWriter, _ *http.Request) {
+	desde := s.ahora().AddDate(0, 0, -DiasConsultas)
+	out := []Consulta{}
+	for _, c := range s.consultasDesde(desde) {
+		// Lo de la memoria sale aunque sea viejo: es lo único que queda de un curl de prueba.
+		if c.Origen == "memoria" || !c.Hora.Before(desde) {
+			out = append(out, c)
+		}
+	}
+	if len(out) > MaxConsultas {
+		out = out[:MaxConsultas]
+	}
+	escribir(w, out)
+}
+
+// consultasDesde: todas las consultas desde `desde` (y las de la memoria, de cualquier hora), de la más reciente a la
+// más vieja, con su ahorro y sus repetidas. Las de los 5 minutos antes de `desde` se leen para saber si la primera de
+// la ventana repite otra, y se quitan antes de devolver.
+func (s *Servidor) consultasDesde(desde time.Time) []Consulta {
 	s.mu.Lock()
 	s.cargarConsultas()
 	mem := append([]Consulta(nil), s.consultas...)
 	s.mu.Unlock()
-	desde := s.ahora().AddDate(0, 0, -DiasConsultas)
 
 	out := []Consulta{}
 	vistas := map[string]AgenteVista{}
-	for _, l := range s.Claude.ConsultasCentro(desde, MaxConsultas) {
+	for _, l := range s.Claude.ConsultasCentro(desde.Add(-VentanaRepetida), 0) {
 		v, ok := vistas[l.Agente.ID]
 		if !ok {
 			v = s.vistaClaude(l.Agente, false)
@@ -800,7 +845,8 @@ func (s *Servidor) verConsultas(w http.ResponseWriter, _ *http.Request) {
 		}
 		proyecto := s.proyectoConsulta(l.Agente.Raiz, v.Proyecto)
 		out = append(out, Consulta{Hora: l.Paso.Hora, Herramienta: l.Herramienta, Argumentos: l.Argumentos, Bytes: l.Bytes,
-			Error: l.Paso.Error, Respuesta: l.Respuesta, Agente: v.ID, Nombre: v.Nombre, Proyecto: proyecto, Paso: l.Paso.N, Origen: "transcrito"})
+			Error: l.Paso.Error, Respuesta: l.Respuesta, Agente: v.ID, Nombre: v.Nombre, Proyecto: proyecto, Paso: l.Paso.N, Origen: "transcrito",
+			argumentosDesconocidos: !l.ArgumentosConocidos, bytesConocidos: l.BytesConocidos, leidas: l.Leidas, tipo: v.Tipo})
 	}
 	// Codex en vivo: la traza guarda la herramienta, no los argumentos ni la respuesta, y la hora es la de la lectura.
 	if s.CodexVivo != nil {
@@ -808,7 +854,7 @@ func (s *Servidor) verConsultas(w http.ResponseWriter, _ *http.Request) {
 			var v *AgenteVista
 			for _, p := range c.Pasos {
 				herr, ok := claude.HerramientaAtalaya(p.Herramienta)
-				if !ok || p.Hora.Before(desde) {
+				if !ok || p.Hora.Before(desde.Add(-VentanaRepetida)) {
 					continue
 				}
 				if v == nil {
@@ -820,7 +866,7 @@ func (s *Servidor) verConsultas(w http.ResponseWriter, _ *http.Request) {
 					carpeta = c.Carpeta
 				}
 				out = append(out, Consulta{Hora: p.Hora, Herramienta: herr,
-					Bytes: int(p.TokEntra * 4), Error: p.Error, Agente: v.ID, Nombre: v.Nombre, Proyecto: s.proyectoConsulta(carpeta, v.Proyecto), Paso: p.N, Origen: "transcrito"})
+					Bytes: int(p.TokEntra * 4), Error: p.Error, Agente: v.ID, Nombre: v.Nombre, Proyecto: s.proyectoConsulta(carpeta, v.Proyecto), Paso: p.N, Origen: "transcrito", argumentosDesconocidos: true, tipo: v.Tipo})
 			}
 		}
 	}
@@ -849,14 +895,19 @@ func (s *Servidor) verConsultas(w http.ResponseWriter, _ *http.Request) {
 			}
 		}
 		if mejor < 0 {
-			c.Origen = "memoria"
+			// Sin agente: no hay pasos siguientes ni repetidas, pero sí bytes y lectura evitada.
+			c.Origen, c.bytesConocidos = "memoria", true
 			sueltas = append(sueltas, c)
 			continue
 		}
 		usada[mejor] = true
 		t := &out[mejor]
 		t.Cliente, t.Ms, t.Error, t.Origen = c.Cliente, c.Ms, t.Error || c.Error, "transcrito+memoria"
-		t.Bytes = c.Bytes
+		t.Bytes, t.bytesConocidos = c.Bytes, true
+		if t.argumentosDesconocidos {
+			t.Argumentos = c.Argumentos
+			t.argumentosDesconocidos = false
+		}
 		if c.Respuesta != "" {
 			t.Respuesta = c.Respuesta
 		}
@@ -866,10 +917,14 @@ func (s *Servidor) verConsultas(w http.ResponseWriter, _ *http.Request) {
 	}
 	out = append(out, sueltas...)
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Hora.After(out[j].Hora) })
-	if len(out) > MaxConsultas {
-		out = out[:MaxConsultas]
+	s.medirAhorro(out)
+	visibles := out[:0]
+	for _, c := range out {
+		if c.Origen == "memoria" || !c.Hora.Before(desde) {
+			visibles = append(visibles, c)
+		}
 	}
-	escribir(w, out)
+	return visibles
 }
 
 func (s *Servidor) proyectoConsulta(carpeta, alternativo string) string {

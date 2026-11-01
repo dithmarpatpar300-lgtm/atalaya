@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { hora } from "@/lib/formato";
 import { t, tServidor } from "@/lib/i18n";
 import { Documento } from "./detalle-agente";
+import { MensajeNivel } from "@/components/ui/tarjeta-alerta";
 import {
   type Celda,
   type CarpetaTemporal,
@@ -184,7 +185,7 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
         </div>
       </div>
 
-      {error && !inf && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudo leer la salud del proceso. Se reintenta con el próximo aviso.")}</p>}
+      {error && !inf && <MensajeNivel nivel="error">{t("No se pudo leer la salud del proceso. Se reintenta con el próximo aviso.")}</MensajeNivel>}
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3">
         {kpis

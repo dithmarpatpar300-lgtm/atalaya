@@ -140,7 +140,9 @@ export function Campana({
             </div>
           </div>
 
-          <div className="scroll-interno flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
+          {/* Las tarjetas, las reglas y las notificaciones van en el mismo desplazamiento: en un teléfono las reglas ya no se
+              comen el alto y las tarjetas caben enteras. */}
+          <div className="scroll-interno flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
             {lista.length === 0 ? (
               <p className="m-0 px-2 py-6 text-center text-rotulo text-suave">
                 {alertas.length === 0 ? t("Ninguna regla rota ahora.") : t("Nada sin ver. Las vistas siguen en «Todas».")}
@@ -160,67 +162,70 @@ export function Campana({
                 />
               ))
             )}
-          </div>
 
-          <div className="flex flex-col gap-2 border-t border-borde p-3">
-            <div className="flex items-center gap-2">
-              <h3 className="m-0 flex-1 text-rotulo font-semibold">{t("Reglas vigiladas")}</h3>
-              {sinVer.length > 1 && (
-                <button type="button" onClick={alMarcarTodas} className="h-7 rounded-control px-2 text-ayuda text-suave hover:bg-elevado hover:text-texto">
-                  {t("Marcar todas como vistas")}
-                </button>
+            <div className="mt-1 flex flex-col gap-2 border-t border-borde px-1 pt-3 pb-1">
+              <h3 className="m-0 text-rotulo font-semibold">{t("Reglas vigiladas")}</h3>
+              {/* Dos columnas también en el teléfono (la campana mide ~344 px): cada regla es nombre y umbral en una línea. */}
+              <ul className="m-0 grid list-none grid-cols-2 gap-1.5 p-0">
+                {reglas.map((r) => (
+                  <li key={r.id} className="flex min-w-0 flex-col rounded-control bg-elevado/60 px-2.5 py-1.5" title={tServidor(r.nota)}>
+                    <span className="flex h-4 min-w-0 items-center justify-between gap-2">
+                      <span className="min-w-0 truncate text-ayuda">{tServidor(r.nombre)}</span>
+                      <span className="dato shrink-0 text-ayuda font-medium">{tServidor(r.umbral)}</span>
+                    </span>
+                    <span className="h-4 truncate text-[11px] leading-4 text-tenue">{r.omision ? t("por omisión, no está escrita") : r.fuente}</span>
+                  </li>
+                ))}
+              </ul>
+              {avisos && (
+                <div className="flex flex-col gap-1">
+                  <h3 className="m-0 text-rotulo font-semibold">{t("Notificaciones de Windows")}</h3>
+                  {!avisos.activos ? (
+                    <p className="m-0 text-ayuda text-tenue">{t("Apagadas: Atalaya arrancó con {opcion}.", { opcion: "-avisos=false" })}</p>
+                  ) : (
+                    <>
+                      {([
+                        { clave: "decisiones", nombre: "Decisiones que te esperan", ayuda: "Lo que una sesión te pregunta, aunque el panel esté cerrado." },
+                        { clave: "alertas", nombre: "Alertas de error", ayuda: "Un agente que pasó su tope o dos sobre el mismo archivo." },
+                      ] as const).map(({ clave, nombre, ayuda }) => (
+                        <button
+                          key={clave}
+                          type="button"
+                          aria-pressed={avisos[clave]}
+                          disabled={guardando}
+                          onClick={() => ejecutarAviso(() => alCambiarAvisos({ [clave]: !avisos[clave] }))}
+                          className="flex min-h-10 items-center gap-2.5 rounded-control px-1 text-left text-rotulo disabled:opacity-50"
+                        >
+                          <span aria-hidden="true" className={`relative h-5 w-[34px] shrink-0 rounded-full transition-colors duration-150 ${avisos[clave] ? "bg-acento" : "bg-borde-fuerte"}`}>
+                            <span className={`absolute top-0.5 size-4 rounded-full bg-superficie transition-[left] duration-150 ${avisos[clave] ? "left-4" : "left-0.5"}`} />
+                          </span>
+                          <span className="flex flex-col">
+                            <span>{t(nombre)}</span>
+                            <span className="text-ayuda text-tenue">{t(ayuda)}</span>
+                          </span>
+                        </button>
+                      ))}
+                      <div className="flex items-center gap-2">
+                        <button type="button" disabled={guardando} onClick={() => ejecutarAviso(alProbarAviso, true)} className="h-7 rounded-control px-2 text-ayuda text-suave hover:bg-elevado hover:text-texto disabled:opacity-50">
+                          {t("Probar")}
+                        </button>
+                        <span className="h-5 min-w-0 flex-1 truncate text-ayuda text-tenue" title={estado}>{estado}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
             </div>
-            <ul className="m-0 grid list-none grid-cols-1 gap-1.5 p-0 sm:grid-cols-2">
-              {reglas.map((r) => (
-                <li key={r.id} className="flex flex-col rounded-control bg-elevado/60 px-2.5 py-1.5" title={tServidor(r.nota)}>
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-ayuda">{tServidor(r.nombre)}</span>
-                    <span className="dato text-ayuda font-medium">{tServidor(r.umbral)}</span>
-                  </span>
-                  <span className="truncate text-[11px] text-tenue">{r.omision ? t("por omisión, no está escrita") : r.fuente}</span>
-                </li>
-              ))}
-            </ul>
-            {avisos && (
-              <div className="flex flex-col gap-1">
-                <h3 className="m-0 text-rotulo font-semibold">{t("Notificaciones de Windows")}</h3>
-                {!avisos.activos ? (
-                  <p className="m-0 text-ayuda text-tenue">{t("Apagadas: Atalaya arrancó con {opcion}.", { opcion: "-avisos=false" })}</p>
-                ) : (
-                  <>
-                    {([
-                      { clave: "decisiones", nombre: "Decisiones que te esperan", ayuda: "Lo que una sesión te pregunta, aunque el panel esté cerrado." },
-                      { clave: "alertas", nombre: "Alertas de error", ayuda: "Un agente que pasó su tope o dos sobre el mismo archivo." },
-                    ] as const).map(({ clave, nombre, ayuda }) => (
-                      <button
-                        key={clave}
-                        type="button"
-                        aria-pressed={avisos[clave]}
-                        disabled={guardando}
-                        onClick={() => ejecutarAviso(() => alCambiarAvisos({ [clave]: !avisos[clave] }))}
-                        className="flex min-h-10 items-center gap-2.5 rounded-control px-1 text-left text-rotulo disabled:opacity-50"
-                      >
-                        <span aria-hidden="true" className={`relative h-5 w-[34px] shrink-0 rounded-full transition-colors duration-150 ${avisos[clave] ? "bg-acento" : "bg-borde-fuerte"}`}>
-                          <span className={`absolute top-0.5 size-4 rounded-full bg-superficie transition-[left] duration-150 ${avisos[clave] ? "left-4" : "left-0.5"}`} />
-                        </span>
-                        <span className="flex flex-col">
-                          <span>{t(nombre)}</span>
-                          <span className="text-ayuda text-tenue">{t(ayuda)}</span>
-                        </span>
-                      </button>
-                    ))}
-                    <div className="flex items-center gap-2">
-                      <button type="button" disabled={guardando} onClick={() => ejecutarAviso(alProbarAviso, true)} className="h-7 rounded-control px-2 text-ayuda text-suave hover:bg-elevado hover:text-texto disabled:opacity-50">
-                        {t("Probar")}
-                      </button>
-                      <span className="h-5 min-w-0 flex-1 truncate text-ayuda text-tenue" title={estado}>{estado}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
           </div>
+
+          {/* «Marcar todas» queda fija abajo, a la vista aunque la lista se desplace. */}
+          {sinVer.length > 1 && (
+            <div className="flex justify-end border-t border-borde px-3 py-2">
+              <button type="button" onClick={alMarcarTodas} className="h-7 rounded-control px-2 text-ayuda text-suave hover:bg-elevado hover:text-texto">
+                {t("Marcar todas como vistas")}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

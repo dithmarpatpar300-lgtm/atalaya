@@ -6,6 +6,7 @@ import { Markdown } from "@/components/ui/markdown";
 import { api } from "@/lib/api";
 import { COLOR_HILO, horas, horasQueFaltan, paqueteInicial, type RespuestaAvance, tonoEstado, uno } from "@/lib/avance";
 import { decimal, t, tServidor } from "@/lib/i18n";
+import { MensajeNivel } from "@/components/ui/tarjeta-alerta";
 
 const tarjeta = "rounded-tarjeta border border-borde bg-superficie";
 
@@ -89,7 +90,7 @@ export function Avance({ proyecto, version }: { proyecto: string; version: numbe
       </div>
 
       {r === null && !error && <div className="esqueleto h-40 rounded-tarjeta" aria-label={t("Cargando el avance")} />}
-      {r === null && error && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudo leer el avance. Se reintenta con el próximo aviso.")}</p>}
+      {r === null && error && <MensajeNivel nivel="error">{t("No se pudo leer el avance. Se reintenta con el próximo aviso.")}</MensajeNivel>}
 
       {r && !f && (
         <section className={`flex flex-col gap-3 p-5 ${tarjeta}`}>

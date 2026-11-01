@@ -4,6 +4,7 @@ import { type ClipboardEvent, useEffect, useRef, useState } from "react";
 import { IconoCerrar } from "@/components/ui/iconos";
 import { api } from "@/lib/api";
 import { decimal, t } from "@/lib/i18n";
+import { MensajeNivel } from "@/components/ui/tarjeta-alerta";
 import {
   type Borrador,
   borradorVacio,
@@ -181,7 +182,7 @@ export function Responder({ id, alCerrar }: { id: string; alCerrar: () => void }
       )}
 
       <div className="scroll-interno flex max-h-[62vh] min-h-[22rem] flex-col gap-3 overflow-y-auto px-5 py-4">
-        {error && <p className="m-0 rounded-panel bg-error-suave px-3 py-2 text-error">{error}</p>}
+        {error && <MensajeNivel nivel="error">{error}</MensajeNivel>}
         {!p && !error && <div className="esqueleto h-40 rounded-panel" aria-hidden="true" />}
         {p?.contexto && paso === 0 && !enviado && <p className="m-0 rounded-control bg-hundido px-3 py-2.5 text-rotulo text-suave">{p.contexto}</p>}
 

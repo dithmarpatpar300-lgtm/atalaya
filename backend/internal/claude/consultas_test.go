@@ -92,3 +92,40 @@ func TestConsultasCentro(t *testing.T) {
 		t.Errorf("resultado tardío: %+v", got[0])
 	}
 }
+
+// Los pasos siguientes y anteriores de una consulta: lo que el ahorro necesita para releyo y podria_haber_consultado.
+func TestLeidasYLecturas(t *testing.T) {
+	raiz := t.TempDir()
+	dir := filepath.Join(raiz, "C--Proyectos-Tienda-Demo")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "ses2.jsonl"), []byte(pruebas.NativaJSON(transcritoCentro)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ix := NuevoIndice(raiz)
+	if _, err := ix.Actualizar(); err != nil {
+		t.Fatal(err)
+	}
+	cs := ix.ConsultasCentro(time.Time{}, 0)
+	q, s := cs[0], cs[2]
+	// salud: el Read de AGENTS.md va dos pasos después, con la ruta entera (Hilo la trae cortada).
+	if len(s.Leidas) != 1 || !strings.HasSuffix(filepath.ToSlash(s.Leidas[0]), "Tienda Demo/AGENTS.md") || !s.BytesConocidos {
+		t.Errorf("salud: leídas %v, bytes conocidos %v", s.Leidas, s.BytesConocidos)
+	}
+	if len(q.Leidas) != 0 || q.BytesConocidos {
+		t.Errorf("que_hizo: leídas %v, bytes conocidos %v", q.Leidas, q.BytesConocidos)
+	}
+
+	ls := ix.Lecturas(time.Time{}, func(h string) bool { return strings.HasSuffix(h, "AGENTS.md") })
+	if len(ls) != 1 || !strings.HasSuffix(filepath.ToSlash(ls[0].Ruta), "Tienda Demo/AGENTS.md") || strings.Join(ls[0].AtalayaAntes, ",") != "salud,buscar" || ls[0].Agente.ID != "ses2" {
+		t.Fatalf("lecturas: %+v", ls)
+	}
+	// La segunda vez sale de la caché de rutas y da lo mismo; el filtro por Hilo deja fuera lo demás.
+	if again := ix.Lecturas(time.Time{}, func(string) bool { return true }); len(again) != 1 || again[0].Ruta != ls[0].Ruta {
+		t.Errorf("caché: %+v", again)
+	}
+	if none := ix.Lecturas(time.Time{}, func(string) bool { return false }); len(none) != 0 {
+		t.Errorf("filtro: %+v", none)
+	}
+}

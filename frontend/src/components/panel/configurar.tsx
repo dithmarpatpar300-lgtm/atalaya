@@ -16,6 +16,7 @@ import {
 import { diferencia } from "@/lib/diferencia";
 import { cuando } from "@/lib/formato";
 import { cambiarIdioma, idioma, t, tServidor } from "@/lib/i18n";
+import { MensajeNivel } from "@/components/ui/tarjeta-alerta";
 
 // La configuración desde el panel (docs/plan-configuracion.md): el asistente de la primera vez, que después queda como
 // esta sección. Detecta antes de preguntar (/api/entorno), cada cambio pasa por la vista previa y se puede deshacer
@@ -278,7 +279,7 @@ export function Configurar({ alTerminar }: { alTerminar: () => void }) {
         )}
       </div>
 
-      {error && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{error}</p>}
+      {error && <MensajeNivel nivel="error">{error}</MensajeNivel>}
 
       <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-[15rem_minmax(0,1fr)]">
         <ol aria-label={t("Pasos")} className={`m-0 flex list-none flex-col gap-0.5 p-2 ${tarjeta}`}>

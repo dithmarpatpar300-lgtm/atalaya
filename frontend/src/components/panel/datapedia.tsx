@@ -8,6 +8,7 @@ import { haceCuanto } from "@/lib/formato";
 import { idioma, t, tServidor } from "@/lib/i18n";
 import { useAhora } from "@/lib/vivo";
 import { BuscarPasos } from "./buscar-pasos";
+import { MensajeNivel } from "@/components/ui/tarjeta-alerta";
 
 export const TIPOS: Record<string, string> = {
   memoria: t("Memoria"),
@@ -286,7 +287,7 @@ export function Datapedia({
 
       <div className="min-w-0 flex-1">
         <article aria-labelledby="doc-titulo" className="flex flex-col gap-4 rounded-tarjeta border border-borde bg-superficie px-6 py-5">
-          {aviso && <p className="m-0 rounded-panel bg-aviso-suave px-3 py-2 text-rotulo text-aviso">{aviso}</p>}
+          {aviso && <MensajeNivel nivel="aviso">{aviso}</MensajeNivel>}
           {visible ? (
             <>
               <header className="flex flex-col gap-1 border-b border-borde pb-4">

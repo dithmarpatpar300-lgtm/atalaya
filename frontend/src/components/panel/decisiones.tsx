@@ -8,6 +8,7 @@ import { cuando } from "@/lib/formato";
 import { t } from "@/lib/i18n";
 import { useAhora } from "@/lib/vivo";
 import { Responder } from "./responder";
+import { MensajeNivel } from "@/components/ui/tarjeta-alerta";
 
 // «Tienda Demo» → TD; «Atalaya» → AT; «Cuotas» → CU.
 const TAMANOS_RESPONDIDAS = [10, 25] as const;
@@ -115,7 +116,7 @@ export function Decisiones({ version, alAbrirSesion }: { version: number; alAbri
         </p>
       </div>
 
-      {error && !resp && <p className="m-0 rounded-panel bg-error-suave px-4 py-3 text-error">{t("No se pudieron leer las decisiones. Se reintenta con el próximo aviso.")}</p>}
+      {error && !resp && <MensajeNivel nivel="error">{t("No se pudieron leer las decisiones. Se reintenta con el próximo aviso.")}</MensajeNivel>}
       {!resp && !error && <div className="esqueleto h-40 rounded-tarjeta" aria-hidden="true" />}
       {resp && todas.length === 0 && <p className="m-0 rounded-tarjeta border border-borde bg-superficie px-5 py-6 text-suave">{t("Ninguna sesión te preguntó nada en los últimos 14 días.")}</p>}
 
