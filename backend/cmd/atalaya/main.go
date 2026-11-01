@@ -41,6 +41,11 @@ func main() {
 	dirCuotas := flag.String("cuotas", filepath.Join(local, "Cuotas"), "carpeta de Cuotas (cuotas.exe y sus archivos)")
 	cada := flag.Duration("cada", 2*time.Second, "cada cuánto se miran los archivos")
 	dirCodex := flag.String("codex", filepath.Join(local, "Atalaya", "codex"), "carpeta de la traza en vivo de Codex (la escribe scripts/codex.ps1)")
+	estadoCodex := os.Getenv("CODEX_HOME")
+	if estadoCodex == "" {
+		estadoCodex = filepath.Join(casa, ".codex")
+	}
+	dirEstadoCodex := flag.String("codex-estado", estadoCodex, "carpeta de Codex (CODEX_HOME) con las sesiones interactivas en sessions/ (vacía: no se siguen)")
 	rutaDB := flag.String("db", filepath.Join(local, "Atalaya", "atalaya.db"), "índice de la datapedia (SQLite; se rehace si se borra)")
 	var proyectos listaProyectos
 	flag.Var(&proyectos, "proyecto", "Nombre=Ruta de un proyecto con docs/trazabilidad (se repite; se suma al registro)")
@@ -59,7 +64,7 @@ func main() {
 		}
 		*transcritos, *dirCodex, *rutaRegistro = m.Claude, m.Codex, m.Registro
 		*dirDiario, *rutaDB, *dirCuotas = m.Diario, m.DB, m.Cuotas
-		*conAvisos = false
+		*conAvisos, *dirEstadoCodex = false, ""
 		proyectos = nil
 		log.Printf("mundo de demo: %s", m.Raiz)
 	}
@@ -88,6 +93,8 @@ func main() {
 		log.Fatalf("registro de proyectos: %v", err)
 	}
 	s.RutaRegistro = ruta
+	// Las sesiones interactivas de Codex (la TUI): se cuelgan del proyecto que contiene su carpeta.
+	s.CodexVivo.Sesiones, s.CodexVivo.RaizDe = *dirEstadoCodex, s.RaizDeCarpeta
 	s.Registro = func() ([]servidor.Proyecto, error) { return leerProyectos(ruta, explicito, proyectos) }
 
 	var dpProyectos []datapedia.Proyecto

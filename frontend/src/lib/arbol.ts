@@ -10,7 +10,8 @@ export interface FilaArbol {
   padre: number;
   /** Tiene sesión, pero no está en la lista (otro filtro): va suelto, con su clase de agente nombrada aparte. */
   huerfano: boolean;
-  /** Una llamada a Codex cuya sesión no está en los transcritos (se borró o se lanzó a mano): va como raíz. */
+  /** Una llamada a Codex cuya sesión no está en los transcritos (se borró o se lanzó a mano): va como raíz. Una sesión
+   * interactiva de Codex no tiene sesión que la lance: no cuenta. */
   sinSesion: boolean;
 }
 
@@ -33,7 +34,7 @@ export function ordenarArbol(lista: Agente[]): FilaArbol[] {
   for (const a of lista) {
     if (a.padre && ids.has(a.padre)) continue; // va con su padre
     const i = filas.length;
-    filas.push({ agente: a, nivel: 0, padre: -1, huerfano: !!a.padre, sinSesion: a.tipo === "codex" && !a.padre });
+    filas.push({ agente: a, nivel: 0, padre: -1, huerfano: !!a.padre, sinSesion: a.tipo === "codex" && !a.interactiva && !a.padre });
     const suyos = (hijos.get(a.id) ?? []).sort((x, y) => Date.parse(y.ultimo) - Date.parse(x.ultimo));
     for (const h of suyos) filas.push({ agente: h, nivel: 1, padre: i, huerfano: false, sinSesion: false });
   }

@@ -84,6 +84,8 @@ export interface Agente {
   modelo_corto?: string;
   /** El nombre que Claude Code le dio a la sesión (custom-title, ai-title o summary), si tiene. */
   titulo?: string;
+  /** Una sesión interactiva de Codex (la TUI), no una llamada de codex.ps1. */
+  interactiva?: boolean;
   modelo: string;
   effort: string;
   clase: string;

@@ -47,7 +47,7 @@ export function linaje(a: Agente, todos: Agente[]): NodoLinaje[] {
     for (const h of hermanos) out.push(nodo(h, 1, 0, coincide(h) ? t("en paralelo") : Date.parse(h.inicio) < Date.parse(a.inicio) ? t("antes") : t("después")));
     for (const h of hijos.slice(0, 5)) out.push(nodo(h, 2, 1, notaHijo(h)));
   } else {
-    out.push(nodo(a, 0, -1, a.tipo === "codex" ? t("sin sesión enlazada") : t("este")));
+    out.push(nodo(a, 0, -1, a.tipo === "codex" && !a.interactiva ? t("sin sesión enlazada") : t("este")));
     for (const h of hijos.slice(0, 8)) out.push(nodo(h, 1, 0, notaHijo(h)));
   }
   return out;

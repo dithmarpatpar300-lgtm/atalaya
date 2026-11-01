@@ -101,7 +101,9 @@ export function ListaAgentes({
                 const pct = a.estado === "Trabajando" && a.avance && a.avance.porcentaje >= 0 ? a.avance.porcentaje : null;
                 const alerta = alertas.get(a.id);
                 const ti = titulos(a);
-                const parentesco = codex
+                const parentesco = a.interactiva
+                  ? `, ${t("sesión interactiva de Codex")}`
+                  : codex
                   ? f.nivel
                     ? `, ${t("llamada a Codex de la sesión")}`
                     : f.sinSesion

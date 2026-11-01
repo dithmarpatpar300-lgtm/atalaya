@@ -50,6 +50,7 @@ Opciones útiles:
 | `-proyecto "Nombre=C:\ruta"` | Suma un proyecto sin tocar el registro (se repite) | — |
 | `-claude <carpeta>` | Dónde están los transcritos de Claude Code | `%USERPROFILE%\.claude\projects` |
 | `-codex <carpeta>` | Dónde escribe `codex.ps1` las trazas de Codex | `%LOCALAPPDATA%\Atalaya\codex` |
+| `-codex-estado <carpeta>` | La carpeta de Codex, con las sesiones interactivas en `sessions\` (vacía: no se siguen) | `%CODEX_HOME%`, o `%USERPROFILE%\.codex` |
 | `-avisos=false` | Sin notificaciones de Windows | encendidas |
 | `-diario <carpeta>` | Dónde va el diario (vacía: sin diario) | `%LOCALAPPDATA%\Atalaya\diario` |
 | `-db <archivo>` | El índice de la datapedia (se rehace si se borra) | `%LOCALAPPDATA%\Atalaya\atalaya.db` |
@@ -125,7 +126,7 @@ La sección **Consultas** del panel muestra cada llamada, con su respuesta y cu�
 
 ## 6. Seguir las llamadas a Codex
 
-Atalaya ve a Codex de dos maneras:
+Atalaya ve a Codex de tres maneras:
 
 - **En vivo**, cuando se lanza con `scripts\codex.ps1` (el kit de nivel 2 lo instala en el proyecto). El script corre
   `codex exec` en una copia aparte del repositorio, escribe la traza en `%LOCALAPPDATA%\Atalaya\codex`, anota la sesión
@@ -138,7 +139,12 @@ Atalaya ve a Codex de dos maneras:
 
 - **Del registro**, por las líneas de `docs/trazabilidad/<fase>/codex/REGISTRO.md`, aunque no haya traza.
 
-Las sesiones interactivas de Codex (el TUI) no se siguen todavía.
+- **Las sesiones interactivas** (el TUI, `codex` a secas, y las que se abren desde la app de Codex), en vivo: Codex
+  guarda cada una en `%USERPROFILE%\.codex\sessions\AAAA\MM\DD\rollout-*.jsonl` y Atalaya la lee (solo lectura) como un
+  agente de Codex del proyecto cuya carpeta contiene la de trabajo de la sesión, con el rol «Codex · interactiva», sus
+  pasos, modelo, effort y tokens. Está *trabajando* mientras tiene un turno abierto, *en espera* la media hora siguiente
+  al fin del turno (Codex no deja huella al cerrar el TUI) y después, *terminada*. Se leen las de los últimos 30 días;
+  las comprimidas (`.jsonl.zst`) y `auth.json` no se leen nunca.
 
 ## 7. Avisos, decisiones y cuota
 

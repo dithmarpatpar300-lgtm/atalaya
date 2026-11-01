@@ -71,3 +71,14 @@ test("títulos: subagentes y Codex siguen con su rol y su clase, y su tarea deba
   const cx = { ...codex("c", "2026-10-31T10:00:00Z", "s"), rol: "Segunda opinión", clase: "E2", proyecto: "Tienda Demo", tarea: "e2-t1b-sol" } as Agente;
   assert.deepEqual([nombreAgente(cx), titulos(cx).alterno], ["Segunda opinión E2", "e2-t1b-sol"]);
 });
+
+test("una sesión interactiva de Codex va como raíz sin decir que le falta sesión", () => {
+  const filas = ordenarArbol([{ ...codex("tui", "2026-10-31T10:00:00Z"), interactiva: true } as Agente, codex("c", "2026-10-31T09:00:00Z")]);
+  assert.deepEqual(
+    filas.map((f) => [f.agente.id, f.nivel, f.sinSesion]),
+    [
+      ["tui", 0, false],
+      ["c", 0, true],
+    ],
+  );
+});

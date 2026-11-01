@@ -448,7 +448,9 @@ export function ContextoTokens({ a, version, alIrAPaso }: { a: Agente; version: 
       <Totales a={a} />
       {esCodex ? (
         <p className="m-0 text-rotulo text-suave">
-          {t("Codex informa sus tokens una vez, al terminar cada turno: no hay serie por petición. Los pasos de la llamada, con cada orden y su salida, están en la actividad.")}
+          {a.interactiva
+            ? t("Codex informa sus tokens al terminar cada turno: no hay serie por petición. Los pasos de la sesión, con cada orden y su salida, están en la actividad.")
+            : t("Codex informa sus tokens una vez, al terminar cada turno: no hay serie por petición. Los pasos de la llamada, con cada orden y su salida, están en la actividad.")}
         </p>
       ) : error ? (
         <p className="m-0 text-rotulo text-error">{t("No se pudo leer el contexto: {error}", { error })}</p>

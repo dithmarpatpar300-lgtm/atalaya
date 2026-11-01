@@ -179,7 +179,7 @@ export function DetalleAgente({
   const padre = a.padre ? agentes.find((x) => x.id === a.padre) : undefined;
   const titulo = titulos(a);
   // De dónde nació: la sesión por su nombre (o su id, si no está en la lista); una llamada a Codex sin sesión lo dice.
-  const clase = a.tipo === "codex" ? t("llamada") : a.tipo === "subagente" ? t("subagente") : t("sesión");
+  const clase = a.interactiva ? t("sesión interactiva de Codex") : a.tipo === "codex" ? t("llamada") : a.tipo === "subagente" ? t("subagente") : t("sesión");
   const idPadre = padre ? padre.id.slice(0, 4) : a.padre ? a.padre.slice(0, 4) : "";
   const deSesion = padre
     ? padre.tipo === "sesion"
@@ -188,7 +188,7 @@ export function DetalleAgente({
     : a.padre
       ? t("{clase} de la sesión {id}…", { clase, id: idPadre })
       : "";
-  const origen = [a.modelo, a.effort && `effort ${a.effort}`, deSesion || (a.tipo === "codex" ? t("llamada sin sesión enlazada") : clase), a.inicio && t("desde {hora}", { hora: hora(new Date(a.inicio)) })]
+  const origen = [a.modelo, a.effort && `effort ${a.effort}`, deSesion || (a.tipo === "codex" && !a.interactiva ? t("llamada sin sesión enlazada") : clase), a.inicio && t("desde {hora}", { hora: hora(new Date(a.inicio)) })]
     .filter(Boolean)
     .join(" · ");
   const turnos = Math.max(0, ...detalle.pasos.map((p) => p.turno));
@@ -256,8 +256,9 @@ export function DetalleAgente({
                 </button>
               </>
             )}
-            {/* Una sesión no tiene informe ni bitácora: su avance se abre desde la tarjeta de la fase. */}
-            {a.tipo !== "sesion" && (
+            {/* Una sesión (también la interactiva de Codex) no tiene informe ni bitácora: su avance se abre desde la
+                tarjeta de la fase. */}
+            {a.tipo !== "sesion" && !a.interactiva && (
               <>
                 <button
                   type="button"
@@ -408,7 +409,13 @@ export function DetalleAgente({
           <div className="flex items-baseline gap-2.5">
             <span className="dato text-[44px] leading-none font-medium tracking-[-0.04em]">{pct === null ? "—" : `${pct} %`}</span>
             <span className="text-rotulo text-suave">
-              {a.tipo === "codex" ? (a.estado === "Trabajando" ? t("llamada en curso") : t("llamada terminada")) : a.avance ? t("según la bitácora") : t("sin bitácora de avance")}
+              {a.interactiva
+                ? a.estado === "Trabajando"
+                  ? t("turno en curso")
+                  : a.estado === "En espera"
+                    ? t("esperando al usuario")
+                    : t("sesión terminada")
+                : a.tipo === "codex" ? (a.estado === "Trabajando" ? t("llamada en curso") : t("llamada terminada")) : a.avance ? t("según la bitácora") : t("sin bitácora de avance")}
             </span>
           </div>
           <div className="flex flex-col gap-1.5">

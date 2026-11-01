@@ -51,6 +51,7 @@ Useful options:
 | `-proyecto "Name=C:\path"` | Adds a project without touching the registry (repeatable) | — |
 | `-claude <folder>` | Where Claude Code keeps its transcripts | `%USERPROFILE%\.claude\projects` |
 | `-codex <folder>` | Where `codex.ps1` writes Codex traces | `%LOCALAPPDATA%\Atalaya\codex` |
+| `-codex-estado <folder>` | Codex's own folder, with the interactive sessions in `sessions\` (empty: not followed) | `%CODEX_HOME%`, or `%USERPROFILE%\.codex` |
 | `-avisos=false` | No Windows notifications | on |
 | `-diario <folder>` | Where the diary goes (empty: no diary) | `%LOCALAPPDATA%\Atalaya\diario` |
 | `-db <file>` | The datapedia index (rebuilt if deleted) | `%LOCALAPPDATA%\Atalaya\atalaya.db` |
@@ -126,7 +127,7 @@ The panel's **Consultas** section shows every call, with its answer and how many
 
 ## 6. Following Codex runs
 
-Atalaya sees Codex in two ways:
+Atalaya sees Codex in three ways:
 
 - **Live**, when it is launched with `scripts\codex.ps1` (the level 2 kit installs it in the project). The script runs
   `codex exec` in a separate copy of the repository, writes the trace to `%LOCALAPPDATA%\Atalaya\codex`, records the
@@ -139,7 +140,12 @@ Atalaya sees Codex in two ways:
 
 - **From the registry**, through the lines of `docs/trazabilidad/<phase>/codex/REGISTRO.md`, even without a trace.
 
-Interactive Codex sessions (the TUI) are not followed yet.
+- **Interactive sessions** (the TUI, plain `codex`, and those opened from the Codex app), live: Codex keeps each one in
+  `%USERPROFILE%\.codex\sessions\YYYY\MM\DD\rollout-*.jsonl` and Atalaya reads it (read-only) as a Codex agent of the
+  project whose folder contains the session's working folder, labelled «Codex · interactiva», with its steps, model,
+  effort and tokens. It is *working* while a turn is open, *waiting* for half an hour after the turn ends (Codex leaves
+  no mark when the TUI closes) and then *ended*. Sessions from the last 30 days are read; compressed ones (`.jsonl.zst`)
+  and `auth.json` are never read.
 
 ## 7. Notifications, decisions and quota
 

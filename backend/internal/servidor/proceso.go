@@ -380,6 +380,9 @@ func (s *Servidor) codexProceso(proyecto, raiz string, ahora time.Time) []proces
 				fecha = fecha[:10]
 			}
 			ficha := casa(filepath.Join(s.CodexVivo.Dir, c.Nombre+".meta.json"))
+			if c.Interactiva {
+				fecha, ficha = c.Inicio.Format("2006-01-02"), casa(c.Ruta)
+			}
 			out = append(out, armar(c.ID, c.Meta.Tema, fecha, c.Meta.Clase, c.Meta.Modelo, c.Meta.Effort, c.Meta.Base, c.Meta.Fase, ficha, c.Meta.Sesion,
 				c.Inicio, c.Ultimo, c.Activa(ahora)))
 		}

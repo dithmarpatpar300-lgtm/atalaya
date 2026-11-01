@@ -56,19 +56,37 @@ type Llamada struct {
 	Tokens    claude.Tokens `json:"tokens"`
 	Pasos     []claude.Paso `json:"-"`
 
+	// Una sesión interactiva de Codex (sesiones.go), no una llamada de codex.ps1: Origen es el que anota Codex
+	// («cli» la TUI, «vscode» la app, «exec»…), EnTurno si hay un turno abierto, Ruta su rollout y
+	// Carpeta, donde trabaja (Meta.Raiz es la raíz del proyecto que la contiene: Lector.RaizDe).
+	Interactiva bool   `json:"interactiva,omitempty"`
+	Origen      string `json:"origen,omitempty"`
+	EnTurno     bool   `json:"en_turno,omitempty"`
+	Ruta        string `json:"ruta,omitempty"`
+	Carpeta     string `json:"carpeta,omitempty"`
+
 	detalles map[int]*claude.DetallePaso
+	ses      *sesion
 	items    map[string]int // id del item -> índice del paso
 	offset   int64
 	tam      int64
 	mod      time.Time
 }
 
-// Lector sigue la carpeta.
+// Lector sigue la carpeta y, si Sesiones no está vacía, las sesiones interactivas de esa carpeta de Codex
+// (%USERPROFILE%\.codex; sesiones.go).
 type Lector struct {
-	Dir   string
-	Ahora func() time.Time
-	mu    sync.RWMutex
-	ll    map[string]*Llamada
+	Dir      string
+	Sesiones string
+	// RaizDe: la raíz del proyecto que contiene una carpeta, o "" si ninguno (una sesión abierta en backend/ es del
+	// proyecto de arriba). Sin ella, la carpeta misma.
+	RaizDe func(carpeta string) string
+	Ahora  func() time.Time
+	mu     sync.RWMutex
+	ll     map[string]*Llamada
+
+	indice   []string // rutas de rollouts del índice de Codex (rutasDelIndice)
+	indiceEn time.Time
 }
 
 func NuevoLector(dir string) *Lector {
@@ -133,7 +151,7 @@ func (l *Lector) Actualizar() ([]string, error) {
 		}
 		l.mu.Unlock()
 	}
-	return cambiados, nil
+	return append(cambiados, l.actualizarSesiones()...), nil
 }
 
 func trimBOM(b []byte) []byte {
@@ -384,8 +402,18 @@ func (l *Lector) Llamadas() []Llamada {
 	for _, c := range l.ll {
 		cp := *c
 		cp.Pasos = append([]claude.Paso{}, c.Pasos...)
-		cp.detalles, cp.items = nil, nil
+		cp.detalles, cp.items, cp.ses = nil, nil, nil
 		out = append(out, cp)
+	}
+	for i := range out {
+		if out[i].Interactiva {
+			out[i].Meta.Raiz = out[i].Carpeta
+			if l.RaizDe != nil {
+				if r := l.RaizDe(out[i].Carpeta); r != "" {
+					out[i].Meta.Raiz = r
+				}
+			}
+		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Ultimo.After(out[j].Ultimo) })
 	return out
@@ -419,7 +447,11 @@ func (l *Lector) Detalle(id string, n int) (claude.DetallePaso, error) {
 	return d, nil
 }
 
-// Activa: una llamada sin ficha de fin que escribió hace poco (codex.ps1 la cierra siempre, también al fallar).
+// Activa: una llamada sin ficha de fin que escribió hace poco (codex.ps1 la cierra siempre, también al fallar); una
+// sesión interactiva, según activaSesion.
 func (c Llamada) Activa(ahora time.Time) bool {
+	if c.Interactiva {
+		return c.activaSesion(ahora)
+	}
 	return !c.Terminada && ahora.Sub(c.Ultimo) < 3*time.Minute
 }

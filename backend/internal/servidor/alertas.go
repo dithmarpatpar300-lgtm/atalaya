@@ -49,7 +49,7 @@ func (s *Servidor) evaluarAlertas() []alertas.Alerta {
 			if c.Meta.MinutosMax > 0 {
 				pres = fmt.Sprintf("%d min", c.Meta.MinutosMax)
 			}
-			ags = append(ags, alertas.Agente{ID: c.ID, Nombre: nombre, Proyecto: filepath.Base(c.Meta.Raiz), ConTope: true, Trabajando: true,
+			ags = append(ags, alertas.Agente{ID: c.ID, Nombre: nombre, Proyecto: filepath.Base(c.Meta.Raiz), ConTope: !c.Interactiva, Trabajando: true,
 				Activo: true, Presupuesto: pres, Inicio: c.Inicio, Ultimo: c.Ultimo})
 		}
 	}

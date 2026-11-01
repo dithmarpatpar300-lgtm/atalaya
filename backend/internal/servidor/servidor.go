@@ -329,7 +329,8 @@ type AgenteVista struct {
 	Tipo        string               `json:"tipo"`
 	Rol         string               `json:"rol"`
 	Tarea       string               `json:"tarea"`
-	Titulo      string               `json:"titulo,omitempty"` // el nombre de la sesión en Claude Code, si tiene
+	Titulo      string               `json:"titulo,omitempty"`      // el nombre de la sesión en Claude Code, si tiene
+	Interactiva bool                 `json:"interactiva,omitempty"` // una sesión interactiva de Codex, no una llamada
 	Modelo      string               `json:"modelo"`
 	Effort      string               `json:"effort"`
 	Clase       string               `json:"clase"`

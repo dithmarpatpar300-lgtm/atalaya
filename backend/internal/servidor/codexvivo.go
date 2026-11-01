@@ -26,7 +26,63 @@ func claveRegistro(c codexvivo.Llamada) string {
 	return "codex~" + c.Meta.Fase + "~" + reSufijoHora.ReplaceAllString(c.Nombre, "")
 }
 
+// RaizDeCarpeta: la raíz del proyecto registrado que contiene esa carpeta (la más honda, si se anidan); "" si ninguno.
+// Una sesión de Codex abierta en backend\ es del proyecto de arriba (codexvivo.Lector.RaizDe).
+func (s *Servidor) RaizDeCarpeta(carpeta string) string {
+	if carpeta == "" {
+		return ""
+	}
+	// Con «/» y sin distinguir mayúsculas, como el resto de las comparaciones de rutas del panel.
+	norma := func(r string) string {
+		return strings.TrimSuffix(strings.ToLower(strings.ReplaceAll(filepath.Clean(r), `\`, "/")), "/")
+	}
+	c := norma(carpeta)
+	mejor := ""
+	for _, p := range s.listaProyectos() {
+		if p.Raiz == "" || len(p.Raiz) <= len(mejor) {
+			continue
+		}
+		if r := norma(p.Raiz); c == r || strings.HasPrefix(c, r+"/") {
+			mejor = p.Raiz
+		}
+	}
+	return mejor
+}
+
+// rolSesionCodex: el rol de una sesión interactiva de Codex por su origen.
+var rolSesionCodex = map[string]string{"exec": "Codex · exec", "vscode": "Codex · app", "subagente": "Codex · subagente"}
+
+// vistaSesionCodex: una sesión interactiva de Codex (codexvivo/sesiones.go). Trabaja mientras su turno está abierto,
+// espera al usuario la media hora siguiente y después se da por terminada.
+func (s *Servidor) vistaSesionCodex(c codexvivo.Llamada) AgenteVista {
+	rol := rolSesionCodex[c.Origen]
+	if rol == "" {
+		rol = "Codex · interactiva"
+	}
+	ahora := s.ahora()
+	estado := Inactiva
+	switch {
+	case c.Activa(ahora):
+		estado = Trabajando
+	case c.EnEspera(ahora):
+		estado = EnEspera
+	}
+	v := AgenteVista{ID: c.ID, Proyecto: s.proyectoDeRaiz(c.Meta.Raiz), Proveedor: "Codex", Tipo: "codex", Rol: rol, Tarea: c.Meta.Tema,
+		Interactiva: true, Modelo: c.Meta.Modelo, Effort: c.Meta.Effort, Estado: estado, Inicio: c.Inicio, Ultimo: c.Ultimo,
+		Tokens: c.Tokens, Pasos: len(c.Pasos)}
+	v.Nombre, v.ModeloCorto = nombreVista(v, docsAgente{}), modeloCorto(v.Modelo, v.Effort)
+	texto := fmt.Sprintf("%d pasos", len(c.Pasos))
+	if c.EnTurno {
+		texto = "en curso · " + texto
+	}
+	v.Avance = &trazabilidad.Avance{Porcentaje: -1, Texto: texto, Hitos: []trazabilidad.Hito{}}
+	return v
+}
+
 func (s *Servidor) vistaCodexVivo(c codexvivo.Llamada, reg *trazabilidad.LlamadaCodex) AgenteVista {
+	if c.Interactiva {
+		return s.vistaSesionCodex(c)
+	}
 	rol := rolCodex[c.Meta.Clase]
 	if rol == "" {
 		rol = "Codex"
@@ -80,6 +136,9 @@ func sesionDeCodex(ls []claude.LanzamientoCodex, proyecto, tema string, inicio t
 // padreCodexVivo: la sesión de una llamada en vivo. La que anotó codex.ps1 en su meta, si la hay (exacta); si no,
 // la que se deduce de los transcritos (sesionDeCodex).
 func padreCodexVivo(ls []claude.LanzamientoCodex, c codexvivo.Llamada) string {
+	if c.Interactiva {
+		return "" // la abrió una persona, no una sesión de Claude Code
+	}
 	if c.Meta.Sesion != "" {
 		return c.Meta.Sesion
 	}

@@ -65,9 +65,14 @@ func (s *Servidor) filasAgentes(ahora time.Time) []diario.Agente {
 			if c.Meta.Segundos > 0 {
 				min = float64(c.Meta.Segundos) / 60
 			}
-			out = append(out, diario.Agente{ID: c.ID, Nombre: "Codex · " + c.Meta.Tema, Proyecto: proyecto, Proveedor: "Codex", Tipo: "codex",
+			// Una sesión interactiva cuenta como sesión (Estadísticas mide agentes con encargo, no sesiones).
+			tipo, vivo := "codex", !c.Terminada
+			if c.Interactiva {
+				tipo, vivo = "sesion", c.Activa(ahora) || c.EnEspera(ahora)
+			}
+			out = append(out, diario.Agente{ID: c.ID, Nombre: "Codex · " + c.Meta.Tema, Proyecto: proyecto, Proveedor: "Codex", Tipo: tipo,
 				Clase: c.Meta.Clase, Modelo: c.Meta.Modelo, Effort: c.Meta.Effort, Fase: faseDeAgente(raizDe(proyecto), c.Inicio, rutaFase(c.Meta.Fase)),
-				Inicio: c.Inicio, Fin: c.Ultimo, Activo: !c.Terminada, Minutos: min, Salida: c.Tokens.Salida, Nuevos: c.Tokens.Entrada,
+				Inicio: c.Inicio, Fin: c.Ultimo, Activo: vivo, Minutos: min, Salida: c.Tokens.Salida, Nuevos: c.Tokens.Entrada,
 				Leida: c.Tokens.CacheLeida, Presupuesto: float64(c.Meta.MinutosMax), Padre: padreCodexVivo(ls, c),
 				Corto: modeloCorto(c.Meta.Modelo, c.Meta.Effort), Registro: claveRegistro(c)})
 		}
