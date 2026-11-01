@@ -29,10 +29,9 @@ func (s *Servidor) releerRegistro() bool {
 	if s.Registro == nil || s.RutaRegistro == "" {
 		return false
 	}
-	firma := ""
-	if fi, err := os.Stat(s.RutaRegistro); err == nil {
-		firma = fmt.Sprintf("%d·%d", fi.Size(), fi.ModTime().UnixNano())
-	}
+	s.registroMu.Lock()
+	defer s.registroMu.Unlock()
+	firma := s.firmaDelRegistro()
 	// La primera vuelta solo toma la firma (la lista del arranque ya está leída). Una bandera aparte, no la firma
 	// vacía: un registro que no existía al arrancar, o que se borra y se vuelve a escribir, también es un cambio.
 	if !s.registroVisto {
@@ -42,6 +41,31 @@ func (s *Servidor) releerRegistro() bool {
 	if firma == s.firmaRegistro {
 		return false
 	}
+	return s.leerRegistroYa(firma)
+}
+
+// recargarRegistro: el panel acaba de cambiar proyectos.json (configurar.go); se lee ya, sin esperar a Vigilar. No
+// pasa por la «primera vuelta»: si Vigilar todavía no miró el registro (al arrancar lee antes las cuotas), tomar la
+// firma nueva como la del arranque perdería el cambio.
+func (s *Servidor) recargarRegistro() {
+	if s.Registro == nil || s.RutaRegistro == "" {
+		return
+	}
+	s.registroMu.Lock()
+	defer s.registroMu.Unlock()
+	s.registroVisto = true
+	s.leerRegistroYa(s.firmaDelRegistro())
+}
+
+func (s *Servidor) firmaDelRegistro() string {
+	if fi, err := os.Stat(s.RutaRegistro); err == nil {
+		return fmt.Sprintf("%d·%d", fi.Size(), fi.ModTime().UnixNano())
+	}
+	return ""
+}
+
+// leerRegistroYa: con registroMu tomado.
+func (s *Servidor) leerRegistroYa(firma string) bool {
 	s.firmaRegistro = firma
 	if firma == "" {
 		return false // borrado: sigue la lista anterior hasta que vuelva

@@ -22,6 +22,7 @@ import (
 	"atalaya/internal/avisos"
 	"atalaya/internal/claude"
 	"atalaya/internal/codexvivo"
+	"atalaya/internal/configurar"
 	"atalaya/internal/cuotas"
 	"atalaya/internal/datapedia"
 	"atalaya/internal/trazabilidad"
@@ -71,12 +72,20 @@ type Servidor struct {
 	// ellos, la lista del arranque no cambia.
 	RutaRegistro string
 	Registro     func() ([]Proyecto, error)
+	// Casa y CodexHome: dónde buscar Claude Code y Codex (configurar.go, /api/entorno); vacías, no se buscan.
+	Casa, CodexHome string
+	// Datos: la carpeta propia de Atalaya, con las copias y el historial de la puerta de escritura (configurar.go).
+	Datos      string
+	cacheEnt   cacheEntorno
+	puertaUna  sync.Once
+	puertaConf *configurar.Puerta
 
 	difusion      difusor
 	vueltas       int
 	lista         atomic.Pointer[[]Proyecto]
 	firmaRegistro string
 	registroVisto bool
+	registroMu    sync.Mutex // firmaRegistro y registroVisto: los toca Vigilar y también el panel (configurar.go)
 	// Las preguntas por el MCP que esperan o ya tienen respuesta (preguntas.go).
 	preguntas almacenPreguntas
 
@@ -251,6 +260,11 @@ func (s *Servidor) Handler() http.Handler {
 	mux.HandleFunc("GET /api/datapedia/{id}", s.documentoDatapedia)
 	mux.HandleFunc("GET /api/doc", s.doc)
 	mux.HandleFunc("GET /api/eventos", s.eventos)
+	mux.HandleFunc("GET /api/entorno", s.verEntorno)
+	mux.HandleFunc("GET /api/configurar/historial", s.verHistorialConfiguracion)
+	mux.HandleFunc("POST /api/configurar/proyectos", s.proponerProyectos)
+	mux.HandleFunc("POST /api/configurar/aplicar", s.aplicarConfiguracion)
+	mux.HandleFunc("POST /api/configurar/deshacer", s.deshacerConfiguracion)
 	if s.Web != nil {
 		mux.Handle("GET /", conCache(http.FileServerFS(s.Web)))
 	} else {

@@ -115,6 +115,9 @@ func main() {
 		log.Fatalf("registro de proyectos: %v", err)
 	}
 	s.RutaRegistro = ruta
+	// Para la configuración desde el panel: dónde buscar Claude Code y Codex, y dónde guardar las copias y el historial
+	// de lo que cambia (junto al índice de la datapedia: la carpeta de Atalaya, o la del mundo de demo).
+	s.Casa, s.CodexHome, s.Datos = casa, estadoCodex, filepath.Dir(*rutaDB)
 	// Las sesiones interactivas de Codex (la TUI): se cuelgan del proyecto que contiene su carpeta.
 	s.CodexVivo.Sesiones, s.CodexVivo.RaizDe = *dirEstadoCodex, s.RaizDeCarpeta
 	s.Registro = func() ([]servidor.Proyecto, error) { return leerProyectos(ruta, explicito, proyectos) }
