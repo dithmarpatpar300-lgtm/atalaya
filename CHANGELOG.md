@@ -1,5 +1,74 @@
 # Changelog · Novedades
 
+## 1.2.0 — 2026-11-01
+
+Set everything up from the panel, Codex as coordinator, Linux and long lists by pages. · Todo se configura desde el
+panel, Codex puede coordinar, Linux y las listas largas por páginas.
+
+**English.**
+
+- **Setup assistant.** The first time, the panel opens a step-by-step assistant (afterwards it lives behind the gear in
+  the header). It looks at what is on the computer first and only asks what it cannot find out: language, your tools
+  (Claude Code and Codex, versions, data folders), who coordinates, your projects (folders your agents worked in over
+  the last 30 days, with a level each), the MCP connection, the kit's skill and a request for your agent per project,
+  notifications and starting with the system, and privacy. Each step turns green when Atalaya actually sees the result:
+  for MCP, when the first query arrives from each tool.
+- **A careful write gate.** Atalaya only writes a closed list of things: its project registry and settings, the skill
+  folder of each tool, the startup shortcut (Windows) or systemd user unit (Linux), and the official `claude mcp` and
+  `codex mcp` commands, run without a shell. Every change is previewed first, backed up, logged and can be undone; undo
+  never overwrites later edits, only reverts the steps that actually ran, and can be retried. Only the panel can write,
+  never the MCP, and never a file inside your projects.
+- **Codex as coordinator.** `scripts/claude.ps1`, the mirror of `codex.ps1`, lets a Codex session hand Claude Code a
+  task that runs headless on a throwaway copy: read-only by default, edits only in the copy with `-Escribe` (leaving a
+  patch that is never applied on its own), no shell or web except the commands named with `-Ordenes`, never skipping
+  permissions and without your Claude Code hooks, plugins or other MCP servers. Atalaya shows each task under the Codex
+  session that launched it. The kit installs it, and the reverse split of work, when Codex coordinates.
+- **Interactive Codex sessions.** Sessions from the Codex TUI and the desktop app are followed live as agents of their
+  project.
+- **Privacy.** Leave a project out of the datapedia (its documents, memory and agent traces are no longer indexed) and
+  choose how many days the diary keeps.
+- **Linux.** Tested on Ubuntu under WSL 2: the panel and the assistant work end to end, data goes to
+  `~/.local/share/Atalaya`, CI runs on Ubuntu as well as Windows, and the Windows tools WSL can see are not mistaken for
+  Linux ones. Notifications remain Windows-only.
+- **Long lists by pages.** The team, commits, documents and questions of a session, the activity of an agent (older
+  pages come from the server, so nothing is cut at 3000 steps), Health and answered decisions page like a table, with
+  page sizes; data arriving live never moves the page you are reading. The timeline keeps its rows at a fixed height.
+- Smaller: progress warns when the latest milestone is later than the file was saved; the kit's `scripts/hito.ps1`
+  writes milestones with the system clock.
+
+**Español.**
+
+- **El asistente de configuración.** La primera vez, el panel abre un asistente por pasos (después queda en el
+  engranaje de la cabecera). Primero mira qué hay en el equipo y solo pregunta lo que no puede saber: el idioma, tus
+  herramientas (Claude Code y Codex, versiones, carpetas de datos), quién coordina, tus proyectos (las carpetas donde
+  trabajaron tus agentes en los últimos 30 días, con su nivel), la conexión por MCP, la skill del kit y el pedido para
+  tu agente en cada proyecto, los avisos y el arranque con el sistema, y la privacidad. Cada paso se pone en verde
+  cuando Atalaya ve el resultado; en el MCP, cuando llega la primera consulta de cada herramienta.
+- **Una puerta de escritura con cuidado.** Atalaya solo escribe una lista cerrada: su registro de proyectos y su
+  configuración, la carpeta de la skill de cada herramienta, el acceso directo de inicio (Windows) o la unidad de
+  systemd del usuario (Linux), y las órdenes oficiales `claude mcp` y `codex mcp`, sin intérprete de órdenes. Cada cambio
+  se muestra antes, se respalda, queda en el historial y se puede deshacer; deshacer nunca pisa lo cambiado después,
+  revierte solo los pasos que llegaron a hacerse y se puede reintentar. Solo escribe el panel, nunca el MCP, y nunca un
+  archivo dentro de tus proyectos.
+- **Codex de coordinador.** `scripts/claude.ps1`, el espejo de `codex.ps1`, deja que una sesión de Codex le pase a
+  Claude Code un encargo que corre sin pantalla en una copia desechable: por omisión solo lee; con `-Escribe` edita solo
+  en la copia y deja un parche que nunca se aplica solo; sin shell ni web salvo las órdenes que se nombren con
+  `-Ordenes`; nunca se salta los permisos y no usa tus hooks, plugins ni otros MCP de Claude Code. Atalaya muestra cada
+  encargo colgado de la sesión de Codex que lo lanzó. El kit lo instala, con el reparto al revés, cuando coordina Codex.
+- **Las sesiones interactivas de Codex.** Las de la TUI y las de la app de escritorio se siguen en vivo como agentes de
+  su proyecto.
+- **Privacidad.** Un proyecto puede quedar fuera de la datapedia (sus documentos, su memoria y las trazas de sus agentes
+  dejan de indexarse), y se elige cuántos días guarda el diario.
+- **Linux.** Probado en Ubuntu con WSL 2: el panel y el asistente funcionan de punta a punta, los datos van a
+  `~/.local/share/Atalaya`, el CI corre en Ubuntu además de Windows, y las herramientas de Windows que WSL ve no se
+  confunden con las de Linux. Los avisos siguen siendo solo de Windows.
+- **Las listas largas por páginas.** El equipo, los commits, los documentos y las preguntas de una sesión, la actividad
+  de un agente (las páginas viejas llegan del servidor, así que nada se corta en 3000 pasos), Salud y las decisiones
+  respondidas se paginan como una tabla, con tamaño de página; lo que llega en vivo nunca mueve la página que lees. La
+  línea de tiempo mantiene sus filas en un alto fijo.
+- Menores: el avance avisa cuando el último hito es posterior al guardado del archivo; `scripts/hito.ps1` del kit anota
+  los hitos con la hora del reloj.
+
 ## 1.1.0 — 2026-10-31
 
 The panel in English, a demo mode and CI. · El panel en inglés, un modo demo y CI.
