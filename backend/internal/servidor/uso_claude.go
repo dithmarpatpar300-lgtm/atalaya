@@ -17,6 +17,10 @@ func (s *Servidor) ConectarUsoClaude() {
 	if s.UsoClaude != nil {
 		s.UsoClaude.Cambio = func() { s.difusion.enviar(Evento{Tipo: "cuotas"}) }
 	}
+	// La ventana de contexto que manda el mod llega por el mismo camino; el índice la usa en vez de inferirla.
+	if s.Claude != nil {
+		s.Claude.Ventanas = s.ventanaDe
+	}
 }
 
 func (s *Servidor) estadoUsoClaude(r *http.Request) usoclaude.Estado {
@@ -44,15 +48,33 @@ func (s *Servidor) empujarUsoClaude(w http.ResponseWriter, r *http.Request) {
 		fallo(w, http.StatusForbidden, "solo el mod de Claude Code puede empujar la cuota")
 		return
 	}
-	if s.Demo || s.UsoClaude == nil {
+	if s.Demo {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	var cuerpo struct {
 		Ventanas []usoclaude.Empujada `json:"rate_limits"`
+		// La ventana de contexto de la sesión que mide (ventanas.go): la app la sabe, Atalaya solo la infiere.
+		Contexto *struct {
+			Sesion  string `json:"session"`
+			Ventana int64  `json:"window"`
+		} `json:"context"`
 	}
 	if err := json.NewDecoder(io.LimitReader(r.Body, 64<<10)).Decode(&cuerpo); err != nil {
 		fallo(w, http.StatusBadRequest, "cuerpo inválido")
+		return
+	}
+	if c := cuerpo.Contexto; c != nil && c.Sesion != "" && c.Ventana > 0 {
+		if s.anotarVentana(c.Sesion, c.Ventana) {
+			s.difusion.enviar(Evento{Tipo: "agentes", IDs: []string{c.Sesion}})
+		}
+		if len(cuerpo.Ventanas) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+	if s.UsoClaude == nil {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if err := s.UsoClaude.Empujar(cuerpo.Ventanas); errors.Is(err, usoclaude.ErrEmpujadaInvalida) {

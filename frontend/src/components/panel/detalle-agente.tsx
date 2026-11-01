@@ -177,6 +177,8 @@ export function DetalleAgente({
   const escala = presupuesto ?? Math.max(1, transcurrido / 60);
   const pasado = presupuesto !== null && minutos > presupuesto;
   const padre = a.padre ? agentes.find((x) => x.id === a.padre) : undefined;
+  // Una sesión principal que lanzó otra sesión (start_session): sigue siendo raíz, pero dice de cuál nació.
+  const lanzadora = a.lanzada_por ? agentes.find((x) => x.id === a.lanzada_por) : undefined;
   const titulo = titulos(a);
   // De dónde nació: la sesión por su nombre (o su id, si no está en la lista); una llamada a Codex sin sesión lo dice.
   const clase = a.interactiva ? t("sesión interactiva de Codex") : a.tipo === "codex" ? t("llamada") : a.tipo === "subagente" ? t("subagente") : t("sesión");
@@ -187,7 +189,9 @@ export function DetalleAgente({
       : t("{clase} de {nombre} {id}…", { clase, nombre: nombreAgente(padre), id: idPadre })
     : a.padre
       ? t("{clase} de la sesión {id}…", { clase, id: idPadre })
-      : "";
+      : a.lanzada_por
+        ? t("sesión lanzada por {nombre} {id}…", { nombre: lanzadora ? nombreAgente(lanzadora) : t("otra sesión"), id: a.lanzada_por.slice(0, 4) })
+        : "";
   const origen = [a.modelo, a.effort && `effort ${a.effort}`, deSesion || (a.tipo === "codex" && !a.interactiva ? t("llamada sin sesión enlazada") : clase), a.inicio && t("desde {hora}", { hora: hora(new Date(a.inicio)) })]
     .filter(Boolean)
     .join(" · ");

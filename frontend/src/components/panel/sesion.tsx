@@ -196,8 +196,10 @@ export function VistaSesion({
                 <span aria-hidden="true" className="absolute top-1/2 -left-[17px] h-px w-[15px] bg-borde-fuerte" />
                 <span className="flex min-w-0 items-center gap-2">
                   <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${m.proveedor === "Codex" ? "bg-serie-codex" : "bg-serie-claude"}`} />
+                  {/* Una sesión que lanzó: su título y la marca «sesión» (tiene su propio equipo); su tarea es el título. */}
+                  {m.sesion && <span className="shrink-0 rounded-chip bg-elevado px-1.5 text-[11px] leading-[17px] text-suave">{t("sesión")}</span>}
                   <span className="truncate" title={`${m.nombre} · ${m.tarea}`}>
-                    <b className="font-semibold">{m.nombre}</b> <span className="text-suave">{m.tarea}</span>
+                    <b className="font-semibold">{m.nombre}</b> {!(m.sesion && m.tarea === m.nombre) && <span className="text-suave">{m.tarea}</span>}
                   </span>
                 </span>
                 <span className="dato truncate text-ayuda max-sm:hidden">{[m.modelo.replace(/^claude-/, ""), m.effort].filter(Boolean).join("/")}</span>

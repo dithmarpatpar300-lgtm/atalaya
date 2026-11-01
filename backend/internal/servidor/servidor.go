@@ -125,6 +125,8 @@ type Servidor struct {
 	}
 	// resumenes: /api/consultas/resumen guardado poco tiempo y hasta el próximo aviso (ahorro.go).
 	resumenes memoResumen
+	// ventanas: la ventana de contexto real de cada sesión, que manda el mod (ventanas.go).
+	ventanas ventanasContexto
 
 	mu           sync.RWMutex
 	codex        map[string][]trazabilidad.LlamadaCodex // por proyecto
@@ -406,7 +408,10 @@ type AgenteVista struct {
 	Pasos       int                  `json:"pasos"`
 	// Padre: la sesión que lo lanzó. Un subagente lo trae de su transcrito; una llamada a Codex, de la sesión que
 	// corrió codex.ps1 con su tema (sesionDeCodex). Vacío en una llamada cuya sesión no está en los transcritos.
-	Padre      string `json:"padre,omitempty"`
+	Padre string `json:"padre,omitempty"`
+	// LanzadaPor: la sesión que lanzó esta sesión principal con start_session; esta sigue siendo una raíz del árbol, con
+	// su propio equipo (claude/lanzadas.go).
+	LanzadaPor string `json:"lanzada_por,omitempty"`
 	Asignacion string `json:"asignacion,omitempty"`
 	Encargo    string `json:"encargo,omitempty"`
 	// Solo en el detalle: la asignación partida, los archivos que nombra el encargo y sus entregables.
@@ -460,7 +465,7 @@ func (s *Servidor) vistaConEquipo(a claude.Agente, conEncargo bool, equipo map[s
 	v := AgenteVista{ID: a.ID, Proyecto: a.Proyecto, Proveedor: "Claude", Tipo: a.Tipo, Rol: a.Rol, Tarea: a.Tarea, Titulo: a.Titulo, Modelo: a.Modelo,
 		ModeloCorto: modeloCorto(a.Modelo, a.Effort), Effort: a.Effort, Clase: a.Clase, Presupuesto: a.Presupuesto, Base: a.Base,
 		Estado: s.estadoClaude(a, equipo), Inicio: a.Inicio, Ultimo: a.Ultimo, Tokens: a.Tokens, Bitacora: a.Bitacora, Informe: a.Informe,
-		Pasos: a.Pasos, Padre: a.Padre}
+		Pasos: a.Pasos, Padre: a.Padre, LanzadaPor: a.LanzadaPor}
 	d := s.docsDe(a)
 	v.Nombre = nombreVista(v, d)
 	v.Bitacora = d.Bitacora

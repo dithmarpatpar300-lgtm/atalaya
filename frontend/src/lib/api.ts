@@ -106,6 +106,8 @@ export interface Agente {
   pasos: number;
   /** La sesión que lo lanzó: la de un subagente, o la que corrió codex.ps1 para una llamada a Codex. */
   padre?: string;
+  /** La sesión que lanzó esta sesión principal con start_session: esta sigue siendo raíz, con su propio equipo. */
+  lanzada_por?: string;
   asignacion?: string;
   encargo?: string;
   /** Solo en el detalle: la línea «Asignación» partida, los archivos que nombra el encargo y sus entregables. */
@@ -133,8 +135,9 @@ export interface Peticion {
 }
 
 export interface ContextoAgente {
-  /** Inferida: 1 M si alguna petición pasó de 200 k. */
+  /** Inferida: 1 M si alguna petición pasó de 200 k; o la real, si la mandó la app (el mod de Atalaya). */
   ventana: number;
+  ventana_real?: boolean;
   peticiones: Peticion[];
   compactaciones: { hora: string; antes: number; despues: number; motivo: string; peticion: number }[];
   lleno: { categoria: string; tokens: number }[];

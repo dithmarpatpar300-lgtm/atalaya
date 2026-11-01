@@ -446,7 +446,7 @@ function Medidor({ c }: { c: ContextoAgente }) {
     <div className="flex min-w-0 flex-col gap-3">
       <div className="flex items-baseline justify-between">
         <span className="font-semibold">{t("{pct} usado", { pct: pct(ult.contexto, c.ventana) })}</span>
-        <span className="dato text-rotulo text-suave">{t("{valor} de {max}", { valor: tokensCortos(ult.contexto), max: c.ventana === 1_000_000 ? "1 M" : "200 k" })}</span>
+        <span className="dato text-rotulo text-suave">{t("{valor} de {max}", { valor: tokensCortos(ult.contexto), max: c.ventana === 1_000_000 ? "1 M" : c.ventana === 200_000 ? "200 k" : tokensCortos(c.ventana) })}</span>
       </div>
       <div role="img" aria-label={t("Contexto de la última petición: {valor} de {max}", { valor: tokensCortos(ult.contexto), max: tokensCortos(c.ventana) })} className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-elevado">
         {partes.slice(0, 3).map((p) => (p.v > 0 ? <span key={p.k} className={`h-2.5 ${p.color}`} style={{ width: `${(p.v / c.ventana) * 100}%`, minWidth: 2 }} /> : null))}
@@ -462,9 +462,12 @@ function Medidor({ c }: { c: ContextoAgente }) {
         ))}
       </ul>
       <p className="m-0 text-ayuda text-tenue">
-        {t("De la última petición a la API. La ventana se infiere ({detalle}). El reparto que muestra Claude Code (herramientas del sistema, MCP, memoria, skills) no queda en el transcrito: aquí no se inventa.", {
-          detalle: c.ventana === 1_000_000 ? t("una petición pasó de 200 k") : t("ninguna pasó de 200 k"),
-        })}
+        {/* La ventana real la manda la app por el mod de Atalaya; sin él, se infiere de las peticiones. */}
+        {c.ventana_real
+          ? t("De la última petición a la API. La ventana la dio Claude Code (el mod de Atalaya). El reparto que muestra Claude Code (herramientas del sistema, MCP, memoria, skills) no queda en el transcrito: aquí no se inventa.")
+          : t("De la última petición a la API. La ventana se infiere ({detalle}). El reparto que muestra Claude Code (herramientas del sistema, MCP, memoria, skills) no queda en el transcrito: aquí no se inventa.", {
+              detalle: c.ventana === 1_000_000 ? t("una petición pasó de 200 k") : t("ninguna pasó de 200 k"),
+            })}
       </p>
     </div>
   );

@@ -25,6 +25,8 @@ type Miembro struct {
 	Effort      string    `json:"effort,omitempty"`
 	Estado      string    `json:"estado"`
 	Inicio      time.Time `json:"inicio"`
+	// Sesion: otra sesión principal que esta lanzó con start_session; tiene su propio equipo.
+	Sesion bool `json:"sesion,omitempty"`
 }
 
 type respuestaSesion struct {
@@ -47,11 +49,16 @@ func (s *Servidor) verSesion(w http.ResponseWriter, r *http.Request) {
 		if a.ID == id {
 			proyecto = a.Proyecto
 		}
-		if a.Padre != id {
+		// Su equipo: lo que cuelga de ella y las sesiones que lanzó (estas, con su título: su nombre es el del proyecto).
+		if a.Padre != id && a.LanzadaPor != id {
 			continue
 		}
-		out.Equipo = append(out.Equipo, Miembro{ID: a.ID, Nombre: a.Nombre, Tarea: a.Tarea, Proveedor: a.Proveedor, Clase: a.Clase,
-			Modelo: a.Modelo, ModeloCorto: a.ModeloCorto, Effort: a.Effort, Estado: a.Estado, Inicio: a.Inicio})
+		m := Miembro{ID: a.ID, Nombre: a.Nombre, Tarea: a.Tarea, Proveedor: a.Proveedor, Clase: a.Clase,
+			Modelo: a.Modelo, ModeloCorto: a.ModeloCorto, Effort: a.Effort, Estado: a.Estado, Inicio: a.Inicio, Sesion: a.LanzadaPor == id}
+		if m.Sesion && a.Titulo != "" {
+			m.Nombre = a.Titulo
+		}
+		out.Equipo = append(out.Equipo, m)
 	}
 	sort.Slice(out.Equipo, func(i, j int) bool { return out.Equipo[i].Inicio.Before(out.Equipo[j].Inicio) })
 	out.Avance = avance.Actual(s.raizDe(proyecto))

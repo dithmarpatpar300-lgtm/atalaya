@@ -69,6 +69,9 @@ func (ix *Indice) Huellas(desde time.Time) map[string]Huella {
 				h.Ventana = 1_000_000
 			}
 		}
+		if w, ok := ix.ventanaReal(a.agente.ID); ok {
+			h.Ventana = w
+		}
 		if n := len(a.peticiones); n > 0 {
 			h.Contexto = a.peticiones[n-1].Contexto
 		}

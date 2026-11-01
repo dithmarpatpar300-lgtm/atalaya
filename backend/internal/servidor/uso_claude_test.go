@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"atalaya/internal/claude"
 	"atalaya/internal/usoclaude"
 )
 
@@ -91,6 +92,31 @@ func TestUsoClaudeEmpujar(t *testing.T) {
 	}
 	if e.Ventanas[0].Severidad != "normal" {
 		t.Errorf("la severidad de /usage se perdió: %+v", e.Ventanas[0])
+	}
+}
+
+// El mod manda también la ventana de contexto de su sesión: el índice la usa y un reinicio de Atalaya no la pierde.
+func TestEmpujarVentanaDeContexto(t *testing.T) {
+	datos := t.TempDir()
+	s := &Servidor{Datos: datos, Claude: claude.NuevoIndice(t.TempDir())}
+	s.ConectarUsoClaude()
+	r := httptest.NewRequest("POST", "http://127.0.0.1:7420/api/uso-claude/empujar", strings.NewReader(`{"context":{"session":"24ecc013","window":1000000}}`))
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set(cabModUso, "uso-claude")
+	w := httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, r)
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("solo el contexto: %d %s", w.Code, w.Body.String())
+	}
+	if v, ok := s.Claude.Ventanas("24ecc013"); !ok || v != 1_000_000 {
+		t.Errorf("el índice ve %d, %v", v, ok)
+	}
+	if _, ok := s.Claude.Ventanas("otra"); ok {
+		t.Error("una sesión que no mandó nada no tiene ventana")
+	}
+	otro := &Servidor{Datos: datos}
+	if v, ok := otro.ventanaDe("24ecc013"); !ok || v != 1_000_000 {
+		t.Errorf("tras reiniciar: %d, %v", v, ok)
 	}
 }
 

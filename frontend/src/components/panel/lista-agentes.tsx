@@ -114,10 +114,13 @@ export function ListaAgentes({
                   : f.nivel || f.huerfano
                     ? `, ${t("subagente")}`
                     : a.tipo === "sesion"
-                      ? `, ${t("sesión")}`
+                      ? a.lanzada_por
+                        ? `, ${t("sesión lanzada por otra sesión")}`
+                        : `, ${t("sesión")}`
                       : "";
-                // Lo suelto dice de dónde viene, con un tono neutro: no es un error.
-                const prefijo = f.sinSesion ? t("sin sesión") : f.huerfano ? (codex ? t("llamada") : t("subagente")) : "";
+                // Lo suelto dice de dónde viene, con un tono neutro: no es un error. Una sesión lanzada por otra es raíz
+                // (tiene su propio equipo) y lo dice al frente de su segunda línea.
+                const prefijo = f.sinSesion ? t("sin sesión") : f.huerfano ? (codex ? t("llamada") : t("subagente")) : a.tipo === "sesion" && a.lanzada_por ? t("lanzada") : "";
                 return (
                   <li key={a.id} style={{ height: ALTO_FILA }}>
                     <button

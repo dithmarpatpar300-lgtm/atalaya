@@ -62,15 +62,18 @@ type Agente struct {
 	ModeloAsignado string `json:"modelo_asignado,omitempty"`
 	Cuota          string `json:"cuota,omitempty"` // la postura de la cuota al lanzar
 	// Archivos nombrados en el encargo (entre comillas invertidas): la frontera que se le dio.
-	Nombrados []string  `json:"nombrados,omitempty"`
-	Encargo   string    `json:"encargo"`
-	Bitacora  string    `json:"bitacora"` // ruta relativa a Raiz, si el encargo la nombra
-	Informe   string    `json:"informe"`
-	Padre     string    `json:"padre,omitempty"`
-	Inicio    time.Time `json:"inicio"`
-	Ultimo    time.Time `json:"ultimo"`
-	Tokens    Tokens    `json:"tokens"`
-	Pasos     int       `json:"pasos"`
+	Nombrados []string `json:"nombrados,omitempty"`
+	Encargo   string   `json:"encargo"`
+	Bitacora  string   `json:"bitacora"` // ruta relativa a Raiz, si el encargo la nombra
+	Informe   string   `json:"informe"`
+	Padre     string   `json:"padre,omitempty"`
+	// LanzadaPor: la sesión que lanzó esta con start_session (lanzadas.go). Sigue siendo una sesión principal, con su
+	// propio equipo: no cuelga de esa como un subagente.
+	LanzadaPor string    `json:"lanzada_por,omitempty"`
+	Inicio     time.Time `json:"inicio"`
+	Ultimo     time.Time `json:"ultimo"`
+	Tokens     Tokens    `json:"tokens"`
+	Pasos      int       `json:"pasos"`
 	// Pendiente: el último paso es una herramienta que todavía no devolvió su resultado.
 	Pendiente bool `json:"-"`
 	// Cerrado: el subagente entregó (SubagentHandback) o la sesión terminó su turno.
@@ -182,6 +185,10 @@ type archivo struct {
 	// Los nombres de la sesión (tituloDe): la última línea custom-title, su custom-title.json, la última ai-title y
 	// el último summary.
 	tituloPropio, tituloArchivo, tituloIA, resumen string
+	// Sesiones lanzadas (lanzadas.go): las llamadas a start_session de esta sesión; si esta es una lanzada, la huella de
+	// su encargo y el título que le dio la que la lanzó.
+	lanzadas                     []lanzada
+	huellaLanzada, tituloLanzada string
 }
 
 // Indice guarda todos los transcritos leídos.
@@ -189,8 +196,11 @@ type Indice struct {
 	Raiz string
 	// Delegadas: la ficha de scripts/claude.ps1 de una sesión, si la tiene (delegadas.go); nil, ninguna.
 	Delegadas func(id string) (Delegacion, bool)
-	mu        sync.RWMutex
-	arch      map[string]*archivo
+	// Ventanas: la ventana de contexto real de una sesión, si la app la mandó (el mod, por /api/uso-claude/empujar);
+	// nil o sin dato, se infiere de las peticiones (200 k hasta que una pasa de ahí).
+	Ventanas func(id string) (int64, bool)
+	mu       sync.RWMutex
+	arch     map[string]*archivo
 }
 
 func NuevoIndice(raiz string) *Indice { return &Indice{Raiz: raiz, arch: map[string]*archivo{}} }
@@ -225,6 +235,9 @@ func (ix *Indice) Actualizar() ([]string, error) {
 		}
 	}
 	cambiados = append(cambiados, ix.soltarBorrados(rutas)...)
+	ix.mu.Lock()
+	ix.enlazarLanzadas()
+	ix.mu.Unlock()
 	return cambiados, nil
 }
 
@@ -413,7 +426,7 @@ func (a *archivo) leer(fi os.FileInfo) error {
 
 // tituloDe: el nombre que se le puso a la sesión manda; si no, el que propuso Claude Code; si no, su resumen.
 func (a *archivo) tituloDe() string {
-	for _, t := range []string{a.tituloPropio, a.tituloArchivo, a.tituloIA, a.resumen} {
+	for _, t := range []string{a.tituloPropio, a.tituloArchivo, a.tituloIA, a.resumen, a.tituloLanzada} {
 		if t != "" {
 			return t
 		}
@@ -558,6 +571,7 @@ func (a *archivo) procesar(b []byte, ofs int64) {
 				p := &Paso{Hora: l.Timestamp, Tipo: tipoDe(bl.Name), Herramienta: bl.Name, Resumen: resumenDe(bl.Name, bl.Input), ofsUso: ofs, ofsRes: -1, bloque: i, idUso: bl.ID}
 				if ag.Tipo == "sesion" {
 					a.anotarDecision(bl.Name, bl.Input, bl.ID, l.Timestamp, len(a.pasos))
+					a.anotarLanzada(bl.Name, bl.Input, l.Timestamp)
 				}
 				if a.encargoArchivo != "" && a.encargoRead == "" && bl.Name == "Read" && strings.HasSuffix(strings.ToLower(rutaLeida(bl.Input)), a.encargoArchivo) {
 					a.encargoRead = bl.ID
@@ -643,6 +657,11 @@ func (a *archivo) pedido(texto string, hora time.Time, ofs int64) {
 	if ag.Encargo == "" {
 		ag.Encargo = secretos.Tapar(recortar(t, 6000))
 		leerAsignacion(ag, t)
+		// Una sesión lanzada por otra: su tarea es la del «Task:», no la primera línea del contexto que la precede.
+		if tarea, ok := encargoDeLanzada(t); ok && ag.Tipo == "sesion" {
+			a.huellaLanzada = huellaEncargo(tarea)
+			ag.Tarea = lineaDeTarea(quitarAsignacion(tarea), 140)
+		}
 		if ag.Tarea == "" {
 			ag.Tarea = lineaDeTarea(quitarAsignacion(t), 140)
 		}
@@ -659,7 +678,12 @@ func (a *archivo) pedido(texto string, hora time.Time, ofs int64) {
 	// Un pedido nuevo abre un turno; el plan del turno anterior ya no rige.
 	a.turno++
 	a.plan, a.planActual = nil, -1
-	a.agregar(&Paso{Hora: hora, Tipo: "Pide", Herramienta: "Mensaje", Resumen: primeraLinea(quitarAsignacion(t), 160), Meta: fmt.Sprintf("%d caracteres", len([]rune(t))), Hecho: true, ofsUso: ofs, ofsRes: -1, bloque: -1})
+	// El pedido de una sesión lanzada es su encargo (lo que va tras «Task:»), no la primera línea del contexto.
+	resumen := primeraLinea(quitarAsignacion(t), 160)
+	if tarea, ok := encargoDeLanzada(t); ok {
+		resumen = lineaDeTarea(quitarAsignacion(tarea), 160)
+	}
+	a.agregar(&Paso{Hora: hora, Tipo: "Pide", Herramienta: "Mensaje", Resumen: resumen, Meta: fmt.Sprintf("%d caracteres", len([]rune(t))), Hecho: true, ofsUso: ofs, ofsRes: -1, bloque: -1})
 }
 
 var (

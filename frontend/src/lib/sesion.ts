@@ -30,6 +30,8 @@ export interface MiembroSesion {
   effort?: string;
   estado: string;
   inicio: string;
+  /** Otra sesión principal que esta lanzó (start_session): con su propio equipo. */
+  sesion?: boolean;
 }
 
 export interface ResumenSesion {

@@ -52,7 +52,8 @@ type Pesado struct {
 
 // Contexto de un agente.
 type Contexto struct {
-	Ventana        int64          `json:"ventana"` // inferida: 1 M si alguna petición pasó de 200 k
+	Ventana        int64          `json:"ventana"`                // inferida: 1 M si alguna petición pasó de 200 k
+	VentanaReal    bool           `json:"ventana_real,omitempty"` // la mandó la app (el mod), no se infirió
 	Peticiones     []Peticion     `json:"peticiones"`
 	Compactaciones []Compactacion `json:"compactaciones"`
 	Lleno          []Llenado      `json:"lleno"`
@@ -141,6 +142,9 @@ func (ix *Indice) Contexto(id string) (Contexto, error) {
 		if c.Compactaciones[i].Antes > 200_000 {
 			c.Ventana = 1_000_000
 		}
+	}
+	if w, ok := ix.ventanaReal(id); ok {
+		c.Ventana, c.VentanaReal = w, true
 	}
 
 	// Qué llenó el contexto: los resultados de las herramientas por categoría, y lo que generó la IA (que entra
