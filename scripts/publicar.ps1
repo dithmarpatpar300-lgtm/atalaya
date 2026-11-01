@@ -5,7 +5,7 @@
 .DESCRIPTION
   Windows PowerShell 5.1 or PowerShell 7. The working repository keeps its history and its process documents
   (docs/trazabilidad, the plan, the audits); the public copy takes only what serves other people:
-  - every tracked file of backend/, frontend/, kit/ and scripts/;
+  - every tracked file of backend/, frontend/, kit/, scripts/ and .github/ (the CI);
   - README.md, README.es.md, CHANGELOG.md, LICENSE, proyectos.ejemplo.json, .gitignore;
   - from docs/, only INSTALL.md and INSTALAR.md;
   - a generic .mcp.json (the local one names this machine's project).
@@ -66,7 +66,7 @@ if ($actualizar) {
 $sueltos = @('README.md', 'README.es.md', 'CHANGELOG.md', 'LICENSE', 'proyectos.ejemplo.json', '.gitignore',
     'docs/INSTALL.md', 'docs/INSTALAR.md')
 $archivos = & git -C $raiz ls-files | Where-Object {
-    $_ -match '^(backend|frontend|kit|scripts)/' -or $sueltos -contains $_
+    $_ -match '^(backend|frontend|kit|scripts|\.github)/' -or $sueltos -contains $_
 }
 foreach ($a in $sueltos) { if ($archivos -notcontains $a) { Fallar "$a is not tracked" } }
 foreach ($rel in $archivos) {

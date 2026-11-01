@@ -1,0 +1,31 @@
+# Atalaya: every push to main and every pull request is built and checked on a clean Windows machine, with the
+# same script used locally (format, static analysis, Go and panel tests, type check, lint and the build).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    # Only on the public repository: a private copy does not spend Actions minutes.
+    if: ${{ !github.event.repository.private }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Compilar y verificar
+        shell: pwsh
+        run: .\scripts\compilar.ps1 -Verificar
