@@ -48,7 +48,9 @@ export function Paginador({
 }) {
   return (
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-borde ${arriba ? "mb-2 border-b pb-2.5" : "border-t pt-2.5"}`}>
-      <p className="dato m-0 mr-auto flex h-7 items-center gap-2 text-ayuda whitespace-nowrap text-suave" aria-live="polite">
+      {/* Cada parte del renglón mide 32 px (lo del selector «Por página»): con o sin él, todo pie mide lo mismo y dos pies
+          vecinos quedan con la raya a la misma altura. */}
+      <p className="dato m-0 mr-auto flex h-8 items-center gap-2 text-ayuda whitespace-nowrap text-suave" aria-live="polite">
         {total > 0 ? t("{desde}–{hasta} de {total}", { desde, hasta, total }) : ""}
         {nuevos > 0 && alVerNuevos && (
           <button type="button" onClick={alVerNuevos} className="rounded-chip bg-acento-suave px-2 text-acento-fuerte hover:bg-acento hover:text-sobre-acento">
@@ -58,7 +60,7 @@ export function Paginador({
       </p>
 
       {porPagina && porPagina.opciones.length > 1 && (
-        <div className="flex items-center gap-2">
+        <div className="flex h-8 items-center gap-2">
           <span aria-hidden="true" className="text-ayuda whitespace-nowrap text-tenue">
             {t("Por página")}
           </span>
@@ -74,7 +76,7 @@ export function Paginador({
       )}
 
       {paginas > 1 && (
-        <nav aria-label={t("Páginas de {lista}", { lista: nombre })}>
+        <nav aria-label={t("Páginas de {lista}", { lista: nombre })} className="flex h-8 items-center">
           <ul className="m-0 flex list-none items-center gap-0.5 p-0">
             <li>
               <button type="button" aria-label={t("Página anterior")} disabled={pagina <= 1} onClick={() => alIr(pagina - 1)} className={`${CASILLA} ${FLECHA}`}>

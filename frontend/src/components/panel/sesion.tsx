@@ -16,11 +16,13 @@ const TIPO = {
   permiso: { texto: "permiso", clase: "bg-ok-suave text-ok" },
 } as const;
 
-// Cuántos por página en cada lista: filas de 48 px en el equipo; fichas de commit (unas cuatro por línea) y rutas en
-// la tarjeta angosta; las decisiones, de 44 px, a todo el ancho.
+// Cuántos por página en cada lista: filas de 48 px en el equipo; fichas de commit (cuatro por línea) y rutas en la
+// tarjeta angosta; las decisiones, de 44 px, a todo el ancho. La tarjeta angosta lleva un solo tamaño por lista: sin
+// «Por página» su pie cabe en una línea, y su alto (4 líneas de commits, 8 rutas) queda a la par del equipo de 10 filas,
+// que está al lado: las dos tarjetas miden lo mismo y sus pies, pegados al fondo, quedan en la misma línea.
 const TAMANOS_EQUIPO = [10, 25, 50] as const;
-const TAMANOS_COMMITS = [12, 24] as const;
-const TAMANOS_DOCS = [8, 16] as const;
+const TAMANOS_COMMITS = [16] as const;
+const TAMANOS_DOCS = [8] as const;
 const TAMANOS_DECISIONES = [8, 25] as const;
 
 /**
@@ -51,7 +53,7 @@ export function VistaSesion({
   const equipo = useMemo(() => [...(r?.equipo ?? [])].reverse(), [r]);
   const commits = useMemo(() => [...(r?.commits ?? [])].reverse(), [r]);
   const pEquipo = usePaginaViva(equipo, (m) => m.id, { almacen: "equipo", opciones: TAMANOS_EQUIPO, defecto: 10, reinicio: id });
-  const pCommits = usePaginaViva(commits, (c) => String(c.paso), { almacen: "commits", opciones: TAMANOS_COMMITS, defecto: 12, reinicio: id });
+  const pCommits = usePaginaViva(commits, (c) => String(c.paso), { almacen: "commits", opciones: TAMANOS_COMMITS, defecto: 16, reinicio: id });
   const pDocs = usePaginaViva(r?.documentos ?? [], (d) => d.ruta, { almacen: "documentos", opciones: TAMANOS_DOCS, defecto: 8, reinicio: id });
   const pDecisiones = usePaginaViva(r?.decisiones ?? [], (d) => d.id, { almacen: "decisiones-sesion", opciones: TAMANOS_DECISIONES, defecto: 8, reinicio: id });
 
@@ -204,7 +206,12 @@ export function VistaSesion({
           </div>
           </RegionEstable>
         )}
-        {pEquipo.mostrar && <Paginador {...pEquipo.pie} nombre={t("El equipo que lanzó")} />}
+        {/* Pegado al fondo: queda en la misma línea que el último pie de la tarjeta de al lado. */}
+        {pEquipo.mostrar && (
+          <div className="mt-auto">
+            <Paginador {...pEquipo.pie} nombre={t("El equipo que lanzó")} />
+          </div>
+        )}
       </section>
 
       <section aria-labelledby="cuota-t" className={`flex min-w-0 flex-col gap-2 ${tarjeta}`}>
@@ -223,16 +230,18 @@ export function VistaSesion({
         </dl>
         {r.commits.length > 0 && (
           <RegionEstable activa={pCommits.mostrar && pCommits.pie.paginas > 1} clave={pCommits.claveAlto}>
-          <ul aria-label="Commits" className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+          {/* Cuatro por línea, de ancho fijo: la cifra «Commits» de arriba ya dice qué son, la ficha solo su hora. */}
+          <ul aria-label="Commits" className="m-0 grid list-none grid-cols-4 gap-1.5 p-0">
             {pCommits.visibles.map((c) => (
               <li key={c.paso}>
                 <button
                   type="button"
                   onClick={() => alIrAPaso(c.paso)}
                   title={c.orden}
-                  className="dato h-7 rounded-control border border-borde px-2 text-ayuda hover:border-borde-fuerte"
+                  aria-label={`commit ${hora(new Date(c.hora))}`}
+                  className="dato h-7 w-full rounded-control border border-borde text-ayuda hover:border-borde-fuerte"
                 >
-                  commit {hora(new Date(c.hora))}
+                  {hora(new Date(c.hora))}
                 </button>
               </li>
             ))}
@@ -264,7 +273,11 @@ export function VistaSesion({
           </ul>
           </RegionEstable>
         )}
-        {pDocs.mostrar && <Paginador {...pDocs.pie} nombre={t("Documentos de estado que editó")} />}
+        {pDocs.mostrar && (
+          <div className="mt-auto">
+            <Paginador {...pDocs.pie} nombre={t("Documentos de estado que editó")} />
+          </div>
+        )}
       </section>
 
       {/* Lo que la sesión te preguntó y lo que respondiste (la bandeja de Decisiones, solo de esta sesión). */}
