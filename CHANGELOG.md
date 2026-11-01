@@ -1,5 +1,45 @@
 # Changelog · Novedades
 
+## 1.2.1 — 2026-11-01
+
+Minor fixes and polish. · Arreglos menores y pulido.
+
+**English.**
+
+- **Faster server.** It handles about ten times more panel requests than 1.2.0 (measured with real data: 1,904 instead
+  of 182 in 30 s) and idles at a lower CPU. Each step's command is normalized once instead of on every request, the
+  last quota check before each Codex launch is found in a single pass, secret masking skips patterns whose hints are
+  absent and caches files that did not change, and each project's progress is read once per update cycle.
+- **An open panel reloads itself** when `atalaya.exe` is updated, instead of running the old panel against the new
+  server.
+- **Safer write gate.** Apply and undo run one at a time with unique temporary files; a failure to write the change
+  history is shown instead of reported as success; retrying a failed undo continues where it stopped instead of
+  repeating commands that already ran.
+- **Panel fixes.** Lists by pages keep a focusable row for the keyboard, Health no longer shows the previous project or
+  period while loading, page numbers do not come back after switching lists, the setup assistant ignores out-of-order
+  replies and pauses while the tab is hidden, and the last page of an agent's activity is capped, with a "new" button.
+- Smaller: deleted `claude.ps1` records are dropped, recent folders are grouped the same way every time, and the
+  skill's state is cached until its files change.
+
+**Español.**
+
+- **Un servidor más rápido.** Atiende unas diez veces más pedidos del panel que la 1.2.0 (medido con datos reales: 1904
+  en vez de 182 en 30 s) y en reposo usa menos CPU. La orden de cada paso se normaliza una vez y no en cada pedido, la
+  última mirada a la cuota antes de cada lanzamiento de Codex se encuentra en una sola pasada, tapar secretos se salta
+  los patrones cuyas pistas no están y guarda los archivos que no cambiaron, y el avance de cada proyecto se lee una vez
+  por vuelta.
+- **Un panel abierto se recarga solo** cuando se actualiza `atalaya.exe`, en vez de seguir con el panel viejo contra el
+  servidor nuevo.
+- **Una puerta de escritura más segura.** Aplicar y deshacer van de a uno, con temporales únicos; si no se puede
+  escribir el historial de cambios, se muestra en vez de darlo por bueno; reintentar un deshacer que falló sigue donde
+  paró en vez de repetir órdenes que ya corrieron.
+- **Arreglos del panel.** Las listas por páginas mantienen una fila alcanzable con el teclado, Salud ya no muestra el
+  proyecto o el periodo anterior mientras carga, el número de página no vuelve al cambiar de lista, el asistente ignora
+  respuestas fuera de orden y se pausa con la pestaña oculta, y la última página de la actividad de un agente tiene
+  tope, con un botón de «nuevos».
+- Menores: las fichas de `claude.ps1` borradas se sueltan, las carpetas recientes se agrupan siempre igual y el estado
+  de la skill se guarda hasta que sus archivos cambian.
+
 ## 1.2.0 — 2026-11-01
 
 Set everything up from the panel, Codex as coordinator, Linux and long lists by pages. · Todo se configura desde el
