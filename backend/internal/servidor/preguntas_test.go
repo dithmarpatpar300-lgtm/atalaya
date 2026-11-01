@@ -44,6 +44,38 @@ func TestArmarPregunta(t *testing.T) {
 	}
 }
 
+func TestArmarPreguntaEtiquetasRepetidas(t *testing.T) {
+	casos := []struct {
+		nombre, primera, segunda string
+		repetida                 bool
+	}{
+		{"exacta", "Sí", "Sí", true},
+		{"mayúsculas y espacios", "Sí", "  sÍ  ", true},
+		{"Unicode", "Σ", "ς", true},
+		{"distintas", "Sí", "No", false},
+	}
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			var a argsPreguntar
+			if err := json.Unmarshal([]byte(preguntaDePrueba), &a); err != nil {
+				t.Fatal(err)
+			}
+			a.Preguntas[0].Opciones[0].Etiqueta = c.primera
+			a.Preguntas[0].Opciones[1].Etiqueta = c.segunda
+			a.Preguntas[1].Opciones[1].Etiqueta = c.primera
+			_, err := armarPregunta(a)
+			if c.repetida {
+				quiere := "la pregunta «medir» tiene la etiqueta repetida «" + strings.TrimSpace(c.segunda) + "»"
+				if err == nil || err.Error() != quiere {
+					t.Errorf("error = %v; se esperaba %q", err, quiere)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 func TestValidarRespuesta(t *testing.T) {
 	var a argsPreguntar
 	_ = json.Unmarshal([]byte(preguntaDePrueba), &a)

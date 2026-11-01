@@ -223,7 +223,7 @@ export function DetalleAgente({
   const hitos = a.avance?.hitos ?? [];
 
   return (
-    <div className="@container min-w-0 flex-1">
+    <div className="@container w-full min-w-0 flex-1">
       <div className="grid grid-cols-1 gap-5 @3xl:grid-cols-3">
         {/* Encabezado */}
         <section aria-labelledby="titulo" className={`col-span-full flex flex-wrap items-center gap-x-5 gap-y-3 ${tarjeta}`}>

@@ -192,13 +192,16 @@ func armarPregunta(a argsPreguntar) (*PreguntaCentro, error) {
 		}
 		pos[id] = i
 		nq := preguntaP{ID: id, Texto: tapado(q.Texto, 600), Encabezado: tapado(q.Encabezado, 40), Multiple: q.Multiple}
-		vistas := map[string]bool{}
 		for _, o := range q.Opciones {
 			o.Etiqueta = tapado(o.Etiqueta, 120)
-			if o.Etiqueta == "" || vistas[o.Etiqueta] {
-				return nil, fmt.Errorf("la pregunta «%s» tiene una opción vacía o repetida", id)
+			if o.Etiqueta == "" {
+				return nil, fmt.Errorf("la pregunta «%s» tiene una opción vacía", id)
 			}
-			vistas[o.Etiqueta] = true
+			for _, vista := range nq.Opciones {
+				if strings.EqualFold(strings.TrimSpace(vista.Etiqueta), strings.TrimSpace(o.Etiqueta)) {
+					return nil, fmt.Errorf("la pregunta «%s» tiene la etiqueta repetida «%s»", id, o.Etiqueta)
+				}
+			}
 			o.Nota = tapado(o.Nota, 300)
 			if !o.Recomendada && esRecomendadaTexto(o.Etiqueta) {
 				o.Recomendada = true
