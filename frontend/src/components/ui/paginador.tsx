@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { t } from "@/lib/i18n";
-import { paginasVisibles, relleno, sinRepetir, ventanaViva } from "@/lib/paginas";
+import { anchoCasilla, paginasVisibles, relleno, sinRepetir, ventanaViva } from "@/lib/paginas";
 import { IconoChevron } from "./iconos";
 import { Segmentado } from "./segmentado";
 
 /** Casillas del mismo tamaño: números y «…» se alinean en una rejilla. */
-const CASILLA = "dato inline-grid h-7 min-w-7 place-items-center rounded-control px-1.5 text-ayuda transition-colors duration-150";
+const CASILLA = "dato inline-grid h-7 place-items-center rounded-control px-0 text-ayuda transition-colors duration-150";
 const FLECHA = "border border-borde text-texto not-disabled:hover:bg-elevado disabled:cursor-not-allowed disabled:text-tenue disabled:opacity-50";
 
 export type PorPagina = { valor: number; opciones: readonly number[]; alCambiar: (n: number) => void };
@@ -46,6 +46,7 @@ export function Paginador({
   /** Qué lista es, para el lector de pantalla («Páginas de El equipo que lanzó»). */
   nombre: string;
 }) {
+  const ancho = anchoCasilla(paginas);
   return (
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-borde ${arriba ? "mb-2 border-b pb-2.5" : "border-t pt-2.5"}`}>
       {/* Cada parte del renglón mide 32 px (lo del selector «Por página»): con o sin él, todo pie mide lo mismo y dos pies
@@ -80,12 +81,12 @@ export function Paginador({
       )}
 
       {paginas > 1 && (
-        // Ancho reservado para la ventana más ancha de números (a lo más 9 casillas y las flechas): pasar de «1 2 3 … 99» a
-        // «1 … 4 5 6 7 8 … 99» no ensancha el pie ni lo hace saltar de línea.
-        <nav aria-label={t("Páginas de {lista}", { lista: nombre })} className="flex h-8 items-center justify-end" style={{ minWidth: `${(Math.min(paginas, 9) + 2) * 30}px` }}>
+        // Siempre las mismas casillas (CASILLAS) del mismo ancho (anchoCasilla): el bloque mide lo mismo en toda página
+        // de una lista y las flechas no se mueven.
+        <nav aria-label={t("Páginas de {lista}", { lista: nombre })} className="flex h-8 shrink-0 items-center">
           <ul className="m-0 flex list-none items-center gap-0.5 p-0">
             <li>
-              <button type="button" aria-label={t("Página anterior")} disabled={pagina <= 1} onClick={() => alIr(pagina - 1)} className={`${CASILLA} ${FLECHA}`}>
+              <button type="button" aria-label={t("Página anterior")} disabled={pagina <= 1} onClick={() => alIr(pagina - 1)} className={`${CASILLA} w-7 ${FLECHA}`}>
                 <IconoChevron className="size-3.5 rotate-180" />
               </button>
             </li>
@@ -97,19 +98,20 @@ export function Paginador({
                     aria-current={c.numero === pagina ? "page" : undefined}
                     aria-label={t("Página {n}", { n: c.numero })}
                     onClick={() => c.numero !== pagina && alIr(c.numero)}
+                    style={{ width: ancho }}
                     className={`${CASILLA} ${c.numero === pagina ? "bg-acento font-semibold text-sobre-acento" : "text-suave hover:bg-elevado hover:text-texto"}`}
                   >
                     {c.numero}
                   </button>
                 </li>
               ) : (
-                <li key={c.lado} aria-hidden="true" className={`${CASILLA} text-tenue`}>
+                <li key={c.lado} aria-hidden="true" style={{ width: ancho }} className={`${CASILLA} text-tenue`}>
                   …
                 </li>
               ),
             )}
             <li>
-              <button type="button" aria-label={t("Página siguiente")} disabled={pagina >= paginas} onClick={() => alIr(pagina + 1)} className={`${CASILLA} ${FLECHA}`}>
+              <button type="button" aria-label={t("Página siguiente")} disabled={pagina >= paginas} onClick={() => alIr(pagina + 1)} className={`${CASILLA} w-7 ${FLECHA}`}>
                 <IconoChevron className="size-3.5" />
               </button>
             </li>

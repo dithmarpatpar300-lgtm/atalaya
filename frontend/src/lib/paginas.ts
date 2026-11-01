@@ -1,28 +1,29 @@
 /**
  * La lógica pura del paginador (components/ui/paginador.tsx): la primera y la
- * última página siempre a la vista, la actual con dos a cada lado y «…» como separador que no se pulsa, solo donde
- * quedan dos páginas o más fuera de vista (si queda una sola, se muestra su número). Con 99 páginas y la 6:
- * 1 … 4 5 6 7 8 … 99; con la 3: 1 2 3 4 5 … 99. Las flechas ‹ › las pone el componente.
+ * última página siempre a la vista. Con más de 7 páginas, siempre 7 casillas: la actual con una vecina a cada lado y
+ * «…» donde faltan al menos dos páginas; con 7 o menos, todas. Las flechas ‹ › las pone el componente.
  */
 export type Casilla = { tipo: "pagina"; numero: number } | { tipo: "hueco"; lado: "izquierda" | "derecha" };
 
-export const VECINAS = 2;
+/** Cuántas casillas se muestran con más de 7 páginas: siempre las mismas. */
+export const CASILLAS = 7;
 
 export function paginasVisibles(actual: number, total: number): Casilla[] {
   if (total < 1) return [];
-  const pagina = Math.min(Math.max(1, actual), total);
-  let inicio = Math.max(1, pagina - VECINAS);
-  let fin = Math.min(total, pagina + VECINAS);
-  if (inicio === 3) inicio = 2;
-  if (fin === total - 2) fin = total - 1;
+  const p = Math.min(Math.max(1, actual), total);
+  const pag = (numero: number): Casilla => ({ tipo: "pagina", numero });
+  const rango = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => pag(a + i));
+  if (total <= CASILLAS) return rango(1, total);
+  const izq: Casilla = { tipo: "hueco", lado: "izquierda" };
+  const der: Casilla = { tipo: "hueco", lado: "derecha" };
+  if (p <= 4) return [...rango(1, 5), der, pag(total)];
+  if (p >= total - 3) return [pag(1), izq, ...rango(total - 4, total)];
+  return [pag(1), izq, pag(p - 1), pag(p), pag(p + 1), der, pag(total)];
+}
 
-  const casillas: Casilla[] = [];
-  if (inicio > 1) casillas.push({ tipo: "pagina", numero: 1 });
-  if (inicio > 2) casillas.push({ tipo: "hueco", lado: "izquierda" });
-  for (let n = inicio; n <= fin; n++) casillas.push({ tipo: "pagina", numero: n });
-  if (fin < total - 1) casillas.push({ tipo: "hueco", lado: "derecha" });
-  if (fin < total) casillas.push({ tipo: "pagina", numero: total });
-  return casillas;
+/** Ancho de casilla según las cifras de la última página, nunca menos de 28 px. */
+export function anchoCasilla(paginas: number): string {
+  return `max(1.75rem, calc(${String(Math.max(1, paginas)).length}ch + 0.5rem))`;
 }
 
 /** Cuántas páginas hacen falta para `elementos` de a `porPagina` (al menos una). */

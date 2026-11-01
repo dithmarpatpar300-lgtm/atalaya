@@ -32,7 +32,7 @@ import (
 )
 
 // Version del servidor.
-const Version = "1.2.1"
+const Version = "1.3.0"
 
 // Proyecto conocido de antemano (para las llamadas a Codex y los documentos).
 type Proyecto struct {

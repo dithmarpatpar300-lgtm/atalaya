@@ -32,7 +32,9 @@ your answer for a while. Atalaya puts all of it in one local panel and turns it 
 | **Diary** | One file per day that keeps what Claude Code and Codex delete over time. |
 | **Datapedia** | Full-text search over your projects' documents and the agents' turns. |
 | **MCP server** | `que_hizo`, `buscar`, `archivo`, `salud`, `estado`, `retomar` and `preguntar`: agents ask instead of rereading documents and transcripts. Measured: half the new tokens for the same question, and more correct answers. |
-| **`atalaya-proyecto` skill** | Prepares a project (new or existing) to work with agents: installs a tiered kit (1 indexable, 2 with agents, 3 complete), opens its phase 0 and registers it in Atalaya, without overwriting anything the project already had. |
+| **Queries** | What each MCP query saved: the documents its answer replaced and the tokens that never entered the agent's context, by tool, project, role and day, plus the reads a query could have replaced. |
+| **Plan quota** | Claude's 5-hour and weekly usage, read with `claude -p /usage` and, with an optional Claude Code mod, pushed the moment it moves, with its history. |
+| **`atalaya-proyecto` skill** | Prepares a project (new or existing) to work with agents: installs a tiered kit (1 indexable, 2 with agents, 3 complete) in English or Spanish, opens its phase 0 and registers it in Atalaya, without overwriting anything the project already had. |
 
 ## Screenshots
 
@@ -46,10 +48,10 @@ Taken from the demo (`atalaya.exe -demo`): the projects, agents and decisions ar
 
 ## Status
 
-**Version 1.1.0, stable.** Tested and validated on **Windows 11** with **Claude Code** (CLI and desktop app) and
+**Version 1.3.0, stable.** Tested and validated on **Windows 11** with **Claude Code** (CLI and desktop app) and
 **Codex CLI**. On **Linux** the panel runs (tried on Ubuntu under WSL 2) and every test passes in CI, without
-notifications and without `scripts/codex.ps1`, which needs Windows; macOS compiles but is untested. The UI is in
-English and Spanish; the kit is in Spanish.
+notifications and without `scripts/codex.ps1`, which needs Windows; macOS compiles but is untested. The UI and the kit
+are in English and Spanish.
 
 ## Quick start
 

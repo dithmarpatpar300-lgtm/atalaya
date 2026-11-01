@@ -1,5 +1,64 @@
 # Changelog · Novedades
 
+## 1.3.0 — 2026-11-01
+
+What Atalaya saves you, the plan's quota in real time, and the kit in English. · Lo que Atalaya te ahorra, la cuota del
+plan al momento y el kit en inglés.
+
+**English.**
+
+- **Queries shows what Atalaya saved.** Each MCP query now says which documents its answer replaced, how many tokens
+  that kept out of the agent's context, whether the agent read the document anyway, and whether it repeated the same
+  question. The Queries view leads with that figure and its method, then breaks it down by tool, project and role, day
+  by day (charts with a table view), and lists the status documents agents read when a query would have done. The
+  query log has filters and a detail with what each query replaced. Queries are saved, so they survive a restart with
+  their client, latency and size, and a worktree counts in its repository. New `GET /api/consultas/resumen`.
+- **The plan's quota, read and pushed.** Atalaya reads Claude's plan usage with `claude -p /usage` (5-hour window,
+  weekly, weekly per model) every 10 minutes or when you ask, with an interactive history chart. A Claude Code mod can
+  also push each change the moment a window moves a point (`POST /api/uso-claude/empujar`, local only).
+- **The kit in English.** The `atalaya-proyecto` kit is now in English, and the Spanish kit lives under `es/`; the skill
+  installs in the project's or the conversation's language. Atalaya reads progress files, brief assignment lines and
+  the `AGENTS.md` rules in both languages, and file names stay the same in both.
+- **A faster server.** About 2.3 times more panel requests than 1.2.1 (8,330 instead of 3,564 in 30 s, identical
+  responses): per-step marks are computed once, agent logs are parsed once per version, and the queries summary is
+  kept until the next change.
+- **Clearer alerts and charts.** Alert cards, the alert band and panel messages share one grid with the icon on the
+  title's line and severity shown by icon, label and edge. The context chart puts stage and compaction labels in lanes
+  that never overlap, with a range selector and a table view. An agent's progress follows its latest milestone when the
+  log's first line falls behind, and says so.
+- **Steady page numbers.** Every paginator shows the same number of page boxes, all the same width, so the arrows
+  never move when you change pages, and on a phone the numbers stay inside their card.
+- Smaller: lists by pages keep a constant height with no repeated rows, the privacy step keeps its layout, `preguntar`
+  rejects repeated option labels, and the agent detail keeps its width on phones.
+
+**Español.**
+
+- **Consultas dice lo que Atalaya ahorró.** Cada consulta MCP dice ahora qué documentos reemplazó su respuesta, cuántos
+  tokens no entraron por eso al contexto del agente, si el agente leyó igual el documento y si repitió la misma
+  pregunta. La vista Consultas abre con esa cifra y su método, y la desglosa por herramienta, proyecto y rol, día a día
+  (gráficos con vista de tabla), y lista los documentos de estado que los agentes leyeron cuando una consulta habría
+  bastado. El registro tiene filtros y un detalle con lo que reemplazó cada consulta. Las consultas se guardan: sobreviven
+  a un reinicio con su cliente, su tiempo y su tamaño, y un worktree cuenta en su repositorio. Nuevo
+  `GET /api/consultas/resumen`.
+- **La cuota del plan, leída y empujada.** Atalaya lee el uso del plan de Claude con `claude -p /usage` (ventana de 5
+  horas, semanal y semanal por modelo) cada 10 minutos o cuando lo pides, con un gráfico interactivo de su historia. Un
+  mod de Claude Code también puede empujar cada cambio en el momento en que una ventana se mueve un punto
+  (`POST /api/uso-claude/empujar`, solo local).
+- **El kit en inglés.** El kit `atalaya-proyecto` está ahora en inglés, y el kit en español vive en `es/`; la skill
+  instala en la lengua del proyecto o de la conversación. Atalaya lee los archivos de avance, la línea de asignación de
+  los encargos y las reglas de `AGENTS.md` en las dos lenguas, y los nombres de archivo son los mismos en ambas.
+- **Un servidor más rápido.** Unas 2,3 veces más pedidos del panel que la 1.2.1 (8330 en vez de 3564 en 30 s, con las
+  mismas respuestas): las marcas de cada paso se calculan una vez, las bitácoras se leen una vez por versión y el resumen
+  de consultas se guarda hasta el próximo cambio.
+- **Alertas y gráficos más claros.** Las tarjetas de alerta, la banda y los mensajes del panel comparten una rejilla con
+  el icono en la línea del título y la gravedad por icono, etiqueta y borde. El gráfico de contexto pone las etiquetas de
+  etapas y compactaciones en carriles que no se pisan, con selector de rango y vista de tabla. El avance de un agente
+  sigue a su último hito cuando la primera línea de la bitácora queda atrás, y lo dice.
+- **Números de página quietos.** Todo paginador muestra la misma cantidad de casillas, todas del mismo ancho, así que
+  las flechas no se mueven al cambiar de página, y en el teléfono los números quedan dentro de su tarjeta.
+- Menores: las listas por páginas mantienen el alto y no repiten filas, el paso de privacidad no salta, `preguntar`
+  rechaza opciones repetidas y el detalle de un agente conserva su ancho en el teléfono.
+
 ## 1.2.1 — 2026-11-01
 
 Minor fixes and polish. · Arreglos menores y pulido.

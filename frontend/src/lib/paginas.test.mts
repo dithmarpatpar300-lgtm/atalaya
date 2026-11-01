@@ -1,21 +1,70 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cuantasPaginas, paginaDe, paginasVisibles, relleno, sinRepetir, ventanaAnclada, ventanaViva } from "./paginas.ts";
+import { anchoCasilla, CASILLAS, cuantasPaginas, paginaDe, paginasVisibles, relleno, sinRepetir, ventanaAnclada, ventanaViva } from "./paginas.ts";
 
 const dibujo = (actual: number, total: number) =>
   paginasVisibles(actual, total)
     .map((c) => (c.tipo === "pagina" ? String(c.numero) : "…"))
     .join(" ");
 
-test("la ventana de números: primera, última y dos vecinas, «…» solo si esconde dos o más", () => {
-  assert.equal(dibujo(6, 99), "1 … 4 5 6 7 8 … 99");
-  assert.equal(dibujo(3, 99), "1 2 3 4 5 … 99");
-  assert.equal(dibujo(1, 21), "1 2 3 … 21");
-  assert.equal(dibujo(4, 21), "1 2 3 4 5 6 … 21");
-  assert.equal(dibujo(21, 21), "1 … 19 20 21");
-  assert.equal(dibujo(1, 1), "1");
-  assert.equal(dibujo(9, 3), "1 2 3");
-  assert.equal(dibujo(1, 0), "");
+test("la ventana de números: primera, última y una vecina, «…» solo si esconde dos o más", () => {
+  const casos: [number, number, number, string][] = [
+    [0, 1, 1, ""], [1, 1, 1, "1"], [2, 1, 2, "1 2"],
+    [5, 1, 5, "1 2 3 4 5"], [7, 1, 7, "1 2 3 4 5 6 7"],
+    [8, 1, 4, "1 2 3 4 5 … 8"], [8, 5, 8, "1 … 4 5 6 7 8"],
+    [9, 1, 4, "1 2 3 4 5 … 9"], [9, 5, 5, "1 … 4 5 6 … 9"], [9, 6, 9, "1 … 5 6 7 8 9"],
+    [12, 1, 4, "1 2 3 4 5 … 12"], [12, 5, 5, "1 … 4 5 6 … 12"],
+    [12, 6, 6, "1 … 5 6 7 … 12"], [12, 7, 7, "1 … 6 7 8 … 12"],
+    [12, 8, 8, "1 … 7 8 9 … 12"], [12, 9, 12, "1 … 8 9 10 11 12"],
+    [52, 1, 4, "1 2 3 4 5 … 52"], [52, 5, 5, "1 … 4 5 6 … 52"],
+    [52, 26, 26, "1 … 25 26 27 … 52"], [52, 48, 48, "1 … 47 48 49 … 52"],
+    [52, 49, 52, "1 … 48 49 50 51 52"],
+    [100, 1, 4, "1 2 3 4 5 … 100"], [100, 5, 5, "1 … 4 5 6 … 100"],
+    [100, 50, 50, "1 … 49 50 51 … 100"], [100, 96, 96, "1 … 95 96 97 … 100"],
+    [100, 97, 100, "1 … 96 97 98 99 100"],
+    [3, 9, 9, "1 2 3"], [12, 0, 0, "1 2 3 4 5 … 12"],
+    [12, -3, -3, "1 2 3 4 5 … 12"], [100, 200, 200, "1 … 96 97 98 99 100"],
+  ];
+  for (const [total, desde, hasta, esperado] of casos) {
+    for (let p = desde; p <= hasta; p++) assert.equal(dibujo(p, total), esperado, `${p}/${total}`);
+  }
+});
+
+test("siempre las mismas casillas", () => {
+  for (let total = 1; total <= 130; total++) {
+    for (let p = 1; p <= total; p++) assert.equal(paginasVisibles(p, total).length, Math.min(total, CASILLAS), `${p}/${total}`);
+  }
+});
+
+test("ventana bien formada", () => {
+  for (let total = 1; total <= 130; total++) {
+    for (let p = 1; p <= total; p++) {
+      const casillas = paginasVisibles(p, total);
+      assert.deepEqual(casillas[0], { tipo: "pagina", numero: 1 });
+      assert.deepEqual(casillas[casillas.length - 1], { tipo: "pagina", numero: total });
+      assert.ok(casillas.some((c) => c.tipo === "pagina" && c.numero === p));
+      const lados = new Set<string>();
+      let anterior = 0;
+      let hueco = false;
+      for (const c of casillas) {
+        if (c.tipo === "hueco") {
+          assert.ok(!hueco && !lados.has(c.lado));
+          lados.add(c.lado);
+          hueco = true;
+        } else {
+          if (anterior) assert.ok(hueco ? c.numero - anterior >= 3 : c.numero - anterior === 1, `${p}/${total}`);
+          anterior = c.numero;
+          hueco = false;
+        }
+      }
+    }
+  }
+});
+
+test("ancho de casilla según las cifras", () => {
+  for (const [total, cifras] of [[0, 1], [1, 1], [9, 1], [10, 2], [99, 2], [100, 3], [104, 3], [1000, 4]]) {
+    assert.equal(anchoCasilla(total), `max(1.75rem, calc(${cifras}ch + 0.5rem))`);
+  }
 });
 
 test("cuántas páginas: al menos una", () => {
