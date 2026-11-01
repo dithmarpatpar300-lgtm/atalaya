@@ -37,12 +37,13 @@ var (
 
 // LeerAvance lee la bitácora `rel` (relativa a `raiz`).
 func LeerAvance(raiz, rel string) (*Avance, error) {
-	b, err := os.ReadFile(filepath.Join(raiz, filepath.FromSlash(rel)))
+	// El texto y los hitos van al panel: los secretos se tapan como en los transcritos (LeerTapado guarda lo leído
+	// mientras el archivo no cambie: se lee para cada agente en cada pedido).
+	texto, err := secretos.LeerTapado(filepath.Join(raiz, filepath.FromSlash(rel)))
 	if err != nil {
 		return nil, err
 	}
-	// El texto y los hitos van al panel: los secretos se tapan como en los transcritos.
-	return ParsearAvance(secretos.Tapar(string(b)), rel), nil
+	return ParsearAvance(texto, rel), nil
 }
 
 func ParsearAvance(texto, rel string) *Avance {

@@ -5,6 +5,7 @@ import { PATRONES_SERVIDOR } from "./servidor.ts";
 
 const ejemplos = [
   // La configuración desde el panel
+  "se hizo, pero no quedó en el historial y no se podrá deshacer desde el panel: disco lleno",
   "Deshacer: Registro de proyectos: agregar Tienda (nivel 2)",
   "Registro de proyectos: agregar Tienda (nivel 2), quitar Blog, sacar Blog de la datapedia",
   "Preferencias: coordina Codex, con Claude Code de secundario",
@@ -188,6 +189,8 @@ test("traduce cada patrón completo y conserva lo desconocido", () => {
     // Los resúmenes de la configuración traducen cada parte, y «Deshacer» traduce lo que deshace.
     assert.equal(tServidor("Deshacer: Registro de proyectos: agregar Tienda (nivel 2), quitar Blog"), "Undo: Project registry: add Tienda (level 2), remove Blog");
     assert.equal(tServidor("Preferencias: coordina Codex, con Claude Code de secundario"), "Preferences: Codex coordinates, with Claude Code as secondary");
+    assert.equal(tServidor("no hay nada que agregar ni quitar; se hizo, pero no quedó en el historial y no se podrá deshacer desde el panel: disco lleno"), "there is nothing to add or remove; it was done, but it is not in the history and cannot be undone from the panel: disco lleno");
+    assert.equal(tServidor("se hizo, pero no quedó en el historial y no se podrá deshacer desde el panel: disco lleno"), "it was done, but it is not in the history and cannot be undone from the panel: disco lleno");
   } finally {
     fijarIdioma("es");
   }

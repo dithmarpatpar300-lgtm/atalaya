@@ -122,8 +122,12 @@ func main() {
 	// Para la configuración desde el panel: dónde buscar Claude Code y Codex, y dónde guardar las copias y el historial
 	// de lo que cambia (junto al índice de la datapedia: la carpeta de Atalaya, o la del mundo de demo).
 	s.Casa, s.CodexHome, s.Datos, s.Demo = casa, estadoCodex, filepath.Dir(*rutaDB), *modoDemo
-	// El kit viaja junto al ejecutable (el zip, y el repositorio en desarrollo): de ahí se copia la skill.
+	// El kit viaja junto al ejecutable (el zip, y el repositorio en desarrollo): de ahí se copia la skill. Y el
+	// ejecutable mismo identifica la compilación (para que un panel abierto se recargue cuando cambia).
 	if exe, err := os.Executable(); err == nil {
+		if fi, err := os.Stat(exe); err == nil {
+			s.Compilacion = fmt.Sprintf("%s-%d-%d", servidor.Version, fi.Size(), fi.ModTime().Unix())
+		}
 		if k := filepath.Join(filepath.Dir(exe), "kit", "atalaya-proyecto"); existeCarpeta(k) {
 			s.Kit = k
 		}

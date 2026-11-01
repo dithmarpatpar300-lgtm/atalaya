@@ -53,8 +53,10 @@ const CHIP_TEMPORAL: Record<CarpetaTemporal["estado"], string> = {
  */
 export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; version: number; alAbrirAgente: (id: string, paso?: number) => void }) {
   const [periodo, setPeriodo] = useState<Periodo>("hoy");
-  const [inf, setInf] = useState<InformeProceso | null>(null);
-  const [error, setError] = useState(false);
+  const [guardado, setGuardado] = useState<{ proyecto: string; periodo: Periodo; informe: InformeProceso } | null>(null);
+  const [errorClave, setErrorClave] = useState<{ proyecto: string; periodo: Periodo } | null>(null);
+  const inf = guardado?.proyecto === proyecto && guardado.periodo === periodo ? guardado.informe : null;
+  const error = errorClave?.proyecto === proyecto && errorClave.periodo === periodo;
   const [elegida, setElegida] = useState<string | null>(null);
   const filasRef = useRef(new Map<string, HTMLButtonElement>());
   const registrar = useCallback((id: string, b: HTMLButtonElement | null) => {
@@ -74,11 +76,11 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
     api
       .proceso(proyecto, periodo, c.signal)
       .then((r) => {
-        setInf(r);
-        setError(false);
+        setGuardado({ proyecto, periodo, informe: r });
+        setErrorClave(null);
       })
-      .catch((e: unknown) => {
-        if (!(e instanceof DOMException && e.name === "AbortError")) setError(true);
+      .catch(() => {
+        if (!c.signal.aborted) setErrorClave({ proyecto, periodo });
       });
     return () => c.abort();
   }, [proyecto, periodo, version]);
@@ -95,6 +97,7 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
   const pSalud = usePaginaViva(todas, (f) => f.id, { almacen: "salud", opciones: TAMANOS_SALUD, defecto: 25, reinicio: `${proyecto}:${periodo}` });
   const filas = pSalud.visibles;
   const actual = filaInicial(todas, elegida);
+  const foco = filas.some((f) => f.id === actual) ? actual : filas[0]?.id;
   const sel = todas.find((f) => f.id === actual) ?? null;
   const r = inf ? resumen(inf) : null;
   const titulo = {
@@ -104,7 +107,7 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
   }[periodo];
 
   function alTecla(e: React.KeyboardEvent) {
-    const i = filas.findIndex((f) => f.id === actual);
+    const i = filas.findIndex((f) => f.id === foco);
     let j = i;
     if (e.key === "ArrowDown") j = Math.min(filas.length - 1, i + 1);
     else if (e.key === "ArrowUp") j = Math.max(0, i - 1);
@@ -235,7 +238,7 @@ export function Salud({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                     </td>
                   </tr>
                 ) : (
-                  filas.map((f) => <FilaSalud key={f.id} f={f} elegida={f.id === actual} alElegir={() => setElegida(f.id)} registrar={registrar} />)
+                  filas.map((f) => <FilaSalud key={f.id} f={f} elegida={f.id === actual} foco={f.id === foco} alElegir={() => setElegida(f.id)} registrar={registrar} />)
                 )}
               </tbody>
             </table>
@@ -310,11 +313,13 @@ function actaDe(c: CarpetaTemporal): string {
 function FilaSalud({
   f,
   elegida,
+  foco,
   alElegir,
   registrar,
 }: {
   f: FilaProceso;
   elegida: boolean;
+  foco: boolean;
   alElegir: () => void;
   registrar: (id: string, b: HTMLButtonElement | null) => void;
 }) {
@@ -324,7 +329,7 @@ function FilaSalud({
         <button
           ref={(b) => registrar(f.id, b)}
           type="button"
-          tabIndex={elegida ? 0 : -1}
+          tabIndex={foco ? 0 : -1}
           aria-pressed={elegida}
           onClick={alElegir}
           className="flex h-[52px] w-full items-center gap-2.5 px-4 text-left"

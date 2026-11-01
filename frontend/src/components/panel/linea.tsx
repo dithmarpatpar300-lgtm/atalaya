@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import {
@@ -90,11 +90,11 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
     return () => c.abort();
   }, [proyecto, dia, version]);
 
-  const filas = resp ? ordenar(resp.filas, sesiones) : [];
+  const filas = useMemo(() => resp ? ordenar(resp.filas, sesiones) : [], [resp, sesiones]);
   const [ini, fin] = resp ? tramo(filas, Date.parse(resp.desde), Date.parse(resp.hasta)) : [0, 1];
   const ticks = resp ? marcas(ini, fin) : [];
-  const vez = resp ? paralelo(filas, ini, fin) : [];
-  const maxVez = Math.max(1, ...vez.map((v) => v.n));
+  const vez = useMemo(() => resp ? paralelo(filas, ini, fin) : [], [resp, filas, ini, fin]);
+  const maxVez = useMemo(() => Math.max(1, ...vez.map((v) => v.n)), [vez]);
   // La primera vez se fija la del primer agente: un agente nuevo que llega en vivo no cambia lo que miras (lo que cambia en vivo no mueve el diseño).
   const primera = (filas.find((f) => f.tipo !== "sesion") ?? filas[0])?.id;
   useEffect(() => {

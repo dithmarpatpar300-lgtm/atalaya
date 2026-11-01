@@ -122,7 +122,7 @@ func (ix *Indice) Sesion(id string) (ResumenSesion, bool) {
 		}
 		_, consulta := HerramientaAtalaya(p.Herramienta)
 		cuota := miraCuota(p)
-		commit := p.Tipo == "Ejecuta" && reGitCommit.MatchString(Normalizar(p.orden))
+		commit := p.Tipo == "Ejecuta" && reGitCommit.MatchString(p.normalizada())
 		if consulta {
 			r.Consultas++
 		}

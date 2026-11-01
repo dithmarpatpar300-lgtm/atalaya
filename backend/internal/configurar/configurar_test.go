@@ -258,6 +258,39 @@ func TestFallaAMediasYDeshacer(t *testing.T) {
 	}
 }
 
+// Reintentar un deshacer sigue donde paró: la inversa que ya corrió no se repite (auditoría E1 del pulido).
+func TestReintentoNoRepiteInversas(t *testing.T) {
+	p := puerta(t)
+	var corridas []string
+	fallaA := false
+	p.Correr = func(_ context.Context, _ string, args []string) (string, error) {
+		o := strings.Join(args, " ")
+		corridas = append(corridas, o)
+		if o == "quitar-a" && fallaA {
+			return "", errors.New("salida 1")
+		}
+		return "", nil
+	}
+	prop, _ := p.Proponer("mcp", "Dos órdenes", []Cambio{
+		{Tipo: Orden, Programa: "codex", Argumentos: []string{"poner-a"}, Deshacer: []string{"quitar-a"}},
+		{Tipo: Orden, Programa: "codex", Argumentos: []string{"poner-b"}, Deshacer: []string{"quitar-b"}},
+	})
+	if _, err := p.Aplicar(context.Background(), prop.ID); err != nil {
+		t.Fatal(err)
+	}
+	fallaA = true
+	if _, err := p.Deshacer(context.Background(), prop.ID); err == nil {
+		t.Fatal("quitar-a falló y no lo dijo")
+	}
+	fallaA = false
+	if _, err := p.Deshacer(context.Background(), prop.ID); err != nil {
+		t.Fatalf("reintento: %v", err)
+	}
+	if got := strings.Join(corridas, "|"); got != "poner-a|poner-b|quitar-b|quitar-a|quitar-a" {
+		t.Errorf("corridas: %s", got)
+	}
+}
+
 // Una orden que falla queda anotada con su error, y la vista previa vence a los 10 min.
 func TestFallaYVencimiento(t *testing.T) {
 	p := puerta(t)

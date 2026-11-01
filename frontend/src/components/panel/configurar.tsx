@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconoCheck } from "@/components/ui/iconos";
 import {
   api,
@@ -194,16 +194,19 @@ export function Configurar({ alTerminar }: { alTerminar: () => void }) {
     return "idioma";
   });
   const [comprobando, setComprobando] = useState(false);
+  const pedido = useRef(0);
 
   const guardar = useCallback((r: Promise<[Entorno, Preferencias, EntradaCambio[]]>) => {
+    const numero = ++pedido.current;
     return r.then(
       ([e, p, h]) => {
+        if (numero !== pedido.current) return;
         setEntorno(e);
         setPrefs(p);
         setHistorial(h);
         setError(null);
       },
-      (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
+      (e: unknown) => { if (numero === pedido.current) setError(e instanceof Error ? e.message : String(e)); },
     );
   }, []);
   const cargar = useCallback((fresco = false) => guardar(traer(fresco)), [guardar]);
@@ -211,9 +214,11 @@ export function Configurar({ alTerminar }: { alTerminar: () => void }) {
   // Al abrir y cada 10 s mientras está abierto: lo que se instala, se conecta o aparece (un servidor recién encendido
   // tarda unos segundos en leer los transcritos) se ve sin recargar.
   useEffect(() => {
-    void guardar(traer(false));
-    const cada = setInterval(() => void guardar(traer(false)), 10_000);
-    return () => clearInterval(cada);
+    const actualizar = () => { if (!document.hidden) void guardar(traer(false)); };
+    actualizar();
+    const cada = setInterval(actualizar, 10_000);
+    document.addEventListener("visibilitychange", actualizar);
+    return () => { clearInterval(cada); document.removeEventListener("visibilitychange", actualizar); };
   }, [guardar]);
 
   useEffect(() => {

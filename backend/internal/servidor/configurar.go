@@ -149,17 +149,29 @@ func (s *Servidor) carpetasRecientes() []CarpetaReciente {
 		rel, err := filepath.Rel(madre, hija)
 		return err == nil && rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel)
 	}
+	// Cada carpeta va a la más alta de la lista que la contiene, calculada antes de borrar nada: así el resultado no
+	// depende del orden en que se recorre el mapa (con A, A/B y A/B/C, las dos van a A).
+	arriba := map[string]string{}
 	for k, c := range por {
+		mejor := ""
 		for k2, m := range por {
-			if k2 != k && dentro(c.Ruta, m.Ruta) {
-				m.Claude, m.Codex = m.Claude+c.Claude, m.Codex+c.Codex
-				if c.Ultimo.After(m.Ultimo) {
-					m.Ultimo = c.Ultimo
-				}
-				delete(por, k)
-				break
+			if k2 != k && dentro(c.Ruta, m.Ruta) && (mejor == "" || len(m.Ruta) < len(por[mejor].Ruta)) {
+				mejor = k2
 			}
 		}
+		if mejor != "" {
+			arriba[k] = mejor
+		}
+	}
+	for k, k2 := range arriba {
+		c, m := por[k], por[k2]
+		m.Claude, m.Codex = m.Claude+c.Claude, m.Codex+c.Codex
+		if c.Ultimo.After(m.Ultimo) {
+			m.Ultimo = c.Ultimo
+		}
+	}
+	for k := range arriba {
+		delete(por, k)
 	}
 	for k, c := range por {
 		for _, p := range registradas {
@@ -171,6 +183,20 @@ func (s *Servidor) carpetasRecientes() []CarpetaReciente {
 	}
 	out := make([]CarpetaReciente, 0, len(por))
 	for _, c := range por {
+		out = append(out, *c)
+	}
+	// Las 30 más recientes, y solo entonces el disco (si existe y sus marcas): el asistente lo pide cada 10 s.
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].Ultimo.Equal(out[j].Ultimo) {
+			return out[i].Ultimo.After(out[j].Ultimo)
+		}
+		return out[i].Ruta < out[j].Ruta
+	})
+	if len(out) > 30 {
+		out = out[:30]
+	}
+	for i := range out {
+		c := &out[i]
 		for _, p := range registradas {
 			if p.Raiz != "" && configurar.MismaRuta(p.Raiz, c.Ruta) {
 				c.Registrada = true
@@ -179,11 +205,6 @@ func (s *Servidor) carpetasRecientes() []CarpetaReciente {
 		if esCarpeta(c.Ruta) {
 			c.Marcas = entorno.MarcasDe(c.Ruta)
 		}
-		out = append(out, *c)
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Ultimo.After(out[j].Ultimo) })
-	if len(out) > 30 {
-		out = out[:30]
 	}
 	return out
 }

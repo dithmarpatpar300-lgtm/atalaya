@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"atalaya/internal/secretos"
@@ -253,11 +254,52 @@ func (f *Fase) calcular() {
 	}
 }
 
-// Leer todas las fases con AVANCE.md de un proyecto, de la más alta a la más baja.
+// VidaMemoria: cuánto vale lo leído de un proyecto. Un pedido del panel pregunta la fase de cada agente (cientos, del
+// mismo proyecto); con esto comparten una sola lectura. Es lo que tarda en dar una vuelta Atalaya, así que lo que
+// cambió en el disco se ve igual de pronto.
+const VidaMemoria = 2 * time.Second
+
+var memoria = struct {
+	sync.Mutex
+	m map[string]leidas
+}{m: map[string]leidas{}}
+
+type leidas struct {
+	cuando time.Time
+	fases  []Fase
+}
+
+// Leer todas las fases con AVANCE.md de un proyecto, de la más alta a la más baja. Lo que devuelve se comparte entre
+// quienes lo piden en el mismo par de segundos: es de solo lectura.
 func Leer(raiz string) []Fase {
 	if raiz == "" {
 		return nil
 	}
+	ahora := time.Now()
+	memoria.Lock()
+	if l, ok := memoria.m[raiz]; ok && ahora.Sub(l.cuando) < VidaMemoria {
+		memoria.Unlock()
+		return l.fases
+	}
+	memoria.Unlock()
+	fases := leer(raiz)
+	memoria.Lock()
+	if len(memoria.m) > 256 {
+		clear(memoria.m)
+	}
+	memoria.m[raiz] = leidas{cuando: ahora, fases: fases}
+	memoria.Unlock()
+	return fases
+}
+
+// OlvidarMemoria: la próxima lectura va al disco (para quien acaba de cambiar un AVANCE.md y lo quiere ver ya).
+func OlvidarMemoria() {
+	memoria.Lock()
+	clear(memoria.m)
+	memoria.Unlock()
+}
+
+func leer(raiz string) []Fase {
 	rutas, _ := filepath.Glob(filepath.Join(raiz, "docs", "trazabilidad", "F*", "AVANCE.md"))
 	var out []Fase
 	for _, r := range rutas {
@@ -265,13 +307,14 @@ func Leer(raiz string) []Fase {
 		if !reFase.MatchString(fase) {
 			continue
 		}
-		b, err := os.ReadFile(r)
+		// El texto, el plan y los hitos llegan al panel y al MCP: un token pegado por error no sale de aquí. LeerTapado
+		// guarda lo leído mientras el archivo no cambie (cada pedido del panel lee las fases de cada proyecto).
+		texto, err := secretos.LeerTapado(r)
 		if err != nil {
 			continue
 		}
 		rel, _ := filepath.Rel(raiz, r)
-		// El texto, el plan y los hitos llegan al panel y al MCP: un token pegado por error no sale de aquí.
-		f := Parsear(secretos.Tapar(string(b)), fase, filepath.ToSlash(rel))
+		f := Parsear(texto, fase, filepath.ToSlash(rel))
 		f.paquetesDelPlan(raiz)
 		if info, err := os.Stat(r); err == nil {
 			f.horaDelUltimoHito(info.ModTime())
@@ -298,11 +341,11 @@ func (f *Fase) paquetesDelPlan(raiz string) {
 	if dentro, err := filepath.Rel(raiz, ruta); err != nil || filepath.IsAbs(rel) || dentro == ".." || strings.HasPrefix(dentro, ".."+string(filepath.Separator)) {
 		return
 	}
-	b, err := os.ReadFile(ruta)
+	texto, err := secretos.LeerTapado(ruta)
 	if err != nil {
 		return
 	}
-	ps := paquetes(secretos.Tapar(string(b)), true)
+	ps := paquetes(texto, true)
 	if len(ps) == 0 {
 		return
 	}

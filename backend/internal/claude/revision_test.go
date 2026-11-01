@@ -43,3 +43,35 @@ func TestMiradaYTemporales(t *testing.T) {
 		t.Errorf("temporales: %s", got)
 	}
 }
+
+// LanzamientosCodex y Revisiones calculan la mirada en una sola pasada: tienen que dar lo mismo que miradaAntes.
+func TestMiradaEnUnaPasada(t *testing.T) {
+	h := time.Date(2026, 10, 31, 10, 0, 0, 0, time.UTC)
+	pasos := []*Paso{
+		{N: 0, Hora: h, Tipo: "Ejecuta", orden: `cuotas.exe una-vez`},
+		{N: 1, Hora: h.Add(time.Minute), Tipo: "Ejecuta", orden: `.\scripts\codex.ps1 -Tema a`},
+		{N: 2, Hora: h.Add(2 * time.Minute), Tipo: "Usa", Herramienta: "mcp__ccd_session_mgmt__get_usage"},
+		{N: 3, Hora: h.Add(3 * time.Minute), Tipo: "Delega", idUso: "t1"},
+		{N: 4, Hora: h.Add(4 * time.Minute), Tipo: "Ejecuta", orden: `.\scripts\codex.ps1 -Tema b`},
+	}
+	ses := &archivo{ruta: "ses.jsonl", agente: &Agente{ID: "ses", Tipo: "sesion", Proyecto: "Tienda", Ultimo: h.Add(time.Hour)}, pasos: pasos}
+	sub := &archivo{ruta: "sub.jsonl", agente: &Agente{ID: "ses~a", Tipo: "subagente", Padre: "ses", ToolUseID: "t1", Pasos: 1, Ultimo: h.Add(time.Hour)}}
+	ix := &Indice{arch: map[string]*archivo{"ses": ses, "sub": sub}}
+
+	ls := ix.LanzamientosCodex(time.Time{})
+	if len(ls) != 2 {
+		t.Fatalf("lanzamientos: %+v", ls)
+	}
+	for _, l := range ls {
+		if want := miradaAntes(pasos, l.Paso); l.Mirada != want {
+			t.Errorf("lanzamiento del paso %d: mirada %+v, quiero %+v", l.Paso, l.Mirada, want)
+		}
+		if !strings.Contains(l.OrdenNorm, "codex.ps1") {
+			t.Errorf("sin la orden normalizada: %+v", l)
+		}
+	}
+	r := ix.Revisiones(time.Time{})["ses~a"]
+	if r.PasoLanzado != 3 || r.Mirada != miradaAntes(pasos, 3) || r.Mirada.Paso != 2 {
+		t.Errorf("revisión: %+v", r)
+	}
+}

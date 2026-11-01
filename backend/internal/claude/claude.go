@@ -120,6 +120,9 @@ type Paso struct {
 	idUso          string // tool_use id
 	editado        string // el archivo que edita o escribe, ruta completa normalizada (huellas.go)
 	orden          string // la orden de un «Ejecuta», recortada, para buscarla (buscar.go)
+	// ordenNorm: la orden ya normalizada (Normalizar), una vez al leerla: la salud, las sesiones y los lanzamientos de
+	// Codex la miran en cada pedido del panel, y normalizar miles de órdenes cada vez era lo más caro del servidor.
+	ordenNorm string
 }
 
 // Linea de un diff, como la guarda Claude Code en structuredPatch.
@@ -576,6 +579,7 @@ func (a *archivo) procesar(b []byte, ofs int64) {
 						tope = 4000
 					}
 					p.orden = recortar(orden, tope)
+					p.ordenNorm = Normalizar(p.orden)
 				}
 				a.agregar(p)
 				a.delLote = append(a.delLote, p)

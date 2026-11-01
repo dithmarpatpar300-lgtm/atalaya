@@ -148,6 +148,7 @@ func TestUnaFaseConLosPaquetesEnElPlan(t *testing.T) {
 	// Un plan fuera del proyecto no se lee.
 	_ = os.WriteFile(filepath.Join(fase, "AVANCE.md"), []byte("Avance: 0 % — x\nPlan: ../fuera.md\n"), 0o644)
 	_ = os.WriteFile(filepath.Join(filepath.Dir(raiz), "fuera.md"), []byte("| Paquete | Horas |\n|---|---|\n| X | 3 |\n"), 0o644)
+	OlvidarMemoria() // el archivo cambió recién: sin esperar la vuelta
 	if ps := Leer(raiz)[0].Paquetes; len(ps) != 0 {
 		t.Errorf("leyó un plan fuera del proyecto: %+v", ps)
 	}

@@ -151,6 +151,8 @@ export function Actividad({
   // Las de antes de `desde` se piden al servidor al abrirlas, de a una; así la lista nunca crece de más.
   const total = desde + pasos.length;
   const vista = ventanaAnclada(total, h.ancla, tamano, h.pagina);
+  const finVisible = Math.min(vista.fin, vista.inicio + 2 * tamano);
+  const nuevos = vista.fin - finVisible;
   /** Va a la página `p`; la última se vuelve a anclar en lo de ahora (otra vez llena, sin lo que creció de más). */
   function irAPagina(p: number) {
     const ultima = p >= vista.paginas;
@@ -165,23 +167,24 @@ export function Actividad({
   const vieja = vista.inicio < desde;
   const tramo = `${idAgente}:${vista.inicio}-${vista.fin}`;
   const [viejas, setViejas] = useState<Record<string, Paso[]>>({});
-  const [errorVieja, setErrorVieja] = useState<string | null>(null);
+  const [erroresViejas, setErroresViejas] = useState<Record<string, string>>({});
+  const errorVieja = erroresViejas[tramo];
   useEffect(() => {
     if (!vieja || viejas[tramo]) return;
     const ctl = new AbortController();
     api
       .pasosAntes(idAgente, vista.fin, vista.fin - vista.inicio, ctl.signal)
       .then((d) => {
-        setErrorVieja(null);
+        setErroresViejas((m) => { const copia = { ...m }; delete copia[tramo]; return copia; });
         setViejas((m) => ({ ...m, [tramo]: d.pasos }));
       })
-      .catch((e: Error) => e.name !== "AbortError" && setErrorVieja(e.message));
+      .catch((e: Error) => e.name !== "AbortError" && setErroresViejas((m) => ({ ...m, [tramo]: e.message })));
     return () => ctl.abort();
   }, [vieja, tramo, viejas, idAgente, vista.inicio, vista.fin]);
 
   const visibles = useMemo(
-    () => (vieja ? (viejas[tramo] ?? []) : pasos.slice(vista.inicio - desde, vista.fin - desde)),
-    [vieja, viejas, tramo, pasos, vista.inicio, vista.fin, desde],
+    () => (vieja ? (viejas[tramo] ?? []).slice(0, finVisible - vista.inicio) : pasos.slice(vista.inicio - desde, finVisible - desde)),
+    [vieja, viejas, tramo, pasos, vista.inicio, finVisible, desde],
   );
   const filas = useMemo(() => armarFilas(visibles), [visibles]);
   const colores = useMemo(() => coloresDeHilo(visibles), [visibles]);
@@ -189,9 +192,10 @@ export function Actividad({
   const porN = useMemo(() => new Map([...pasos, ...(vieja ? visibles : [])].map((p) => [p.n, p])), [pasos, vieja, visibles]);
   const ultimo = pasos.length ? pasos[pasos.length - 1].n : -1;
   const actual = elegido !== null && porN.has(elegido) ? elegido : ultimo;
+  const foco = visibles.some((p) => p.n === actual) ? actual : filas.find((f) => f.tipo !== "etapa")?.paso.n;
   const paso = porN.get(actual);
   const max = Math.max(1, ...visibles.map((p) => tokDominante(p).valor));
-  const vent = ventana(pasos);
+  const vent = useMemo(() => ventana(pasos), [pasos]);
 
   function cambiar(a: Partial<Ajustes>) {
     const nuevos = { ...ajustes, ...a };
@@ -285,7 +289,7 @@ export function Actividad({
 
   function alTecla(e: KeyboardEvent<HTMLDivElement>) {
     const ns = filas.filter((f) => f.tipo !== "etapa").map((f) => f.paso.n);
-    const i = ns.indexOf(actual);
+    const i = ns.indexOf(foco ?? actual);
     let j: number;
     if (e.key === "ArrowDown") j = Math.min(ns.length - 1, i + 1);
     else if (e.key === "ArrowUp") j = Math.max(0, i - 1);
@@ -359,9 +363,11 @@ export function Actividad({
                   pagina={vista.pagina}
                   paginas={vista.paginas}
                   desde={vista.inicio + 1}
-                  hasta={vista.fin}
+                  hasta={finVisible}
                   total={total}
                   alIr={irAPagina}
+                  nuevos={nuevos}
+                  alVerNuevos={() => irAPagina(vista.paginas)}
                   porPagina={{
                     valor: tamano,
                     opciones: TAMANOS,
@@ -411,7 +417,7 @@ export function Actividad({
                       else filasRef.current.delete(p.n);
                     }}
                     type="button"
-                    tabIndex={esElegido ? 0 : -1}
+                    tabIndex={p.n === foco ? 0 : -1}
                     aria-pressed={esElegido}
                     aria-label={texto(f)}
                     onClick={() => elegir(p.n)}

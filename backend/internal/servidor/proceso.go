@@ -327,7 +327,15 @@ func lanzamientoDe(ls []claude.LanzamientoCodex, proyecto, tema string, inicio t
 	// El tema como palabra entera: «e2-x» no debe enlazar con la orden de «e2-x-sol».
 	re := regexp.MustCompile(`(^|[^\w.-])` + regexp.QuoteMeta(t) + `($|[^\w.-])`)
 	for _, l := range ls {
-		if l.Proyecto != proyecto || !re.MatchString(claude.Normalizar(l.Orden)) || l.Hora.After(inicio.Add(2*time.Minute)) {
+		if l.Proyecto != proyecto || l.Hora.After(inicio.Add(2*time.Minute)) {
+			continue
+		}
+		o := l.OrdenNorm
+		if o == "" {
+			o = claude.Normalizar(l.Orden)
+		}
+		// Lo barato primero: que el tema esté; la expresión (palabra entera), solo si hace falta.
+		if !strings.Contains(o, t) || !re.MatchString(o) {
 			continue
 		}
 		if !ok || l.Hora.After(mejor.Hora) {

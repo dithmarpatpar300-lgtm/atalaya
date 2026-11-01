@@ -39,10 +39,20 @@ type LanzamientoCodex struct {
 	Hora     time.Time
 	Paso     int
 	Orden    string
-	Mirada   Mirada
+	// OrdenNorm: la orden normalizada (Normalizar), para buscar en ella sin normalizarla en cada pedido.
+	OrdenNorm string
+	Mirada    Mirada
 }
 
 var reTemporal = regexp.MustCompile(`(?i)[\w.-]*-tmp[\\/]+(\d{4}-\d\d-\d\d-[\w.-]+)`)
+
+// normalizada: la orden normalizada; la guardada al leer el paso, o calculada si el paso no la trae.
+func (p *Paso) normalizada() string {
+	if p.ordenNorm == "" && p.orden != "" {
+		return Normalizar(p.orden)
+	}
+	return p.ordenNorm
+}
 
 // miraCuota: el paso lee la cuota (Cuotas, get_usage, o un script del proyecto que corre «cuotas una-vez»).
 func miraCuota(p *Paso) bool {
@@ -52,11 +62,12 @@ func miraCuota(p *Paso) bool {
 	if p.Tipo != "Ejecuta" {
 		return false
 	}
-	o := Normalizar(p.orden)
+	o := p.normalizada()
 	return (strings.Contains(o, "cuotas") && (strings.Contains(o, "una-vez") || strings.Contains(o, "importar"))) || strings.Contains(o, "retomar.ps1")
 }
 
-// miradaAntes: la última mirada a la cuota entre los pasos [0, i).
+// miradaAntes: la última mirada a la cuota entre los pasos [0, i). Es la regla; LanzamientosCodex y Revisiones la
+// calculan en una sola pasada, llevando la última mirada mientras avanzan (revision_test.go la prueba).
 func miradaAntes(pasos []*Paso, i int) Mirada {
 	for j := i - 1; j >= 0; j-- {
 		if miraCuota(pasos[j]) {
@@ -112,20 +123,44 @@ func (ix *Indice) Revisiones(desde time.Time) map[string]Revision {
 			sesiones[a.agente.ID] = a
 		}
 	}
+	// Por sesión, una sola pasada: cada llamada (por su id) con su paso y la última mirada a la cuota antes de él.
+	type lanzado struct {
+		p      *Paso
+		mirada Mirada
+	}
+	llamadas := map[string]map[string]lanzado{}
+	llamadasDe := func(s *archivo) map[string]lanzado {
+		if m, ok := llamadas[s.agente.ID]; ok {
+			return m
+		}
+		m := map[string]lanzado{}
+		var mirada Mirada
+		for _, p := range s.pasos {
+			if p.idUso != "" {
+				if _, visto := m[p.idUso]; !visto {
+					m[p.idUso] = lanzado{p, mirada}
+				}
+			}
+			if miraCuota(p) {
+				mirada = Mirada{Hora: p.Hora, Paso: p.N, Orden: p.orden}
+			}
+		}
+		llamadas[s.agente.ID] = m
+		return m
+	}
 	out := map[string]Revision{}
 	for _, a := range ix.arch {
 		ag := a.agente
 		if ag.Tipo != "subagente" || ag.Pasos == 0 || ag.Ultimo.Before(desde) {
 			continue
 		}
-		r := Revision{LineaAsignacion: lineaAsignacion(ag.Encargo), Transcrito: a.ruta, Temporales: temporalesDe(a.pasos)}
+		// Las temporales ya están al día en el agente (agregar las suma con cada paso): recorrer todos sus pasos con
+		// una expresión regular en cada pedido era la mitad del costo de la salud del proceso.
+		r := Revision{LineaAsignacion: lineaAsignacion(ag.Encargo), Transcrito: a.ruta, Temporales: append([]string(nil), ag.Temporales...)}
 		if s := sesiones[ag.Padre]; s != nil && ag.ToolUseID != "" {
 			r.Sesion = s.ruta
-			for i, p := range s.pasos {
-				if p.idUso == ag.ToolUseID {
-					r.Lanzado, r.PasoLanzado, r.Mirada = p.Hora, p.N, miradaAntes(s.pasos, i)
-					break
-				}
+			if l, ok := llamadasDe(s)[ag.ToolUseID]; ok {
+				r.Lanzado, r.PasoLanzado, r.Mirada = l.p.Hora, l.p.N, l.mirada
 			}
 		}
 		out[ag.ID] = r
@@ -142,10 +177,18 @@ func (ix *Indice) LanzamientosCodex(desde time.Time) []LanzamientoCodex {
 		if a.agente.Tipo != "sesion" || a.agente.Ultimo.Before(desde) {
 			continue
 		}
-		for i, p := range a.pasos {
-			if p.Tipo == "Ejecuta" && !p.Hora.Before(desde) && strings.Contains(Normalizar(p.orden), "codex.ps1") {
-				out = append(out, LanzamientoCodex{Proyecto: a.agente.Proyecto, Sesion: a.ruta, Hora: p.Hora, Paso: p.N, Orden: p.orden,
-					Mirada: miradaAntes(a.pasos, i)})
+		// Una sola pasada: la última mirada a la cuota se lleva mientras se avanza (buscarla hacia atrás desde cada
+		// lanzamiento recorría miles de pasos por lanzamiento, en cada pedido del panel).
+		var mirada Mirada
+		for _, p := range a.pasos {
+			if p.Tipo == "Ejecuta" && !p.Hora.Before(desde) {
+				if o := p.normalizada(); strings.Contains(o, "codex.ps1") {
+					out = append(out, LanzamientoCodex{Proyecto: a.agente.Proyecto, Sesion: a.ruta, Hora: p.Hora, Paso: p.N, Orden: p.orden,
+						OrdenNorm: o, Mirada: mirada})
+				}
+			}
+			if miraCuota(p) {
+				mirada = Mirada{Hora: p.Hora, Paso: p.N, Orden: p.orden}
 			}
 		}
 	}

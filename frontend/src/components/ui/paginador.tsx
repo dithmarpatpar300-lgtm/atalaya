@@ -166,6 +166,7 @@ export function usePaginaViva<T>(
   const [tamano, setTamano] = useState(() => leerTamano(almacen, opciones, defecto));
   const [estado, setEstado] = useState<{ reinicio: string; pagina: number; foto: string[] | null }>({ reinicio, pagina: 1, foto: null });
   const e = estado.reinicio === reinicio ? estado : { reinicio, pagina: 1, foto: null };
+  if (estado.reinicio !== reinicio) setEstado(e);
   const v = ventanaViva(elementos, clave, e.pagina, tamano, e.foto);
 
   function alIr(n: number) {

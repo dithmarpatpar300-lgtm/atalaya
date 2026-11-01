@@ -2,6 +2,7 @@ package servidor
 
 import (
 	"bytes"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 
 	"atalaya/internal/configurar"
 )
@@ -63,15 +65,50 @@ func (s *Servidor) estadoSkill(herramienta string) string {
 	if err != nil {
 		return ""
 	}
+	// La huella: tamaño y hora de cada archivo del kit y de su copia, solo con Stat. El asistente pide el entorno cada
+	// 10 s; leer y comparar el kit entero (dos veces, una por herramienta) solo hace falta cuando algo cambió.
+	var h strings.Builder
+	for _, rel := range rels {
+		for _, r := range []string{filepath.Join(s.Kit, filepath.FromSlash(rel)), filepath.Join(dest, filepath.FromSlash(rel))} {
+			if fi, err := os.Stat(r); err == nil {
+				fmt.Fprintf(&h, "%d·%d|", fi.Size(), fi.ModTime().UnixNano())
+			} else {
+				h.WriteString("-|")
+			}
+		}
+	}
+	huella := h.String()
+	s.skills.mu.Lock()
+	if c, ok := s.skills.m[herramienta]; ok && c.huella == huella {
+		s.skills.mu.Unlock()
+		return c.estado
+	}
+	s.skills.mu.Unlock()
+	estado := "al día"
 	for _, rel := range rels {
 		a, err1 := os.ReadFile(filepath.Join(s.Kit, filepath.FromSlash(rel)))
 		b, err2 := os.ReadFile(filepath.Join(dest, filepath.FromSlash(rel)))
 		if err1 != nil || err2 != nil || !bytes.Equal(a, b) {
-			return "distinta"
+			estado = "distinta"
+			break
 		}
 	}
-	return "al día"
+	s.skills.mu.Lock()
+	if s.skills.m == nil {
+		s.skills.m = map[string]estadoSkillGuardado{}
+	}
+	s.skills.m[herramienta] = estadoSkillGuardado{huella: huella, estado: estado}
+	s.skills.mu.Unlock()
+	return estado
 }
+
+// estadosSkill: el último estado de la skill de cada herramienta, con la huella de los archivos de donde salió.
+type estadosSkill struct {
+	mu sync.Mutex
+	m  map[string]estadoSkillGuardado
+}
+
+type estadoSkillGuardado struct{ huella, estado string }
 
 // dentroDe: r está dentro de dir (o es dir).
 func dentroDe(r, dir string) bool {

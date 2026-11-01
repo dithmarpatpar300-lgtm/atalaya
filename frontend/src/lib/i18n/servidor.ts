@@ -19,6 +19,7 @@ const partesRegistro = (resto: string) =>
 
 export const PATRONES_SERVIDOR: [RegExp, Reemplazo][] = [
   // La configuración desde el panel (servidor/configurar.go e internal/configurar): resúmenes y errores.
+  [/^(?:(.+); )?se hizo, pero no quedó en el historial y no se podrá deshacer desde el panel: (.+)$/, (traducir, previo, detalle) => `${previo ? `${traducir(previo)}; ` : ""}it was done, but it is not in the history and cannot be undone from the panel: ${detalle}`],
   [/^Deshacer: (.+)$/, (traducir, resto) => `Undo: ${traducir(resto)}`],
   [/^Registro de proyectos: (.+)$/, (_, resto) => `Project registry: ${partesRegistro(resto)}`],
   [

@@ -62,6 +62,17 @@ func TestDelegacionDesdeCodex(t *testing.T) {
 	if !d.Terminada || d.Raiz != raiz {
 		t.Fatalf("al terminar = %+v", d)
 	}
+
+	// claude.ps1 borra las fichas viejas: la sesión vuelve a ser una más, y avisa que cambió.
+	if err := os.Remove(ruta); err != nil {
+		t.Fatal(err)
+	}
+	if got := l.Actualizar(); len(got) != 1 || got[0] != "abc-123" {
+		t.Fatalf("al borrarse, cambiadas = %v", got)
+	}
+	if _, ok := l.Delegacion("abc-123"); ok {
+		t.Fatal("la ficha borrada sigue en memoria")
+	}
 }
 
 func TestPadre(t *testing.T) {

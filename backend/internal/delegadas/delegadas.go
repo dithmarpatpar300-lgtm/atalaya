@@ -45,10 +45,11 @@ type Lector struct {
 	mu     sync.RWMutex
 	fichas map[string]Ficha     // por SesionClaude
 	mods   map[string]time.Time // por ruta, para releer solo lo que cambió
+	deRuta map[string]string    // por ruta, la sesión de su ficha (para soltarla si la ficha se borra)
 }
 
 func NuevoLector(dir string) *Lector {
-	return &Lector{Dir: dir, fichas: map[string]Ficha{}, mods: map[string]time.Time{}}
+	return &Lector{Dir: dir, fichas: map[string]Ficha{}, mods: map[string]time.Time{}, deRuta: map[string]string{}}
 }
 
 // Actualizar relee las fichas que cambiaron y devuelve los ids de las sesiones cuya ficha es nueva o cambió.
@@ -78,11 +79,18 @@ func (l *Lector) Actualizar() []string {
 		}
 		l.mods[r] = fi.ModTime()
 		l.fichas[f.SesionClaude] = f
+		l.deRuta[r] = f.SesionClaude
 		cambiadas = append(cambiadas, f.SesionClaude)
 	}
+	// claude.ps1 borra las de más de 7 días: su sesión vuelve a ser una más (y cambió, para que el panel lo vea).
 	for r := range l.mods {
 		if !vistas[r] {
-			delete(l.mods, r) // claude.ps1 borra las de más de 7 días; su sesión vuelve a ser una más
+			if id := l.deRuta[r]; id != "" {
+				delete(l.fichas, id)
+				cambiadas = append(cambiadas, id)
+			}
+			delete(l.mods, r)
+			delete(l.deRuta, r)
 		}
 	}
 	return cambiadas

@@ -90,6 +90,10 @@ type Servidor struct {
 	clientes clientesMCP
 	// Kit: la carpeta del kit atalaya-proyecto (junto a atalaya.exe), de donde se copia la skill; vacía si no está.
 	Kit string
+	// Compilacion: identifica este atalaya.exe (versión, tamaño y hora del ejecutable); vacía, la versión.
+	Compilacion string
+	// skills: el estado de la skill de cada herramienta, guardado mientras sus archivos no cambien (kit_arranque.go).
+	skills estadosSkill
 	// Demo: corre el mundo de -demo; la puerta no corre programas ni toca el arranque del equipo.
 	Demo bool
 	// herramientasPrueba: en las pruebas, las herramientas en lugar de buscarlas en el equipo.
@@ -820,7 +824,14 @@ func (s *Servidor) eventos(w http.ResponseWriter, r *http.Request) {
 	h.Set("X-Accel-Buffering", "no")
 	c := s.difusion.alta()
 	defer s.difusion.baja(c)
-	_, _ = w.Write([]byte("retry: 3000\nevent: hola\ndata: {}\n\n"))
+	// El saludo lleva la compilación: un panel abierto que, al reconectarse, ve otra (atalaya.exe se actualizó) se
+	// recarga solo, en vez de seguir con el panel viejo contra el servidor nuevo.
+	compilacion := s.Compilacion
+	if compilacion == "" {
+		compilacion = Version
+	}
+	hola, _ := json.Marshal(map[string]string{"compilacion": compilacion})
+	_, _ = w.Write([]byte("retry: 3000\nevent: hola\ndata: " + string(hola) + "\n\n"))
 	fl.Flush()
 	latido := time.NewTicker(25 * time.Second)
 	defer latido.Stop()
