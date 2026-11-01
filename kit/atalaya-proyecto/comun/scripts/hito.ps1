@@ -1,15 +1,15 @@
 <#
 .SYNOPSIS
-  Anota un hito en el AVANCE.md de la fase con la hora del reloj del sistema.
+  Writes a milestone into the phase's AVANCE.md using the system clock time.
 .DESCRIPTION
-  La hora de un hito sale del reloj, nunca de memoria: un agente no tiene reloj y, si la escribe a mano, la estima.
-  (Atalaya avisa cuando el ultimo hito es posterior a la hora en que se guardo el archivo.)
-  El hito va encima de los demas (el mas nuevo primero) o, si es el primero, debajo de la tabla de paquetes. Respeta
-  los finales de linea del archivo. Windows PowerShell 5.1 o PowerShell 7.
+  A milestone's time comes from the clock, never from memory: an agent has no clock and, if it writes the time by hand,
+  it estimates it. (Atalaya warns when the latest milestone is later than the time the file was saved.)
+  The milestone goes above the others (newest first) or, if it is the first one, below the package table. It keeps the
+  file's line endings. Windows PowerShell 5.1 or PowerShell 7.
 
-  Uso:
-    .\scripts\hito.ps1 'W3 hecho: limitador global con sus pruebas'
-    .\scripts\hito.ps1 'Ronda 2 entregada' -Fase F6
+  Usage:
+    .\scripts\hito.ps1 'W3 done: global limiter with its tests'
+    .\scripts\hito.ps1 'Round 2 delivered' -Fase F6
 #>
 param(
     [Parameter(Mandatory = $true, Position = 0)][string]$Texto,
@@ -19,23 +19,23 @@ param(
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
 $utf8 = New-Object System.Text.UTF8Encoding($false)
-# Solo ASCII en este archivo: PowerShell 5.1 lee un .ps1 sin BOM como ANSI.
+# ASCII only in this file: PowerShell 5.1 reads a .ps1 without BOM as ANSI.
 $dot = [char]0x00B7
 $base = Join-Path (Join-Path $raiz 'docs') 'trazabilidad'
 
-# Sin -Fase, la fase en curso: la F<n> mas alta que tiene AVANCE.md.
+# Without -Fase, the phase in progress: the highest F<n> that has an AVANCE.md.
 if (-not $Fase) {
     $fases = Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -match '^F\d+$' -and (Test-Path -LiteralPath (Join-Path $_.FullName 'AVANCE.md')) } |
         Sort-Object { [int]$_.Name.Substring(1) }
-    if (-not $fases) { throw 'no hay ninguna fase con AVANCE.md en docs/trazabilidad' }
+    if (-not $fases) { throw 'there is no phase with an AVANCE.md in docs/trazabilidad' }
     $Fase = @($fases)[-1].Name
 }
 $archivo = Join-Path (Join-Path $base $Fase) 'AVANCE.md'
-if (-not (Test-Path -LiteralPath $archivo)) { throw "no existe $archivo" }
+if (-not (Test-Path -LiteralPath $archivo)) { throw "$archivo does not exist" }
 
 $Texto = ($Texto -replace '\s+', ' ').Trim()
-if (-not $Texto) { throw 'el hito no tiene texto' }
+if (-not $Texto) { throw 'the milestone has no text' }
 $linea = "- $(Get-Date -Format 'HH:mm') $dot $Texto"
 
 $original = [System.IO.File]::ReadAllText($archivo, $utf8)
@@ -44,7 +44,7 @@ $lineas = New-Object System.Collections.Generic.List[string]
 $lineas.AddRange([string[]]($original -split "`r?`n"))
 if ($lineas.Count -gt 0 -and $lineas[$lineas.Count - 1] -eq '') { $lineas.RemoveAt($lineas.Count - 1) }
 
-# El hito mas nuevo que ya hay (una linea que empieza en "- HH:MM" y el punto medio): el nuevo va justo encima.
+# The newest milestone already there (a line that starts with "- HH:MM" and the middle dot): the new one goes right above.
 $primero = -1
 for ($k = 0; $k -lt $lineas.Count; $k++) {
     if ($lineas[$k] -match "^-\s*\d{1,2}:\d{2}\s*$dot") { $primero = $k; break }
@@ -52,7 +52,7 @@ for ($k = 0; $k -lt $lineas.Count; $k++) {
 if ($primero -ge 0) {
     $lineas.Insert($primero, $linea)
 } else {
-    # Ninguno todavia: despues de la ultima fila de la tabla, con una linea en blanco; sin tabla, al final.
+    # None yet: after the last row of the table, with a blank line; with no table, at the end.
     $ultimaFila = -1
     for ($k = 0; $k -lt $lineas.Count; $k++) { if ($lineas[$k].TrimStart().StartsWith('|')) { $ultimaFila = $k } }
     if ($ultimaFila -ge 0) {

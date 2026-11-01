@@ -1,25 +1,25 @@
-# Registro de herramientas y apoyos · {{PROYECTO}}
+# Tools and aids log · {{PROYECTO}}
 
-La historia de lo que falló, de lo que sirvió y de cada uso de una skill o un plugin que enseñó algo. **Las reglas vigentes no están aquí:** están en `HERRAMIENTAS.md` (herramientas) y en `SKILLS.md` (apoyos).
+The history of what failed, what helped and each use of a skill or plugin that taught something. **The current rules are not here:** they are in `HERRAMIENTAS.md` (tools) and in `SKILLS.md` (aids).
 
-- **Cómo se usa:**
-  - cada fallo nuevo deja **una línea al final de la parte 1**, con el formato `fecha · quién · herramienta · qué pasó · qué funciona`. Si ya tenía regla y volvió a pasar, lleva la palabra **repetido**;
-  - cada uso de un apoyo que enseñó algo va **al final de la parte 2**;
-  - cada agente lanzado deja su línea `Config:` en la parte 3;
-  - al cerrar una sub-etapa, el coordinador sube a `HERRAMIENTAS.md` lo que se repite.
-- **Este archivo no se lee entero.** Se busca con Grep. Si crece más de ~100 KB, lo más viejo pasa a `docs/archivo/`.
+- **How it is used:**
+  - each new failure leaves **one line at the end of part 1**, in the format `date · who · tool · what happened · what works`. If it already had a rule and happened again, it carries the word **repeated**;
+  - each use of an aid that taught something goes **at the end of part 2**;
+  - each agent launched leaves its `Config:` line in part 3;
+  - when closing a sub-stage, the coordinator moves up to `HERRAMIENTAS.md` what repeats.
+- **This file is not read whole.** It is searched with Grep. If it grows beyond ~100 KB, the oldest part goes to `docs/archivo/`.
 
-# Parte 1 · Fallos de herramientas y órdenes que sirvieron
+# Part 1 · Tool failures and commands that worked
 
-Una línea por hecho nuevo. Formato: `fecha · quién · herramienta · qué pasó · qué funciona`.
+One line per new fact. Format: `date · who · tool · what happened · what works`.
 
-- {{FECHA_DE_INSTALACION}} · coordinador · instalación del centro de operaciones neutro · no fue un fallo · el kit se instaló con la skill atalaya-proyecto (su `SKILL.md`); ver su acta en `docs/trazabilidad/` (carpeta `temporales/`).
+- {{FECHA_DE_INSTALACION}} · coordinator · installation of the neutral operations center · not a failure · the kit was installed with the atalaya-proyecto skill (its `SKILL.md`); see its record in `docs/trazabilidad/` (folder `temporales/`).
 
-# Parte 2 · Usos de skills y plugins
+# Part 2 · Uses of skills and plugins
 
-Una línea por uso que enseñó algo. Formato: `fecha · quién · skill o plugin · para qué · resultado · ¿se repetiría?`
+One line per use that taught something. Format: `date · who · skill or plugin · what for · result · would it be repeated?`
 
-# Parte 3 · Uso de agentes (`AGENTES.md` §12)
+# Part 3 · Use of agents (`AGENTES.md` §12)
 
-Una línea por agente lanzado, copiada de la línea `Config:` de su informe:
-`fecha · rol · clase · modelo/effort · minutos · escaló (sí: motivo / no) · hallazgos o retrabajo`.
+One line per agent launched, copied from the `Config:` line of its report:
+`date · role · class · model/effort · minutes · escalated (yes: reason / no) · findings or rework`.

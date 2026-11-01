@@ -18,6 +18,15 @@ func TestParsearAvance(t *testing.T) {
 	}
 }
 
+func TestParsearProgress(t *testing.T) {
+	for _, guion := range []string{"—", "–", "-"} {
+		av := ParsearAvance("Progress: 42 % "+guion+" reading\n- 10:00 · 40 % · started\n", "x.md")
+		if av.Porcentaje != 42 || av.Texto != "reading" || len(av.Hitos) != 1 || av.Hitos[0].Texto != "40 % · started" {
+			t.Errorf("guion %q: %+v", guion, av)
+		}
+	}
+}
+
 // La primera línea quedó en 5 % y el último hito dice 75 %: vale el hito, y el desfase se cuenta. Al revés (la
 // cabecera más adelante que los hitos) manda la cabecera.
 func TestAvanceDesfasado(t *testing.T) {

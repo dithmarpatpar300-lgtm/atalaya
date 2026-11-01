@@ -74,17 +74,17 @@ var (
 func columna(c string) string {
 	c = sinTilde.Replace(strings.ToLower(strings.Trim(strings.TrimSpace(c), "*")))
 	switch {
-	case c == "paquete" || c == "id":
+	case c == "paquete" || c == "package" || c == "id":
 		return "id"
-	case c == "que" || c == "descripcion":
+	case c == "que" || c == "what" || c == "descripcion":
 		return "que"
-	case c == "estado": // antes que «est», que es el comienzo de «Est. (h)»
+	case c == "estado" || c == "status": // antes que «est», que es el comienzo de «Est. (h)»
 		return "estado"
-	case strings.HasPrefix(c, "hora") || strings.HasPrefix(c, "est"):
+	case strings.HasPrefix(c, "hora") || c == "hours" || strings.HasPrefix(c, "est"):
 		return "horas"
 	case c == "%" || c == "avance" || c == "pct":
 		return "pct"
-	case c == "evidencia" || c == "prueba":
+	case c == "evidencia" || c == "evidence" || c == "prueba":
 		return "evidencia"
 	}
 	return ""
@@ -103,13 +103,13 @@ func numero(s string) (float64, bool) {
 func normalizarEstado(s string) string {
 	s = sinTilde.Replace(strings.ToLower(strings.TrimSpace(strings.Trim(s, "*"))))
 	switch {
-	case strings.HasPrefix(s, "hech") || s == "cerrado" || s == "listo":
+	case strings.HasPrefix(s, "hech") || strings.HasPrefix(s, "done") || strings.HasPrefix(s, "complete") || s == "cerrado" || s == "listo":
 		return Hecho
-	case strings.HasPrefix(s, "en curso") || strings.HasPrefix(s, "curso") || strings.HasPrefix(s, "en marcha"):
+	case strings.HasPrefix(s, "en curso") || strings.HasPrefix(s, "curso") || strings.HasPrefix(s, "en marcha") || strings.HasPrefix(s, "in progress") || strings.HasPrefix(s, "ongoing"):
 		return EnCurso
 	case strings.HasPrefix(s, "bloq"):
 		return Bloqueado
-	case strings.HasPrefix(s, "sin empezar") || strings.HasPrefix(s, "pendiente") || s == "":
+	case strings.HasPrefix(s, "sin empezar") || strings.HasPrefix(s, "pendiente") || strings.HasPrefix(s, "not started") || strings.HasPrefix(s, "pending") || s == "todo" || s == "to do" || s == "":
 		return SinEmpezar
 	}
 	return s

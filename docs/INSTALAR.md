@@ -101,7 +101,7 @@ Con Codex, o sin la skill, pídele al agente que siga `kit/atalaya-proyecto/SKIL
 ```
 
 Atalaya relee el archivo solo. Lo que cada nivel espera encontrar en el proyecto está en
-`kit/atalaya-proyecto/LEEME.md`.
+`kit/atalaya-proyecto/es/LEEME.md`.
 
 ## 5. Conectar los agentes por MCP
 

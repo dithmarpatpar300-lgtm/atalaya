@@ -1,79 +1,80 @@
-# Versión y entrega · {{PROYECTO}}
+# Version and delivery · {{PROYECTO}}
 
-El paso a paso para sacar una versión y entregarla. Las secciones 1 a 4 son para un proyecto que se entrega **como
-paquete** (un ejecutable, un instalador, un zip). Si el proyecto **se despliega** (una web, un servicio), vale la
-sección «Si el proyecto se despliega» y las demás se borran al instalar.
+The step-by-step for cutting a version and delivering it. Sections 1 to 4 are for a project that is delivered **as a
+package** (an executable, an installer, a zip). If the project is **deployed** (a website, a service), the section "If
+the project is deployed" applies and the others are deleted on install.
 
-- **Las reglas que lo rodean están en `AGENTS.md`:** entrega en {{DESTINO_DE_ENTREGA}}, guiones con `-Simular`, nunca `{{RAMA_PRODUCCION}}` sin el sí de {{DUENO}}.
+- **The rules around it are in `AGENTS.md`:** delivery to {{DESTINO_DE_ENTREGA}}, scripts with `-Simular` (dry run), never `{{RAMA_PRODUCCION}}` without {{DUENO}}'s yes.
 
-## Si el proyecto se despliega
+## If the project is deployed
 
-1. **Antes:** el código en `{{RAMA_TRABAJO}}`, con commit; las pruebas baratas pasan ({{PRUEBAS_BARATAS}}) y la batería
-   cara la corrió una sola vez quien entregó (`pruebas.md`). Las migraciones nuevas, con su vuelta atrás escrita.
-2. **La versión:** el número sube donde lo lleve el proyecto y queda una etiqueta del commit (`v<versión>`) y sus notas.
-3. **El ensayo:** el despliegue se corre primero simulado (`-Simular` o el equivalente de la herramienta) y se lee qué
-   haría. Si el proyecto tiene un entorno de prueba, se despliega ahí y se comprueba lo nuevo.
-4. **Producción, con el sí de {{DUENO}}:** se pasa a `{{RAMA_PRODUCCION}}` y se despliega con la orden real, nunca en
-   el horario que {{DUENO}} haya prohibido.
-5. **La comprobación:** que responde, que trae lo nuevo (un texto o un número propio de la versión) y que los registros
-   no muestran errores nuevos. Si algo falla, la vuelta atrás escrita en el paso 1, sin improvisar.
-6. **El cierre:** las notas de la versión en el estado del proyecto y, si el ensayador intervino, su informe.
+1. **Before:** the code on `{{RAMA_TRABAJO}}`, committed; the cheap tests pass ({{PRUEBAS_BARATAS}}) and the expensive
+   battery was run once by whoever delivers (`pruebas.md`). New migrations, with their rollback written.
+2. **The version:** the number goes up wherever the project keeps it, and the commit gets a tag (`v<version>`) and its
+   notes.
+3. **The rehearsal:** the deployment is first run as a dry run (`-Simular` or the tool's equivalent) and you read what
+   it would do. If the project has a test environment, it is deployed there and what is new is checked.
+4. **Production, with {{DUENO}}'s yes:** it moves to `{{RAMA_PRODUCCION}}` and is deployed with the real command, never
+   in the hours {{DUENO}} has forbidden.
+5. **The check:** that it answers, that it carries what is new (a text or a number specific to the version) and that
+   the logs show no new errors. If something fails, the rollback written in step 1, without improvising.
+6. **The close-out:** the version notes in the project status and, if the tester took part, its report.
 
-## 1. Antes de empezar
+## 1. Before starting
 
-- **Lo visual tiene su maqueta aprobada,** y el código está en `{{RAMA_TRABAJO}}`, con commit.
-- **Las pruebas baratas pasan:** {{PRUEBAS_BARATAS}}.
-- **Lo caro lo corre una sola vez** quien entrega (`pruebas.md`).
-- **Al subir la versión,** antes de la batería larga se busca la versión vieja escrita en las pruebas (`Grep` del número viejo): suelen llevarla escrita varias.
-- **Las migraciones nuevas** se dicen en las notas de la versión, con su vuelta atrás.
+- **Anything visual has its approved mockup,** and the code is on `{{RAMA_TRABAJO}}`, committed.
+- **The cheap tests pass:** {{PRUEBAS_BARATAS}}.
+- **The expensive ones are run once** by whoever delivers (`pruebas.md`).
+- **When raising the version,** before the long battery, look for the old version written in the tests (`Grep` for the old number): several tend to carry it.
+- **New migrations** are stated in the version notes, with their rollback.
 
-## 2. Compilar desde un árbol limpio
+## 2. Build from a clean tree
 
-1. **Un worktree limpio** del commit de la versión, en `{{TMP}}\release-<versión>\`, sin cambios sin guardar (con su acta: `HERRAMIENTAS.md` §3).
-2. **El producto:** {{COMO_SE_COMPILA}}. Se comprueba:
-   - que el binario sale de un árbol sin modificar;
-   - que arranca (`-help` sale con código 0);
-   - que trae lo nuevo, buscando un texto propio de la versión.
-3. **La huella:** SHA-256 del producto, guardada junto a él.
-4. **Al terminar,** se cierra el acta del worktree y recién entonces se borra, con la ruta literal.
+1. **A clean worktree** of the version's commit, in `{{TMP}}\release-<version>\`, with no unsaved changes (with its record: `HERRAMIENTAS.md` §3).
+2. **The product:** {{COMO_SE_COMPILA}}. Check:
+   - that the binary comes out of an unmodified tree;
+   - that it starts (`-help` exits with code 0);
+   - that it carries what is new, by searching for a text specific to the version.
+3. **The fingerprint:** SHA-256 of the product, kept next to it.
+4. **When done,** the worktree's record is closed and only then is it deleted, with the literal path.
 
-## 3. Armar el kit
+## 3. Assemble the kit
 
-**La copia de trabajo** va en {{TMP}} o en la carpeta de kits del proyecto. **Lleva:** el producto y su huella; los guiones de instalación y actualización, con la huella nueva (solo cambian esa huella y su texto); la guía con su parte nueva; un `LEEME-<versión>.txt`.
+**The working copy** goes in {{TMP}} or in the project's kits folder. **It carries:** the product and its fingerprint; the install and update scripts, with the new fingerprint (only that fingerprint and its text change); the guide with its new part; a `README-<version>.txt`.
 
-**Qué dice el LEEME:** qué trae la versión; qué hace el dueño esa noche, en orden; cómo volver atrás y qué cuidar al hacerlo; las migraciones, o «sin migraciones».
+**What the README says:** what the version brings; what the owner does that night, in order; how to go back and what to watch when doing so; the migrations, or "no migrations".
 
-**El control del kit, antes de entregarlo:**
-- **Nada prohibido:** 0 archivos de secretos (`.env*`, llaves, certificados), volcados o respaldos de bases, datos reales, ni registros (`.log`).
-- **Ningún secreto:** ni `PRIVATE KEY` ni cadenas base64 largas.
-- **La sintaxis de cada `.ps1`:** `Parser::ParseFile`, con `$t = $null; $e = $null` antes.
-- **Las huellas escritas** en el LEEME, la guía y los guiones coinciden con las calculadas.
+**The kit check, before delivering it:**
+- **Nothing forbidden:** 0 secret files (`.env*`, keys, certificates), database dumps or backups, real data, or logs (`.log`).
+- **No secret:** no `PRIVATE KEY` and no long base64 strings.
+- **The syntax of each `.ps1`:** `Parser::ParseFile`, with `$t = $null; $e = $null` before it.
+- **The fingerprints written** in the README, the guide and the scripts match the calculated ones.
 
-## 4. El ensayo
+## 4. The rehearsal
 
-- **Lo hace un agente independiente,** que no armó el kit y no lo corrige: el rol `ensayador`.
-- **Su veredicto:** «listo para instalar» o «no listo», en su informe (el siguiente número después del de la versión).
-- **Lo que se ensaya, siempre:**
-  1. pasar de la versión instalada a la nueva: código 0, la configuración idéntica y las migraciones al día;
-  2. repetirlo: no cambia nada;
-  3. volver atrás a mano y regresar;
-  4. comprobar que lo servido trae lo nuevo;
-  5. las comprobaciones baratas del §3, sobre la carpeta de entrega.
-- **Lo que no se ensaya** (dicho siempre en el informe): lo que solo existe en producción real, las cuentas reales, las tareas programadas reales y los sistemas externos reales.
-- **Los hallazgos** van con gravedad × costo (`PRIORIZACION.md` §3). Si es medio o más, se corrige y se ensaya de nuevo lo que cambió.
+- **An independent agent does it,** one that did not assemble the kit and does not fix it: the `ensayador` role (the tester).
+- **Its verdict:** "ready to install" or "not ready", in its report (the next number after the version's).
+- **What is always rehearsed:**
+  1. going from the installed version to the new one: code 0, identical configuration and migrations up to date;
+  2. repeating it: nothing changes;
+  3. going back by hand and returning;
+  4. checking that what is served carries what is new;
+  5. the cheap checks of §3, on the delivery folder.
+- **What is not rehearsed** (always said in the report): whatever exists only in real production, real accounts, real scheduled tasks and real external systems.
+- **The findings** come with severity × cost (`PRIORIZACION.md` §3). If medium or more, it is fixed and what changed is rehearsed again.
 
-## 5. Entregar
+## 5. Deliver
 
-- **Destino:** {{DESTINO_DE_ENTREGA}}, en dos formas: la carpeta `Kit {{PROYECTO}} <versión>` y su `.zip` con el contenido **en la raíz** (sin carpeta superior) y las entradas con `/`.
-- **Se comprueba** que el zip se abre y que la carpeta, el zip y la copia de trabajo tienen las mismas huellas (0 diferencias).
+- **Destination:** {{DESTINO_DE_ENTREGA}}, in two forms: the folder `Kit {{PROYECTO}} <version>` and its `.zip` with the contents **at the root** (no top folder) and entries with `/`.
+- **Check** that the zip opens and that the folder, the zip and the working copy have the same fingerprints (0 differences).
 
-## 6. Cerrar
+## 6. Close out
 
-1. **El informe de la versión** (`docs/trazabilidad/<fase>/NN-release-<versión>.md`): qué cambió, pruebas con cifras, el kit con sus huellas, el ensayo y su resultado, lo no verificado y lo aprendido sobre herramientas.
-2. **El estado para retomar,** al día: solo la sección vigente.
-3. **Commit en `{{RAMA_TRABAJO}}`** con la versión, las huellas y el resultado del ensayo; después el push de esa rama.
-4. **Publicar en `{{RAMA_PRODUCCION}}`,** con etiqueta y release: **solo cuando {{DUENO}} lo pide**.
+1. **The version report** (`docs/trazabilidad/<phase>/NN-release-<version>.md`): what changed, tests with figures, the kit with its fingerprints, the rehearsal and its result, what was not verified and what was learned about tools.
+2. **The status to resume,** up to date: only the current section.
+3. **Commit on `{{RAMA_TRABAJO}}`** with the version, the fingerprints and the rehearsal result; then push that branch.
+4. **Publish on `{{RAMA_PRODUCCION}}`,** with a tag and a release: **only when {{DUENO}} asks**.
 
-## 7. Lo que hace el dueño (no el coordinador)
+## 7. What the owner does (not the coordinator)
 
-- Instalar con el `LEEME` en el entorno real; probar con datos reales; decir si se publica.
+- Install with the `README` in the real environment; test with real data; say whether it is published.

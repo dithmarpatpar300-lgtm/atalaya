@@ -69,8 +69,9 @@ const (
 )
 
 var (
-	reTope     = regexp.MustCompile(`(?i)ning[uú]n agente pasa de (\d+) minutos`)
-	reFrontera = regexp.MustCompile(`(?i)nunca hay dos sobre el mismo archivo`)
+	// Cada frase, en español o como la escribe el kit en inglés: un proyecto instalado en cualquiera de las dos.
+	reTope     = regexp.MustCompile(`(?i)(?:ning[uú]n agente pasa de|no agent runs longer than) (\d+) minut`)
+	reFrontera = regexp.MustCompile(`(?i)nunca hay dos sobre el mismo archivo|never two on the same file`)
 	reMinutos  = regexp.MustCompile(`(?i)(\d+(?:[.,]\d+)?)\s*(min|h)`)
 
 	// Las líneas de AGENTS.md que escriben las reglas del proceso: con encontrarlas basta para citar la fuente.
@@ -78,15 +79,15 @@ var (
 		id string
 		re *regexp.Regexp
 	}{
-		{"asignacion", regexp.MustCompile(`(?i)primera l[ií]nea es la asignaci[oó]n`)},
-		{"effort", regexp.MustCompile(`(?i)effort se fija siempre expl[ií]cito`)},
-		{"cuota", regexp.MustCompile(`(?i)se mira la cuota`)},
-		{"bitacora", regexp.MustCompile(`(?i)cada agente lleva una bit[aá]cora`)},
-		{"acta", regexp.MustCompile(`(?i)el acta es obligatoria`)},
+		{"asignacion", regexp.MustCompile(`(?i)primera l[ií]nea es la asignaci[oó]n|first line is the assignment`)},
+		{"effort", regexp.MustCompile(`(?i)effort se fija siempre expl[ií]cito|effort is always set explicitly`)},
+		{"cuota", regexp.MustCompile(`(?i)se mira la cuota|the quota is checked`)},
+		{"bitacora", regexp.MustCompile(`(?i)cada agente lleva una bit[aá]cora|every agent keeps a log`)},
+		{"acta", regexp.MustCompile(`(?i)el acta es obligatoria|the record is mandatory`)},
 	}
-	reFrescura = regexp.MustCompile(`(?i)dato de Claude tiene m[aá]s de (\d+) min`)
-	reTmpRaiz  = regexp.MustCompile("(?i)temporales en `([A-Za-z]:\\\\[^\\\\`<]+)")
-	reRetomar  = regexp.MustCompile("`([\\w./-]+\\.ps1)` los lista")
+	reFrescura = regexp.MustCompile(`(?i)(?:dato de Claude tiene m[aá]s de|Claude's figure is more than) (\d+) min`)
+	reTmpRaiz  = regexp.MustCompile("(?i)(?:temporales en|scratch files in) `([A-Za-z]:\\\\[^\\\\`<]+)")
+	reRetomar  = regexp.MustCompile("`([\\w./-]+\\.ps1)` (?:los lista|lists them)")
 )
 
 // Leer arma las reglas desde el AGENTS.md de la raíz del proyecto; sin raíz o sin archivo, todo va por omisión.

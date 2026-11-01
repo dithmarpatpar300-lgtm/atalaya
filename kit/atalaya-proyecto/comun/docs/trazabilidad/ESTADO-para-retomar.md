@@ -1,11 +1,11 @@
-# Estado para retomar · {{PROYECTO}}
+# Status to resume · {{PROYECTO}}
 
-Actualizado el {{FECHA_DE_INSTALACION}}. Solo lo vigente, corto; la historia está en `git log`.
+Updated on {{FECHA_DE_INSTALACION}}. Only what is current, short; the history is in `git log`.
 
-## Dónde estamos
+## Where we are
 
 {{DONDE_ESTAMOS}}
 
-## Lo que falta
+## What is missing
 
 {{LO_QUE_FALTA}}

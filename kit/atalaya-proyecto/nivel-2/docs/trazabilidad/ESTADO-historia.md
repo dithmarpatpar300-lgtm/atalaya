@@ -1,9 +1,9 @@
-# Historia del estado para retomar · {{PROYECTO}}
+# History of the status to resume · {{PROYECTO}}
 
-El diario del estado para retomar. **Lo más nuevo, primero.**
+The journal of the status to resume. **Newest first.**
 
-- **No se reescribe:** es la huella histórica, como los informes.
-- **Cómo crece:** cuando el estado vigente (`ESTADO-para-retomar.md`) cambia de punto, la sección que queda vieja se pasa aquí, **arriba de todo**.
-- **Ojo con lo de aquí:** lo que estas secciones llaman «pendiente» puede estar ya resuelto. Lo vigente es lo que dice `ESTADO-para-retomar.md`.
+- **It is not rewritten:** it is the historical trace, like the reports.
+- **How it grows:** when the current status (`ESTADO-para-retomar.md`) moves to a new point, the section that is left old is moved here, **on top of everything**.
+- **Careful with what is here:** what these sections call "pending" may already be resolved. What is current is what `ESTADO-para-retomar.md` says.
 
-(Vacío al instalar.)
+(Empty at install time.)

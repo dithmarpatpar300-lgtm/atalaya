@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "atalaya": {
+      "type": "http",
+      "url": "{{URL_DEL_CENTRO}}?proyecto={{PROYECTO_EN_URL}}"
+    }
+  }
+}

@@ -102,7 +102,7 @@ With Codex, or without the skill, ask the agent to follow `kit/atalaya-proyecto/
 ```
 
 Atalaya rereads the file by itself. What each level expects to find in the project is in
-`kit/atalaya-proyecto/LEEME.md`.
+`kit/atalaya-proyecto/README.md`.
 
 ## 5. Connect the agents over MCP
 

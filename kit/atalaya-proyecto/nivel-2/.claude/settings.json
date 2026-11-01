@@ -8,7 +8,7 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/sin-heredoc.mjs\"",
             "timeout": 10,
-            "statusMessage": "Revisando la orden (freno de heredoc y sed -i)"
+            "statusMessage": "Checking the command (heredoc and sed -i brake)"
           }
         ]
       }

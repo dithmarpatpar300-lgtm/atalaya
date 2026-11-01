@@ -1,67 +1,67 @@
-# Guía de pruebas · {{PROYECTO}}
+# Testing guide · {{PROYECTO}}
 
-Qué correr y qué trampas ya se pisaron. Este archivo nace con **los principios** que valieron en el proyecto de origen; las órdenes concretas de {{PROYECTO}} las llena el instalador (§2) y el equipo las completa con el uso. Cada regla nueva trae entre paréntesis la entrada del registro de donde salió (`HERRAMIENTAS-registro.md`).
+What to run and which traps have already been stepped on. This file is born with **the principles** that held in the originating project; the concrete commands for {{PROYECTO}} are filled in by the installer (§2) and completed by the team with use. Each new rule carries in parentheses the log entry it came from (`HERRAMIENTAS-registro.md`).
 
-## 1. Barato y caro
+## 1. Cheap and expensive
 
-- **Barato:** {{PRUEBAS_BARATAS}}.
-- **Caro:** {{PRUEBAS_CARAS}}.
-- **Lo caro lo corre una sola vez quien entrega el código** (`PRIORIZACION.md` §2). Al integrar, el coordinador corre la suite completa **de lo barato**, no la cara: esa ya la corrió quien entregó; el codificador corre solo sus paquetes.
-- **Si cambia una regla aprobada,** su prueba se pone al día en el mismo commit, no al preparar una versión.
+- **Cheap:** {{PRUEBAS_BARATAS}}.
+- **Expensive:** {{PRUEBAS_CARAS}}.
+- **The expensive ones are run only once by whoever delivers the code** (`PRIORIZACION.md` §2). When integrating, the coordinator runs the complete suite **of the cheap ones**, not the expensive one: whoever delivered already ran it; the coder runs only their own packages.
+- **If an approved rule changes,** its test is brought up to date in the same commit, not when preparing a release.
 
-## 2. Las baterías de este proyecto
+## 2. This project's test suites
 
-| Batería | Orden | Dura | Notas |
+| Suite | Command | Takes | Notes |
 | --- | --- | --- | --- |
 | {{NOMBRE_DE_LA_BATERIA}} | {{ORDEN}} | {{DURACION}} | |
 
-**Cada batería corre sola:** ningún agente trabajando, ninguna otra carga, y dos baterías nunca juntas. Una prueba que falla en la batería y pasa sola se repite primero con la máquina libre y con varias repeticiones, antes de abrir un diagnóstico.
+**Each suite runs alone:** no agent working, no other load, and two suites never together. A test that fails in the suite and passes alone is repeated first with the machine idle and with several repetitions, before opening a diagnosis.
 
-## 3. Mutaciones
+## 3. Mutations
 
-Se rompe el código a propósito y alguna prueba debe fallar; si «sobrevive», la prueba no sirve. Solo para pruebas nuevas de riesgo medio o más, una pasada.
+The code is broken on purpose and some test must fail; if it "survives", the test is useless. Only for new tests of medium risk or more, one pass.
 
-1. **Nunca en el repositorio:** en una copia en la carpeta de trabajo (o con la facilidad de superposición del lenguaje, si la hay). Siempre una **mutación de control que debe morir**.
-2. **Comprobar que el build mutado se compiló.** Si la mutación rompe los tipos, la compilación falla, queda la salida buena de antes y la prueba «pasa» con el código sin mutar. Tras mutar, la compilación debe terminar sin error antes de correr la prueba.
-3. **Tras un corte a medias, recompilar:** la salida de compilación puede seguir compilada con la mutación.
-4. **El programa que corre las pruebas y cuenta mutantes** decodifica la salida en UTF-8, corre antes la **línea base sin mutar**, y cuenta también las pruebas **canceladas** (un mutante que cuelga está muerto, pero se dice que murió por tiempo).
-5. **Una mutación con una sola de dos defensas sobrevive con razón:** se mutan las dos juntas y se anota que cada una por separado es equivalente.
+1. **Never in the repository:** in a copy in the working folder (or with the language's overlay facility, if there is one). Always one **control mutation that must die**.
+2. **Check that the mutated build was compiled.** If the mutation breaks the types, the build fails, the earlier good output stays and the test "passes" with the unmutated code. After mutating, the build must finish without error before running the test.
+3. **After a cut-off halfway, recompile:** the build output may still be compiled with the mutation.
+4. **The program that runs the tests and counts mutants** decodes the output as UTF-8, runs the **unmutated baseline** first, and also counts the **cancelled** tests (a mutant that hangs is dead, but it is reported as having died by timeout).
+5. **A mutation with only one of two defenses survives for good reason:** mutate both together and note that each one separately is equivalent.
 
-## 4. Capturas
+## 4. Screenshots
 
-- Las capturas se hacen solo si cambia lo que se ve, y solo las que el dueño o el auditor necesitan mirar.
-- Una variable que pide «una carpeta de capturas» es una carpeta, no un interruptor.
-- Con la batería completa, las capturas de todas las fases se reescriben: solo con el filtro de los pasos propios, y antes de entregar `git status` sobre `capturas/` no muestra archivos ajenos.
+- Screenshots are taken only if what is seen changes, and only those that the owner or the auditor need to look at.
+- A variable that asks for "a screenshots folder" is a folder, not a switch.
+- With the complete suite, the screenshots of all phases get rewritten: use only the filter for your own steps, and before delivering, `git status` on `capturas/` shows no files that belong to others.
 
-## 5. Servidores simulados y semillas
+## 5. Mock servers and seeds
 
-- Los simulados son todo ficticio y escuchan solo en `127.0.0.1`, en puertos altos libres.
-- **Antes de sembrar un dato** en un simulado, se busca (Grep) si un paso viejo lo usa: si no, un paso viejo que lo teclea como «nuevo» empieza a decir «ya existe».
-- **Ruta nueva que consulta la interfaz:** se suma al simulado, o responde 404 y la batería anota «errores de consola que el paso no esperaba».
-- Las limpiezas de pruebas borran **por valor exacto, nunca por patrón**, y se cuenta después.
+- Mocks are entirely fictional and listen only on `127.0.0.1`, on free high ports.
+- **Before seeding a record** in a mock, search (Grep) whether an old step uses it: if not, an old step that types it as "new" starts saying "already exists".
+- **New route that the interface queries:** add it to the mock, or it answers 404 and the suite notes "console errors that the step did not expect".
+- Test cleanups delete **by exact value, never by pattern**, and count afterwards.
 
-## 6. Trampas del navegador (si el proyecto tiene interfaz web)
+## 6. Browser traps (if the project has a web interface)
 
-- **La primera tecla se pierde** si llega antes de hidratar: las esperas reintentan la acción, no solo la comprobación.
-- **Los avisos tapan clics:** un aviso entra después de montarse y empuja lo de abajo. Antes de un clic en una tabla, cerrar los avisos.
-- **Un clic que reintenta esconde un clic perdido.** Para un clic que debe caer en lo que se ve ahora: medir y hacer clic sin reintento, con una pausa entre pulsar y soltar.
-- **El diálogo abierto es `dialog[open]`,** no el primer `<dialog>`.
-- Lo que se lee del DOM no vuelve como se escribió (`outline: 3px solid …` → `rgb(…) solid 3px`): se compara por partes. Dentro de un contenedor escalado, las medidas salen escaladas.
+- **The first key is lost** if it arrives before hydration: the waits retry the action, not just the check.
+- **Notices cover clicks:** a notice enters after mounting and pushes down what is below. Before a click in a table, close the notices.
+- **A click that retries hides a lost click.** For a click that must land on what is visible now: measure and click without retry, with a pause between press and release.
+- **The open dialog is `dialog[open]`,** not the first `<dialog>`.
+- What is read from the DOM does not come back as it was written (`outline: 3px solid …` → `rgb(…) solid 3px`): compare it by parts. Inside a scaled container, the measurements come out scaled.
 
-## 7. Trampas de la base de datos (si la hay)
+## 7. Database traps (if there is one)
 
-- **Una base de pruebas vieja guarda lo que el código retiró.** Si una prueba de catálogo falla en una PC y no en otra, se busca el nombre en el historial de git.
-- **Tabla nueva con clave foránea:** se suma a los `TRUNCATE` de las pruebas de carga.
-- **Candados:** para ver quién espera, se mira la vista de bloqueos, no la de actividad.
-- **El clúster temporal** se crea con mensajes en un idioma fijo (`C`), porque toma el de Windows y una prueba que busca el texto de un error falla.
+- **An old test database keeps what the code retired.** If a catalog test fails on one PC and not on another, search for the name in the git history.
+- **New table with a foreign key:** add it to the `TRUNCATE` of the load tests.
+- **Locks:** to see who is waiting, look at the locks view, not the activity view.
+- **The temporary cluster** is created with messages in a fixed language (`C`), because it takes the Windows one and a test that looks for the text of an error fails.
 
-## 8. «Una prueba que no corrió no pasó»
+## 8. "A test that did not run did not pass"
 
-**Cero pruebas corridas es un fallo del filtro, no un «todo bien».** Tras cada corrida con filtro, se mira cuántas corrieron.
+**Zero tests run is a filter failure, not an "all good".** After each run with a filter, check how many ran.
 
-1. **El filtro se copia con sus tildes.**
-2. **Un `.ps1` escrito con la herramienta de archivos es UTF-8 sin BOM** y PowerShell 5.1 lo lee como ANSI: un filtro con caracteres no ASCII corre 0 pasos sin avisar. Dentro del `.ps1`, lo no ASCII como `[char]0x00B7`; y se revisa la sintaxis antes de correrlo.
-3. **Antes de fiarse de un 0,** se comprueba que el detector encuentra algo que se sabe que existe. No se tira a `/dev/null` la salida de lo que se leerá después.
-4. **Sin la variable que activa las pruebas con base,** «ok» puede significar «saltadas». Se cuentan las saltadas.
-5. **Caracteres invisibles o ambiguos** en una prueba (U+0301, U+00A0, U+2028): van como escape.
-6. **Un resultado declarado** (un `verificacion.json`, una captura de otro rol) **no es una prueba que acabas de correr.**
+1. **The filter is copied with its accents.**
+2. **A `.ps1` written with the file tool is UTF-8 without BOM** and PowerShell 5.1 reads it as ANSI: a filter with non-ASCII characters runs 0 steps without warning. Inside the `.ps1`, write the non-ASCII as `[char]0x00B7`; and check the syntax before running it.
+3. **Before trusting a 0,** check that the detector finds something known to exist. Do not throw to `/dev/null` the output of what will be read afterwards.
+4. **Without the variable that enables the database tests,** "ok" can mean "skipped". Count the skipped ones.
+5. **Invisible or ambiguous characters** in a test (U+0301, U+00A0, U+2028): they go as an escape.
+6. **A declared result** (a `verificacion.json`, a screenshot from another role) **is not a test you just ran.**

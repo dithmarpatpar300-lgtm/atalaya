@@ -3,10 +3,41 @@ package avance
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestMarcasEnInglesYMezcladas(t *testing.T) {
+	espanol := "Avance: 50 % — trabajando\nPlan: docs/plan.md\n\n" +
+		"| Paquete | Qué | Horas | Estado | % | Evidencia |\n|---|---|---|---|---|---|\n" +
+		"| A | uno | 1 | hecho | 100 | a.md |\n| B | dos | 1 | hecho | 100 | b.md |\n" +
+		"| C | tres | 1 | hecho | 100 | c.md |\n| D | cuatro | 1 | en curso | 50 | d.md |\n" +
+		"| E | cinco | 1 | en curso | 50 | e.md |\n| F | seis | 1 | sin empezar | 0 | f.md |\n" +
+		"| G | siete | 1 | sin empezar | 0 | g.md |\n| H | ocho | 1 | sin empezar | 0 | h.md |\n" +
+		"- 10:00 · trabajando\n"
+	ingles := strings.NewReplacer("Avance:", "Progress:", "Paquete", "PACKAGE", "Qué", "What", "Horas", "Hours", "Estado", "Status", "Evidencia", "Evidence").Replace(espanol)
+	mezclado := ingles
+	for _, par := range [][2]string{{"hecho", "DONE"}, {"hecho", "Complete"}, {"hecho", "Completed"}, {"en curso", "In Progress"}, {"en curso", "Ongoing"}, {"sin empezar", "Not Started"}, {"sin empezar", "Pending"}, {"sin empezar", "Todo"}} {
+		ingles = strings.Replace(ingles, par[0], par[1], 1)
+	}
+	quiere := Parsear(espanol, "F1", "x")
+	for nombre, texto := range map[string]string{"inglés": ingles, "mezclado": mezclado} {
+		f := Parsear(texto, "F1", "x")
+		if !reflect.DeepEqual(f, quiere) {
+			t.Errorf("%s: %+v; se esperaba %+v", nombre, f, quiere)
+		}
+	}
+}
+
+func TestEstadosInglesConPrefijo(t *testing.T) {
+	for texto, quiere := range map[string]string{"done · listo": Hecho, "completed · listo": Hecho, "in progress · hoy": EnCurso, "ongoing · hoy": EnCurso, "not started · aún": SinEmpezar, "pending · aún": SinEmpezar, "todo": SinEmpezar, "to do": SinEmpezar, "todo hecho": "todo hecho"} {
+		if got := normalizarEstado(texto); got != quiere {
+			t.Errorf("%q: %q, se esperaba %q", texto, got, quiere)
+		}
+	}
+}
 
 // Una fase inventada de Tienda Demo con horas y porcentajes para comprobar el cálculo.
 const fase5 = "Avance: 83 % — T1b: pruebas de inventario\r\n" +

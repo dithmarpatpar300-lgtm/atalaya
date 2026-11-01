@@ -724,10 +724,11 @@ func (a *archivo) agregar(p *Paso) {
 
 var (
 	// La línea «Asignación» termina en el cierre de la negrita («…».**) o en el fin de línea; lo que sigue en la
-	// misma línea («Si vas a pasarte…») no es parte de ella.
-	reAsignacion  = regexp.MustCompile(`(?m)^\*{0,2}Asignación:\s*(.+?)(?:\*\*|$)`)
-	reClase       = regexp.MustCompile(`(?i)\bclase\s+([A-Z]\d?)\b`)
-	rePresupuesto = regexp.MustCompile(`(?i)presupuesto\s+([^·*\n]+)`)
+	// misma línea («Si vas a pasarte…») no es parte de ella. El kit en inglés la escribe «Assignment:», con sus campos
+	// en inglés (level, class, role, model, budget, base, quota).
+	reAsignacion  = regexp.MustCompile(`(?m)^\*{0,2}(?:Asignación|Assignment):\s*(.+?)(?:\*\*|$)`)
+	reClase       = regexp.MustCompile(`(?i)\b(?:clase|class)\s+([A-Z]\d?)\b`)
+	rePresupuesto = regexp.MustCompile(`(?i)(?:presupuesto|budget)\s+([^·*\n]+)`)
 	reBase        = regexp.MustCompile("(?i)\\bbase\\s+([^·*\\n]+)")
 	reBitacora    = regexp.MustCompile(`docs/trazabilidad/[\w.-]+/avance/[\w.-]+\.md`)
 	reBitacoraRel = regexp.MustCompile(`\bavance/([\w.-]+\.md)`)
@@ -742,27 +743,40 @@ var (
 )
 
 // partirAsignacion lee «nivel enfocado · clase I1 (…) · rol codificador · sonnet/medium · presupuesto 30 min ·
-// base … · cuota: Claude normal 4 %/11 % · Codex normal». La cuota va al final y puede llevar « · » propios.
+// base … · cuota: Claude normal 4 %/11 % · Codex normal». La cuota va al final y puede llevar « · » propios. En inglés:
+// «level focused · class I1 · role coder · model sonnet/medium · budget 30 min · base … · quota: …».
 func partirAsignacion(ag *Agente, asig string) {
 	partes := strings.Split(asig, " · ")
 	for i, p := range partes {
 		p = strings.TrimSpace(p)
-		switch {
-		case strings.HasPrefix(p, "nivel "):
-			ag.Nivel = strings.TrimSpace(strings.TrimPrefix(p, "nivel "))
-		case strings.HasPrefix(p, "clase "):
-			ag.ClaseDetalle = strings.TrimSpace(strings.TrimPrefix(p, "clase "))
-		case strings.HasPrefix(p, "rol "):
-			ag.RolAsignado = strings.TrimSpace(strings.TrimPrefix(p, "rol "))
-		case strings.HasPrefix(p, "cuota:"), strings.HasPrefix(p, "cuota "):
+		if v, ok := tras(p, "nivel", "level"); ok {
+			ag.Nivel = v
+		} else if v, ok := tras(p, "clase", "class"); ok {
+			ag.ClaseDetalle = v
+		} else if v, ok := tras(p, "rol", "role"); ok {
+			ag.RolAsignado = v
+		} else if v, ok := tras(p, "cuota", "quota"); ok {
 			// Una plantilla puede escribir «cuota Codex normal · Claude normal (…)», sin los dos puntos.
-			resto := append([]string{strings.TrimSpace(p[len("cuota "):])}, partes[i+1:]...)
+			resto := append([]string{v}, partes[i+1:]...)
 			ag.Cuota = strings.TrimRight(strings.Join(resto, " · "), ". ")
 			return
-		case reModelo.MatchString(p):
+		} else if v, ok := tras(p, "modelo", "model"); ok && reModelo.MatchString(v) {
+			// «modelo opus/high»: con su nombre delante, como lo escribe el coordinador.
+			ag.ModeloAsignado = v
+		} else if reModelo.MatchString(p) {
 			ag.ModeloAsignado = p
 		}
 	}
+}
+
+// tras: lo que sigue a uno de los nombres de campo («nivel enfocado», «cuota: …»), sin el nombre ni los dos puntos.
+func tras(p string, nombres ...string) (string, bool) {
+	for _, n := range nombres {
+		if resto, ok := strings.CutPrefix(p, n); ok && (strings.HasPrefix(resto, " ") || strings.HasPrefix(resto, ":")) {
+			return strings.TrimSpace(strings.TrimPrefix(resto, ":")), true
+		}
+	}
+	return "", false
 }
 
 // nombrados: los archivos que el encargo nombra entre comillas invertidas, por su nombre, sin repetir.

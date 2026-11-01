@@ -1,30 +1,30 @@
-# Centro de operaciones · {{PROYECTO}}
+# Operations center · {{PROYECTO}}
 
-Aquí está **cómo se trabaja** en este proyecto. Las reglas están en **`AGENTS.md`**, en la raíz: es su única copia y se carga sola en cada sesión. Esta carpeta guarda el detalle que esas reglas enlazan.
+This is **how work is done** in this project. The rules are in **`AGENTS.md`**, at the root: it is their only copy and it loads by itself in every session. This folder keeps the detail that those rules link to.
 
-- **Qué se construye:** {{ESPECIFICACION}}.
-- **Dónde quedó el trabajo:** `docs/trazabilidad/ESTADO-para-retomar.md`.
+- **What is being built:** {{ESPECIFICACION}}.
+- **Where the work stands:** `docs/trazabilidad/ESTADO-para-retomar.md`.
 
-## Los archivos
+## The files
 
-| Archivo | Para qué | Quién lo lee |
+| File | What for | Who reads it |
 | --- | --- | --- |
-| `HERRAMIENTAS.md` | Qué funciona y qué falla en este equipo, por herramienta, con la orden que sirve; el ciclo de los temporales (§3) | Todo agente al empezar; el coordinador |
-| `HERRAMIENTAS-registro.md` | La historia: una línea por cada fallo de herramienta, por cada uso de una skill que enseñó algo y por cada agente lanzado | Quien anota; el coordinador al cerrar una sub-etapa |
-| `PRIORIZACION.md` | Esfuerzo proporcional: nivel del encargo (riesgo × tamaño), pruebas caras una sola vez, hallazgos por gravedad × costo | El coordinador al encargar; el auditor |
-| `AGENTES.md` | Política de agentes: clases de tareas, matriz clase → rol → modelo y effort, escalamiento y desescalamiento, auditoría, paralelismo, contexto por agente y medición | El coordinador antes de lanzar cualquier agente |
-| `ENCARGO-PLANTILLA.md` | La parte variable de cada encargo (el bloque fijo está en `.claude/agents/`) | El coordinador |
-| `SKILLS.md` | Skills, plugins y herramientas que existen de verdad: cuándo sí y cuándo no | El coordinador; un agente si su encargo lo pide |
-| `pruebas.md` | Cómo se prueba: baterías, topes, mutaciones, capturas, simulados y trampas conocidas | Codificador, auditor y ensayador |
-| `version-y-kit.md` | (opcional) El paso a paso de una versión: compilar, kit, ensayo, entrega y cierre | El coordinador y el ensayador |
+| `HERRAMIENTAS.md` | What works and what fails on this machine, tool by tool, with the command that works; the cycle of scratch files (§3) | Every agent at the start; the coordinator |
+| `HERRAMIENTAS-registro.md` | The history: one line for each tool failure, for each use of a skill that taught something and for each agent launched | Whoever notes it; the coordinator when closing a sub-stage |
+| `PRIORIZACION.md` | Proportional effort: level of the brief (risk × size), expensive tests only once, findings by severity × cost | The coordinator when assigning; the auditor |
+| `AGENTES.md` | Agent policy: task classes, class → role → model and effort matrix, escalation and de-escalation, audit, parallelism, context per agent and measurement | The coordinator before launching any agent |
+| `ENCARGO-PLANTILLA.md` | The variable part of each brief (the fixed block is in `.claude/agents/`) | The coordinator |
+| `SKILLS.md` | Skills, plugins and tools that really exist: when yes and when no | The coordinator; an agent if its brief asks for it |
+| `pruebas.md` | How testing is done: test suites, caps, mutations, screenshots, mocks and known traps | Coder, auditor and tester |
+| `version-y-kit.md` | (optional) The step-by-step of a release: build, kit, test run, delivery and close-out | The coordinator and the tester |
 
-**Los roles del enjambre** están en `.claude/agents/` (`ejecutor`, `codificador`, `depurador`, `arquitecto`, `auditor`, `ensayador`), cada uno con su modelo y su effort por omisión (`AGENTES.md` §3).
+**The swarm's roles** are in `.claude/agents/` (`ejecutor`, `codificador`, `depurador`, `arquitecto`, `auditor`, `ensayador`), each with its default model and effort (`AGENTES.md` §3).
 
-**Las plantillas** (el acta de temporales) están en `docs/trazabilidad/_plantillas/`.
+**The templates** (the scratch-files record) are in `docs/trazabilidad/_plantillas/`.
 
-## Cómo se mantiene
+## How it is maintained
 
-- **Una regla se cambia en su único lugar.** Si es general, en `AGENTS.md`; si es de una herramienta, en `HERRAMIENTAS.md`. Nunca se copia a otro archivo: se enlaza.
-- **Cada fallo de herramienta** deja una línea en `HERRAMIENTAS-registro.md`. Al cerrar una sub-etapa, el coordinador convierte en regla lo que se repite.
-- **Topes de tamaño,** para que nadie lea a medias: `HERRAMIENTAS.md` unos 20 KB; `SKILLS.md` unos 8 KB; `AGENTES.md` unos 28 KB (lo lee el coordinador, no cada agente); el estado para retomar unos 6 KB. Lo que crece sin parar va a un registro o a la historia.
-- **Lo viejo no se borra:** va a `docs/archivo/`.
+- **A rule is changed in its single place.** If it is general, in `AGENTS.md`; if it belongs to a tool, in `HERRAMIENTAS.md`. It is never copied to another file: it is linked.
+- **Every tool failure** leaves a line in `HERRAMIENTAS-registro.md`. When closing a sub-stage, the coordinator turns what repeats into a rule.
+- **Size caps,** so that nobody reads halfway: `HERRAMIENTAS.md` about 20 KB; `SKILLS.md` about 8 KB; `AGENTES.md` about 28 KB (the coordinator reads it, not each agent); the status to resume about 6 KB. What grows without stopping goes to a log or to the history.
+- **Old material is not deleted:** it goes to `docs/archivo/`.

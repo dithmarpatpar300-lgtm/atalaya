@@ -157,6 +157,29 @@ func TestPartirAsignacionReal(t *testing.T) {
 	}
 }
 
+// El kit en inglés escribe la línea y sus campos en inglés; el coordinador puede nombrar el modelo («modelo opus/high»).
+func TestAsignacionEnInglesYModeloNombrado(t *testing.T) {
+	ag := &Agente{}
+	leerAsignacion(ag, "**Assignment: level focused · class I2 · role designer · model opus/high · budget 30 min · base `main` at `abc123` · quota: Claude normal**\nBuild the view.")
+	if ag.Nivel != "focused" || ag.ClaseDetalle != "I2" || ag.Clase != "I2" || ag.RolAsignado != "designer" || ag.ModeloAsignado != "opus/high" {
+		t.Errorf("campos: %+v", ag)
+	}
+	if ag.Presupuesto != "30 min" || ag.Cuota != "Claude normal" {
+		t.Errorf("presupuesto %q, cuota %q", ag.Presupuesto, ag.Cuota)
+	}
+	es := &Agente{}
+	partirAsignacion(es, "nivel enfocado · clase I2 · rol diseñador · modelo opus/high · presupuesto 30 min")
+	if es.ModeloAsignado != "opus/high" || es.RolAsignado != "diseñador" {
+		t.Errorf("modelo nombrado: %+v", es)
+	}
+	// «rolling» no es el campo «rol».
+	otro := &Agente{}
+	partirAsignacion(otro, "rolling update · clase V")
+	if otro.RolAsignado != "" || otro.ClaseDetalle != "V" {
+		t.Errorf("prefijo suelto: %+v", otro)
+	}
+}
+
 // Tienda Demo deja el encargo en un archivo y el prompt solo apunta a él: la asignación sale del Read de ese archivo.
 func TestEncargoEnArchivo(t *testing.T) {
 	puntero := "Lee tu encargo completo en `C:\\Users\\usuario\\AppData\\Local\\Temp\\scratchpad\\encargo-medidor-t1b-mem.md` y síguelo. Es el encargo del coordinador; empieza por su línea de asignación."

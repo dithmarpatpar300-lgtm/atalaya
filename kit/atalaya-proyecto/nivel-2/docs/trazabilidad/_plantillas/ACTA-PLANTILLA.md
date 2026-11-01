@@ -1,32 +1,32 @@
-# Acta de temporales · [tema]
+# Scratch-files record · [topic]
 
-[aaaa-mm-dd]. [Rol] en [herramienta]. Regla: `docs/operacion/HERRAMIENTAS.md` §3.
+[yyyy-mm-dd]. [Role] in [tool]. Rule: `docs/operacion/HERRAMIENTAS.md` §3.
 
-**Motivo:** [para qué se creó lo temporal].
-**Base:** `{{RAMA_TRABAJO}}` en `[hash]`. [Sin git: «sin git», y la fecha y hora de la copia de la que se partió.]
+**Reason:** [what the scratch files were created for].
+**Base:** `{{RAMA_TRABAJO}}` at `[hash]`. [Without git: "no git", and the date and time of the copy it started from.]
 
-## Lo que se creó
+## What was created
 
-- [Carpeta temporal con su ruta literal.]
-- [Procesos, puertos, bases, clústeres o worktrees. Si no hubo: «Ningún proceso, puerto, base ni worktree».]
+- [Scratch folder with its literal path.]
+- [Processes, ports, databases, clusters or worktrees. If there were none: "No process, port, database or worktree".]
 
-## Lo que se hizo y se corrió
+## What was done and run
 
-| Paso | Resultado |
+| Step | Result |
 | --- | --- |
-| [Orden o prueba, sin secretos] | [Cifras: conteos, tiempos, pasó o falló. No la salida entera] |
+| [Command or test, without secrets] | [Figures: counts, times, passed or failed. Not the whole output] |
 
-## Lo que sobrevive y adónde pasó
+## What survives and where it went
 
-- [Informe, `deploy/`, `scripts/`, memoria. Si nada: «Nada; todo se destruye».]
+- [Report, `deploy/`, `scripts/`, memory. If nothing: "Nothing; everything is destroyed".]
 
-## Lo que falló o enseñó
+## What failed or taught something
 
-- [Una línea por fallo de herramienta; la misma línea va a `docs/operacion/HERRAMIENTAS-registro.md`. Si no hubo: «Ningún fallo».]
+- [One line per tool failure; the same line goes to `docs/operacion/HERRAMIENTAS-registro.md`. If there were none: "No failures".]
 
-## Lo que no se verificó
+## What was not verified
 
-- [Honesto y concreto.]
+- [Honest and concrete.]
 
-Borrado confirmado: [aaaa-mm-dd hh:mm, hora de `Get-Date` o `date`] · carpeta ausente · 0 procesos · 0 puertos
-[Si no se llegó a crear nada temporal: «Sin temporales: no hubo nada que borrar», con la hora.]
+Deletion confirmed: [yyyy-mm-dd hh:mm, time from `Get-Date` or `date`] · folder absent · 0 processes · 0 ports
+[If nothing temporary was ever created: "No scratch files: there was nothing to delete", with the time.]

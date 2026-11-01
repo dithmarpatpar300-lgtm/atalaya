@@ -121,7 +121,7 @@ func miradaAntes(pasos []*Paso, i int) Mirada {
 // lineaAsignacion: la línea con contenido (contando desde 1) que empieza con «Asignación:».
 func lineaAsignacion(encargo string) int {
 	// Sin la línea, nada que contar; con ella, se recorre sin partir el encargo entero (se para en la línea).
-	if !strings.Contains(encargo, "Asignación:") {
+	if !strings.Contains(encargo, "Asignación:") && !strings.Contains(encargo, "Assignment:") {
 		return 0
 	}
 	n := 0
@@ -132,7 +132,7 @@ func lineaAsignacion(encargo string) int {
 		}
 		n++
 		// El filtro antes de la expresión: sin él, cada línea de cada encargo pasaba por ella en cada pedido.
-		if strings.Contains(l, "Asignación:") && reAsignacion.MatchString(l) {
+		if (strings.Contains(l, "Asignación:") || strings.Contains(l, "Assignment:")) && reAsignacion.MatchString(l) {
 			return n
 		}
 	}

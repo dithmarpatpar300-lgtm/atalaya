@@ -1,56 +1,56 @@
-# Skills, plugins y apoyos · {{PROYECTO}}
+# Skills, plugins and aids · {{PROYECTO}}
 
-Qué apoyos existen **de verdad** en este equipo, cuándo valen la pena y cuándo no.
+Which aids **really** exist on this machine, when they are worth it and when they are not.
 
-- **Los nombres exactos** son los de la lista de skills de la sesión: no se adivinan. Si un nombre de aquí no aparece en la lista, se dice y no se usa.
-- **El registro de usos** (qué sirvió y qué no) está en `HERRAMIENTAS-registro.md`, parte 2.
-- **Este archivo nace casi vacío a propósito:** cada equipo tiene plugins distintos. El instalador lo llena con lo que la sesión de {{DUENO}} realmente ofrece, y no antes.
+- **The exact names** are those on the session's skill list: they are not guessed. If a name here does not appear on the list, say so and do not use it.
+- **The usage log** (what helped and what did not) is in `HERRAMIENTAS-registro.md`, part 2.
+- **This file is born almost empty on purpose:** every team has different plugins. The installer fills it with what {{DUENO}}'s session really offers, and not before.
 
-## 1. Cómo decidir
+## 1. How to decide
 
-1. **¿La tarea cae en alguna fila de abajo?** Si no, no se usa ninguna.
-2. **¿El beneficio compensa el costo?** Una skill carga sus instrucciones en el contexto (de cientos a miles de tokens). Para una comprobación de una línea no compensa.
-3. **Se anota la decisión** en el informe («se usó X porque…» o «ninguna, porque…»). Si enseñó algo, va una línea en el registro.
+1. **Does the task fall in any row below?** If not, none is used.
+2. **Does the benefit outweigh the cost?** A skill loads its instructions into the context (from hundreds to thousands of tokens). For a one-line check it does not pay off.
+3. **The decision is noted** in the report ("X was used because…" or "none, because…"). If it taught something, a line goes in the log.
 
-**Quién invoca una skill:** el coordinador, siempre; un agente, si tiene la herramienta `Skill` y la skill aparece en su lista. Si no, lo dice en su informe y el coordinador la ejecuta sobre su entrega.
+**Who invokes a skill:** the coordinator, always; an agent, if it has the `Skill` tool and the skill appears on its list. If not, it says so in its report and the coordinator runs it on its delivery.
 
-**Buscar skills nuevas** (solo cuando una tarea no cae en ninguna fila): con las palabras de la tarea y de la pila real, no con búsquedas genéricas. Filtro de calidad: más de 1 000 instalaciones, una fuente conocida y un repositorio con más de 100 estrellas; lo demás, con desconfianza. **Que no choque:** si hace lo mismo que una que ya hay, no se propone; no puede contradecir `AGENTS.md` §4. **Nadie instala nada sin el sí de {{DUENO}}**, y un agente nunca instala. Cada búsqueda deja una línea en el registro, también cuando no encontró nada útil.
+**Looking for new skills** (only when a task falls in no row): with the words of the task and of the real stack, not with generic searches. Quality filter: more than 1,000 installs, a known source and a repository with more than 100 stars; anything else, with distrust. **It must not clash:** if it does the same as one already there, it is not proposed; it cannot contradict `AGENTS.md` §4. **Nobody installs anything without {{DUENO}}'s yes**, and an agent never installs. Every search leaves a line in the log, also when it found nothing useful.
 
-## 2. Críticas (se usan siempre)
+## 2. Critical (always used)
 
-| Apoyo | Para qué | Cuidado |
+| Aid | What for | Caution |
 | --- | --- | --- |
-| Read, Edit, Write, Grep, Glob | Leer, cambiar y buscar | Reglas en `HERRAMIENTAS.md` §2 |
-| Bash y la consola del equipo | Órdenes, guiones, git | `HERRAMIENTAS.md` §4 y §5 |
-| Agentes (`.claude/agents/`, `Explore`, `general-purpose`) | El enjambre por rol y las búsquedas amplias | Solo para lo grande y paralelizable (`PRIORIZACION.md` §0) |
-| Monitor | Esperar un archivo de fin sin `sleep` largo | `HERRAMIENTAS.md` §6 |
-| El hook `sin-heredoc.mjs` | Frena el heredoc y el `sed -i` en Bash | Solo en Claude Code y con la sesión abierta en el repositorio |
-| Memoria del proyecto y `AGENTS.md` | Continuidad entre sesiones y reglas | `AGENTS.md` §5 |
+| Read, Edit, Write, Grep, Glob | Reading, changing and searching | Rules in `HERRAMIENTAS.md` §2 |
+| Bash and the machine's console | Commands, scripts, git | `HERRAMIENTAS.md` §4 and §5 |
+| Agents (`.claude/agents/`, `Explore`, `general-purpose`) | The swarm by role and wide searches | Only for what is big and parallelizable (`PRIORIZACION.md` §0) |
+| Monitor | Waiting for an end file without a long `sleep` | `HERRAMIENTAS.md` §6 |
+| The `sin-heredoc.mjs` hook | Stops heredoc and `sed -i` in Bash | Only in Claude Code and with the session open in the repository |
+| Project memory and `AGENTS.md` | Continuity between sessions, and rules | `AGENTS.md` §5 |
 
-## 3. Muy recomendadas (si existen en la sesión)
+## 3. Highly recommended (if they exist in the session)
 
-| Apoyo | Úsalo cuando | No lo uses para |
+| Aid | Use it when | Do not use it for |
 | --- | --- | --- |
-| `code-review`, `security-review` | Al cerrar una versión; cambios en sesión, permisos, cifrado o datos protegidos | Cambios solo de aspecto o de documentos |
-| `superpowers:verification-before-completion` | Antes de dar algo por hecho | — |
-| Skills de revisión de migraciones o de esquema | Un cambio de esquema nuevo | Migraciones ya aplicadas, que no se editan |
-| `gh` (en la consola) | Consultar el remoto y el estado de las ramas | Publicar en `{{RAMA_PRODUCCION}}` sin el sí de {{DUENO}} |
+| `code-review`, `security-review` | When closing a release; changes to session, permissions, encryption or protected data | Appearance-only or document-only changes |
+| `superpowers:verification-before-completion` | Before calling something done | — |
+| Migration or schema review skills | A new schema change | Migrations already applied, which are not edited |
+| `gh` (in the console) | Querying the remote and the state of branches | Publishing to `{{RAMA_PRODUCCION}}` without {{DUENO}}'s yes |
 
-## 4. Útiles en casos específicos
+## 4. Useful in specific cases
 
-| Apoyo | Úsalo cuando | Cuidado |
+| Aid | Use it when | Caution |
 | --- | --- | --- |
-| Skills de diseño y accesibilidad | Pantallas nuevas, maquetas, textos de avisos | La identidad aprobada manda |
-| Skills de depuración y estrategia de pruebas | Un fallo que no se reproduce a la primera; decidir qué se prueba | Errores con mensaje claro |
-| Skills de arquitectura | Una pieza nueva con decisiones de datos o de límites | Lo ya decidido en la especificación |
-| `simplify` | Tras una ronda de correcciones | Buscar defectos: no los busca |
-| `update-config` | Cambiar hooks o permisos de `.claude/settings.json` | Solo con el sí de {{DUENO}} |
-| WebSearch y WebFetch | Fuentes externas | Sitios que responden 403/418: `curl` (`HERRAMIENTAS.md` §10) |
+| Design and accessibility skills | New screens, mockups, notice texts | The approved identity rules |
+| Debugging and testing-strategy skills | A failure that does not reproduce the first time; deciding what to test | Errors with a clear message |
+| Architecture skills | A new piece with data or boundary decisions | What is already decided in the specification |
+| `simplify` | After a round of fixes | Finding defects: it does not look for them |
+| `update-config` | Changing hooks or permissions of `.claude/settings.json` | Only with {{DUENO}}'s yes |
+| WebSearch and WebFetch | External sources | Sites that answer 403/418: `curl` (`HERRAMIENTAS.md` §10) |
 
-## 5. No aplican a este proyecto
+## 5. Do not apply to this project
 
-[Lista de plugins y conectores que el equipo tiene pero este proyecto no usa. El instalador la escribe al ver la lista real.]
+[List of plugins and connectors that the team has but this project does not use. The installer writes it after seeing the real list.]
 
-## 6. Lo que ya no existe
+## 6. What no longer exists
 
-[Nombres que algún documento viejo menciona y que ya no están. Vacío al instalar.]
+[Names that some old document mentions and that are no longer there. Empty at install time.]

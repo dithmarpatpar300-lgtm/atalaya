@@ -269,6 +269,7 @@ func (s *Servidor) Handler() http.Handler {
 	mux.HandleFunc("GET /api/cuotas", s.cuotas)
 	mux.HandleFunc("GET /api/uso-claude", s.verUsoClaude)
 	mux.HandleFunc("POST /api/uso-claude/leer", s.leerUsoClaude)
+	mux.HandleFunc("POST /api/uso-claude/empujar", s.empujarUsoClaude)
 	mux.HandleFunc("GET /api/proyectos", s.proyectos)
 	mux.HandleFunc("GET /api/agentes", s.agentes)
 	mux.HandleFunc("GET /api/agentes/{id}", s.agente)

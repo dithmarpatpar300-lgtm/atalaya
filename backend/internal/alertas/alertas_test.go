@@ -38,6 +38,18 @@ func TestLeeLasReglasDeAgentsMd(t *testing.T) {
 	}
 }
 
+// El kit en inglés escribe las mismas reglas con sus frases en inglés.
+func TestReglasEnIngles(t *testing.T) {
+	raiz := t.TempDir()
+	texto := "# Project\n\n- One agent only for a large task. **No agent runs longer than 25 minutes**; warn before.\n" +
+		"- Parallel agents: the boundary goes in the brief, and never two on the same file.\n"
+	_ = os.WriteFile(filepath.Join(raiz, "AGENTS.md"), []byte(texto), 0o644)
+	r := Leer(raiz)
+	if r.Tope != 25*time.Minute || r.Lista[0].Fuente != "AGENTS.md:3" || r.Lista[3].Fuente != "AGENTS.md:4" {
+		t.Errorf("reglas en inglés: %v %+v", r.Tope, r.Lista)
+	}
+}
+
 func TestTopeDe(t *testing.T) {
 	r := Reglas{Tope: 30 * time.Minute}
 	for in, want := range map[string]time.Duration{"30 min": 30 * time.Minute, "1 h": time.Hour, "45 minutos": 45 * time.Minute,

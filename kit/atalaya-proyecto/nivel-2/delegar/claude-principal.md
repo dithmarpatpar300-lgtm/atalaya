@@ -1,16 +1,16 @@
-## Claude Code coordina, Codex ayuda
+## Claude Code coordinates, Codex helps
 
-La sesión de Claude Code reparte el trabajo. Antes de lanzar un subagente de Claude, se pregunta si Codex lo puede
-hacer; se lanza con `scripts/codex.ps1`, y su informe y su parche quedan en `docs/trazabilidad/<fase>/codex/`, con una
-línea en su `REGISTRO.md`.
+The Claude Code session assigns the work. Before launching a Claude subagent, ask whether Codex can do it; it is launched
+with `scripts/codex.ps1`, and its report and its patch are kept in `docs/trazabilidad/<phase>/codex/`, with a line in
+its `REGISTRO.md`.
 
-| Va a Codex | Se queda en Claude Code |
+| Goes to Codex | Stays with Claude Code |
 | --- | --- |
-| Buscar y leer: dónde está, quién lo usa, qué cambió | Coordinar, hablar con {{DUENO}} y decidir |
-| Revisar y auditar un cambio, y la segunda opinión | El diseño y la arquitectura |
-| Implementar con la especificación cerrada (`-Escribe`): pruebas, tipos, documentación, una pieza con su contrato escrito | Depurar con hipótesis y la implementación con decisiones abiertas |
-| Repasar textos y comparar documentos | Lo que toca secretos o seguridad |
+| Searching and reading: where it is, who uses it, what changed | Coordinating, talking to {{DUENO}} and deciding |
+| Reviewing and auditing a change, and the second opinion | Design and architecture |
+| Implementing with a closed specification (`-Escribe`): tests, types, documentation, a piece with its contract written | Debugging with hypotheses, and implementation with open decisions |
+| Reviewing texts and comparing documents | Anything that touches secrets or security |
 
-Con `-Escribe`, Codex trabaja en una copia y entrega un parche que **nunca se aplica solo**: el coordinador lo lee, lo
-prueba y lo aplica o lo rechaza, y lo anota en `REGISTRO.md`. Si Codex falla dos veces seguidas en la misma clase de
-tarea, esa tarea vuelve a Claude Code y se anota por qué.
+With `-Escribe`, Codex works on a copy and delivers a patch that is **never applied by itself**: the coordinator reads it,
+tests it and applies or rejects it, and notes it in `REGISTRO.md`. If Codex fails twice in a row on the same class of
+task, that task goes back to Claude Code and the reason is noted.

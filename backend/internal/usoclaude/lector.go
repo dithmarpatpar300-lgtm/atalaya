@@ -23,6 +23,8 @@ type Estado struct {
 	Ventanas      []Ventana `json:"ventanas"`
 	ExtraActivo   bool      `json:"extra_activo"`
 	Historial     []Punto   `json:"historial"`
+	// Fuente: de dónde salió la última lectura: «usage» (claude -p /usage) o «app» (la empujó el mod de Claude Code).
+	Fuente string `json:"fuente,omitempty"`
 }
 
 type Lector struct {
@@ -268,6 +270,7 @@ func (l *Lector) Leer(ctx context.Context, forzada bool) bool {
 		l.estado.Estado = "ok"
 		l.estado.Detalle = ""
 		l.estado.TomadaEn = l.Ahora().Unix()
+		l.estado.Fuente = "usage"
 		l.estado.Ventanas = r.Ventanas
 		l.estado.ExtraActivo = r.Extra
 		f := fila{T: l.estado.TomadaEn, Ventanas: map[string]float64{}, Reinicios: map[string]int64{}}

@@ -12,6 +12,7 @@ func TestLineaAsignacion(t *testing.T) {
 		"\n\nAsignación: nivel ligero":                                           1,
 		"Lee `.claude/agents/codificador.md`.\n\n**Asignación: nivel enfocado**": 2,
 		"Sin asignación aquí.\nNi aquí.":                                         0,
+		"Read AGENTS.md.\n\n**Assignment: level focused · class I1**":            2,
 	}
 	for enc, want := range casos {
 		if got := lineaAsignacion(enc); got != want {

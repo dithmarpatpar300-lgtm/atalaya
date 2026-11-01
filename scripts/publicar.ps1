@@ -11,7 +11,7 @@
   - a generic .mcp.json (the local one names this machine's project).
   Then it checks the copy:
   - the version in backend/internal/servidor/servidor.go is the first one in CHANGELOG.md;
-  - kit/atalaya-proyecto/nivel-2/scripts/codex.ps1 is the same file as scripts/codex.ps1;
+  - kit/atalaya-proyecto/es/nivel-2/scripts/codex.ps1 is the same file as scripts/codex.ps1;
   - no file contains a term from .publicar-excluir.txt (one term per line, case-insensitive). That file stays out
     of git on purpose: it lists the private names that must never reach the public copy.
   Two modes, by what -Destino is:
@@ -104,10 +104,11 @@ $ultima = [regex]::Match($cambios, '(?m)^## (\S+)').Groups[1].Value
 if (-not $version -or $version -ne $ultima) { Fallar "servidor.go says $version and CHANGELOG.md starts with $ultima" }
 Write-Host "== version $version"
 
-# 3. The kit carries the same codex.ps1.
+# 3. The kit carries the same codex.ps1. This repository works in Spanish, so its copy is the Spanish kit's (es/);
+#    the English kit's is its translation.
 $h1 = (Get-FileHash -LiteralPath (Join-Path $raiz 'scripts\codex.ps1')).Hash
-$h2 = (Get-FileHash -LiteralPath (Join-Path $raiz 'kit\atalaya-proyecto\nivel-2\scripts\codex.ps1')).Hash
-if ($h1 -ne $h2) { Fallar 'kit/atalaya-proyecto/nivel-2/scripts/codex.ps1 differs from scripts/codex.ps1: copy it again' }
+$h2 = (Get-FileHash -LiteralPath (Join-Path $raiz 'kit\atalaya-proyecto\es\nivel-2\scripts\codex.ps1')).Hash
+if ($h1 -ne $h2) { Fallar 'kit/atalaya-proyecto/es/nivel-2/scripts/codex.ps1 differs from scripts/codex.ps1: copy it again' }
 
 # 4. Nothing private.
 $excluir = Join-Path $raiz '.publicar-excluir.txt'

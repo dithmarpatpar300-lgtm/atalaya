@@ -1,59 +1,59 @@
-# Plantilla de encargo de agente · {{PROYECTO}}
+# Agent brief template · {{PROYECTO}}
 
-El coordinador redacta cada encargo sobre esta plantilla. El encargo es lo único que el agente sabe de la tarea, así que debe bastarse solo.
+The coordinator writes each brief on this template. The brief is the only thing the agent knows about the task, so it has to stand on its own.
 
-**Los bloques fijos no van aquí.** «Antes de empezar», «Límites», «Bitácora» y «Entrega» viven en el archivo de cada rol, y Claude Code los carga solo al lanzar el agente: `.claude/agents/ejecutor.md`, `codificador.md`, `depurador.md`, `arquitecto.md`, `auditor.md` y `ensayador.md`.
+**The fixed blocks do not go here.** "Before starting", "Limits", "Log" and "Delivery" live in each role's file, and Claude Code loads them by itself when the agent is launched: `.claude/agents/ejecutor.md`, `codificador.md`, `depurador.md`, `arquitecto.md`, `auditor.md` and `ensayador.md`.
 
-Cada archivo trae su modelo y su effort por omisión. El coordinador los cambia en la llamada cuando la matriz de `AGENTES.md` §3 lo pide (por ejemplo, `codificador` con `effort: high` para I2).
+Each file carries its default model and effort. The coordinator changes them in the call when the matrix of `AGENTES.md` §3 asks for it (for example, `codificador` with `effort: high` for I2).
 
-**Para otro rol** (investigador, maquetador, redactor…) se usa `general-purpose` y el encargo empieza con estas dos líneas: «Lee `AGENTS.md` y `docs/operacion/HERRAMIENTAS.md` antes de empezar» y «Sigue los límites y la bitácora de `.claude/agents/codificador.md`». Después van las reglas de esta tarea.
+**For another role** (researcher, mockup designer, writer…) use `general-purpose` and the brief starts with these two lines: "Read `AGENTS.md` and `docs/operacion/HERRAMIENTAS.md` before starting" and "Follow the limits and the log of `.claude/agents/codificador.md`". Then come the rules of this task.
 
 ---
 
-**Asignación: nivel [directo | ligero | enfocado | completo] · clase [M | I1 | I2 | D1-D3 | A | E1 | E2 | V | R1-R3 | U | T1 | T2] · rol [ejecutor | codificador | depurador | arquitecto | auditor | ensayador | Explore | general-purpose] · [modelo]/[effort] · presupuesto [{{TOPE_MIN}} min] · base `{{RAMA_TRABAJO}}` en [hash]**
+**Assignment: level [direct | light | focused | full] · class [M | I1 | I2 | D1-D3 | A | E1 | E2 | V | R1-R3 | U | T1 | T2] · role [ejecutor | codificador | depurador | arquitecto | auditor | ensayador | Explore | general-purpose] · model [model]/[effort] · budget [{{TOPE_MIN}} min] · base `{{RAMA_TRABAJO}}` at [hash]**
 
-Esa línea viene de `PRIORIZACION.md` §1 (el nivel) y de `AGENTES.md` §2 y §3 (la clase, el rol y la configuración).
+That line comes from `PRIORIZACION.md` §1 (the level) and from `AGENTES.md` §2 and §3 (the class, the role and the configuration).
 
-**Presupuesto** (`AGENTES.md` §11), una línea por punto:
-- el problema concreto;
-- el contexto que necesita y el que no;
-- si es en paralelo o qué espera;
-- cómo se verificará.
+**Budget** (`AGENTES.md` §11), one line per point:
+- the concrete problem;
+- the context it needs and the one it does not;
+- whether it runs in parallel or what it waits for;
+- how it will be verified.
 
-[Si el rol no carga en esta sesión, o si las reglas cambiaron desde que se abrió (`AGENTES.md` §1), el encargo empieza con: «Lee `.claude/agents/<rol>.md` y `AGENTS.md` del disco, y síguelos».]
-- **Si te sales de la configuración** del rol, di el porqué en una frase.
-- **Si vas a pasarte del presupuesto,** dilo en la bitácora con lo que falta, en cuanto lo veas.
-- **Si aparece un disparador** de `AGENTES.md` §4, escala en lugar de seguir.
+[If the role does not load in this session, or if the rules changed since it was opened (`AGENTES.md` §1), the brief starts with: "Read `.claude/agents/<role>.md` and `AGENTS.md` from disk, and follow them".]
+- **If you step outside the role's configuration,** say why in one sentence.
+- **If you are going to exceed the budget,** say so in the log with what is missing, as soon as you see it.
+- **If a trigger from `AGENTES.md` §4 appears,** escalate instead of carrying on.
 
-Eres el **[rol] de [sub-etapa y parte]** del proyecto {{PROYECTO}} ([la pila que le toca]). [Una frase sobre qué está en juego: datos, una pieza irreversible, lo que verá el usuario…]
+You are the **[role] of [sub-stage and part]** of the {{PROYECTO}} project ([the stack that applies to you]). [One sentence on what is at stake: data, an irreversible piece, what the user will see…]
 
-## Qué leer primero
+## What to read first
 
-[Lista corta y ordenada:
-- las secciones de la especificación;
-- los informes y las líneas que devolvió la datapedia (si la hay);
-- los archivos de código que debe conocer antes de tocar nada.
+[Short, ordered list:
+- the sections of the specification;
+- the reports and the lines the datapedia returned (if there is one);
+- the code files to know before touching anything.
 
-Si la lista está completa, el agente no necesita consultar la datapedia.]
+If the list is complete, the agent does not need to consult the datapedia.]
 
-## Qué hacer
+## What to do
 
-[El trabajo, por partes, con las decisiones ya tomadas y las que no le tocan.
-- **Para un auditor:** qué mirar con más cuidado.
-- **Para un corrector:** la lista de hallazgos, la decisión sobre cada uno y que devuelva el costo real.]
+[The work, in parts, with the decisions already made and those that are not theirs.
+- **For an auditor:** what to look at most carefully.
+- **For a fixer:** the list of findings, the decision on each one, and that they return the real cost.]
 
-**Pruebas caras, una sola vez** (`PRIORIZACION.md` §2 y `docs/operacion/pruebas.md`): [quién corre la batería completa; si hay mutaciones y de qué; si se mide rendimiento y por qué; qué capturas hacen falta. Lo que ya corrió otro rol y no cambió, no se repite.]
+**Expensive tests, only once** (`PRIORIZACION.md` §2 and `docs/operacion/pruebas.md`): [who runs the complete suite; whether there are mutations and on what; whether performance is measured and why; which screenshots are needed. What another role already ran and did not change is not repeated.]
 
-## Reglas de esta tarea
+## Rules of this task
 
-[Solo lo propio de esta tarea; las reglas generales ya están en `AGENTS.md` y en el rol:
-- qué carpetas puede tocar y cuáles no (la frontera, si hay otro agente trabajando en paralelo);
-- qué puede ejecutar: bases, puertos;
-- si la tarea toca producción: {{DOC_DE_PRODUCCION}}.]
+[Only what is specific to this task; the general rules are already in `AGENTS.md` and in the role:
+- which folders can be touched and which cannot (the file boundary, if another agent is working in parallel);
+- what can be run: databases, ports;
+- if the task touches production: {{DOC_DE_PRODUCCION}}.]
 
-## Bitácora y entrega
+## Log and delivery
 
-- **Bitácora:** `docs/trazabilidad/[fase]/avance/[rol].md`.
-- **Acta de temporales:** `docs/trazabilidad/[fase]/temporales/[aaaa-mm-dd]-[rol]-[tema].md`, abierta al crear la carpeta de trabajo y cerrada **antes** de borrarla (`HERRAMIENTAS.md` §3). El informe la nombra.
-- **Informe:** `docs/trazabilidad/[fase]/[NN]-[tipo]-[tema].md`, con [lo propio de la tarea].
-- **Lo demás** (qué lleva el informe, cómo se cierra) viene en el archivo del rol.
+- **Log:** `docs/trazabilidad/[phase]/avance/[role].md`.
+- **Scratch-files record:** `docs/trazabilidad/[phase]/temporales/[yyyy-mm-dd]-[role]-[topic].md`, opened when the working folder is created and closed **before** deleting it (`HERRAMIENTAS.md` §3). The report names it.
+- **Report:** `docs/trazabilidad/[phase]/[NN]-[type]-[topic].md`, with [what is specific to the task].
+- **The rest** (what the report contains, how it is closed) comes in the role's file.

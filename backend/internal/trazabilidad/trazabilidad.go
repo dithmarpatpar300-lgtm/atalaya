@@ -36,7 +36,7 @@ type Hito struct {
 }
 
 var (
-	reAvance = regexp.MustCompile(`^Avance:\s*(\d{1,3})\s*%\s*(?:[—–-]\s*(.*))?$`)
+	reAvance = regexp.MustCompile(`^(?:Avance|Progress):\s*(\d{1,3})\s*%\s*(?:[—–-]\s*(.*))?$`)
 	reHito   = regexp.MustCompile(`^-\s*(\d{1,2}:\d{2})\s*·\s*(.+)$`)
 )
 
