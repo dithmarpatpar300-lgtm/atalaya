@@ -48,13 +48,15 @@ export function Paginador({
 }) {
   const ancho = anchoCasilla(paginas);
   return (
-    <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-borde ${arriba ? "mb-2 border-b pb-2.5" : "border-t pt-2.5"}`}>
+    // Contenedor: en una columna angosta (el pie de Commits, 286 px a 1440) el contador no cabe junto a los números y el
+    // pie pasaba a dos líneas; ahí el contador queda solo para el lector de pantalla (la tarjeta ya dice el total).
+    <div className={`@container flex flex-wrap items-center gap-x-4 gap-y-2 border-borde ${arriba ? "mb-2 border-b pb-2.5" : "border-t pt-2.5"}`}>
       {/* Cada parte del renglón mide 32 px (lo del selector «Por página»): con o sin él, todo pie mide lo mismo y dos pies
           vecinos quedan con la raya a la misma altura. */}
       <p className="dato m-0 mr-auto flex h-8 items-center gap-2 text-ayuda whitespace-nowrap text-suave" aria-live="polite">
         {/* De ancho fijo, el del contador más largo («509–509 de 509»): «1–16» y «17–32» no cambian el ancho y el pie de
             una tarjeta angosta no pasa a dos líneas en unas páginas sí y en otras no. */}
-        <span style={{ minWidth: `${t("{desde}–{hasta} de {total}", { desde: total, hasta: total, total }).length}ch` }}>
+        <span className="@max-[18rem]:sr-only" style={{ minWidth: `${t("{desde}–{hasta} de {total}", { desde: total, hasta: total, total }).length}ch` }}>
           {total > 0 ? t("{desde}–{hasta} de {total}", { desde, hasta, total }) : ""}
         </span>
         {nuevos > 0 && alVerNuevos && (
