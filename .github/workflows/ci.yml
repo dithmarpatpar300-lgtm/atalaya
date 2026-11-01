@@ -1,5 +1,6 @@
-# Atalaya: every push to main and every pull request is built and checked on a clean Windows machine, with the
-# same script used locally (format, static analysis, Go and panel tests, type check, lint and the build).
+# Atalaya: every push to main and every pull request is built and checked with the same script used locally (format,
+# static analysis, Go and panel tests, type check, lint and the build): on a clean Windows machine, where it is tested
+# and validated, and on Ubuntu, where it is not yet (that job reports what fails without blocking).
 name: CI
 
 on:
@@ -14,7 +15,12 @@ jobs:
   verificar:
     # Only on the public repository: a private copy does not spend Actions minutes.
     if: ${{ !github.event.repository.private }}
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os != 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -28,4 +34,4 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Compilar y verificar
         shell: pwsh
-        run: .\scripts\compilar.ps1 -Verificar
+        run: ./scripts/compilar.ps1 -Verificar

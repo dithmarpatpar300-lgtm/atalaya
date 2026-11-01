@@ -5,7 +5,7 @@
     0. Si falta frontend/node_modules (un repositorio recién clonado), npm ci.
     1. frontend: next build (exportación estática a frontend/out).
     2. Copia frontend/out a backend/internal/web/dist (solo LEEME.txt va al repositorio).
-    3. backend: go build -> atalaya.exe en la raíz del proyecto.
+    3. backend: go build -> atalaya.exe en la raíz del proyecto (atalaya en Linux y macOS, con PowerShell 7).
     Con -Verificar corre antes go vet, go test, la comprobación de tipos y el lint.
 #>
 param([switch]$Verificar)
@@ -44,11 +44,14 @@ if ($Verificar) {
 Push-Location $front
 try { Paso 'next build' { npm run build } } finally { Pop-Location }
 
-$dist = Join-Path $back 'internal\web\dist'
+$dist = Join-Path (Join-Path (Join-Path $back 'internal') 'web') 'dist'
 Get-ChildItem -LiteralPath $dist -Force | Where-Object { $_.Name -ne 'LEEME.txt' } | Remove-Item -Recurse -Force
-Copy-Item -Path (Join-Path $front 'out\*') -Destination $dist -Recurse -Force
+Copy-Item -Path (Join-Path (Join-Path $front 'out') '*') -Destination $dist -Recurse -Force
 
+# atalaya.exe en Windows; atalaya en Linux y macOS (PowerShell 7). En Windows PowerShell 5.1 $IsLinux no existe. No se
+# llama $nombre: dentro de Paso, ese nombre es el del paso y el binario salía como «go build».
+$binario = if ($IsLinux -or $IsMacOS) { 'atalaya' } else { 'atalaya.exe' }
 Push-Location $back
-try { Paso 'go build' { go build -trimpath -ldflags '-s -w' -o (Join-Path $raiz 'atalaya.exe') ./cmd/atalaya } } finally { Pop-Location }
-$exe = Get-Item (Join-Path $raiz 'atalaya.exe')
+try { Paso 'go build' { go build -trimpath -ldflags '-s -w' -o (Join-Path $raiz $binario) ./cmd/atalaya } } finally { Pop-Location }
+$exe = Get-Item (Join-Path $raiz $binario)
 Write-Host ("listo: {0} ({1:N0} B)" -f $exe.FullName, $exe.Length)

@@ -1,5 +1,6 @@
 # Compilados
 /atalaya.exe
+/atalaya
 /backend/internal/web/dist/*
 !/backend/internal/web/dist/LEEME.txt
 /frontend/.next/
