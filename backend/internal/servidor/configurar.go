@@ -71,6 +71,14 @@ type cacheEntorno struct {
 	hora time.Time
 }
 
+// listaHerramientas: las del equipo, o las de una prueba.
+func (s *Servidor) listaHerramientas() []entorno.Herramienta {
+	if s.herramientasPrueba != nil {
+		return s.herramientasPrueba
+	}
+	return s.herramientas()
+}
+
 func (s *Servidor) herramientas() []entorno.Herramienta {
 	if s.Casa == "" {
 		return []entorno.Herramienta{}
@@ -222,8 +230,16 @@ func (s *Servidor) puerta() (*configurar.Puerta, error) {
 			Permitido: func(r string) bool {
 				return (s.RutaRegistro != "" && configurar.MismaRuta(r, s.RutaRegistro)) || configurar.MismaRuta(r, s.rutaPreferencias())
 			},
-			Programas: map[string]string{},
-			Ahora:     s.ahora,
+			// Los programas de la lista cerrada: Claude Code y Codex, si están instalados.
+			Programa: func(nombre string) (string, bool) {
+				for _, h := range s.listaHerramientas() {
+					if h.ID == nombre && h.Instalada && h.Ruta != "" {
+						return h.Ruta, true
+					}
+				}
+				return "", false
+			},
+			Ahora: s.ahora,
 		}
 	})
 	if s.puertaConf == nil {
@@ -444,6 +460,82 @@ func (s *Servidor) proponerPreferencias(w http.ResponseWriter, r *http.Request) 
 	escribir(w, prop)
 }
 
+// pedidoMCP: conectar o desconectar una herramienta del MCP de Atalaya.
+type pedidoMCP struct {
+	Herramienta string `json:"herramienta"` // «claude» o «codex»
+	Accion      string `json:"accion"`      // «conectar» o «desconectar»
+}
+
+// La dirección del MCP va dentro de una orden (y en Windows `codex` es un .cmd, cuyos argumentos pasan por cmd.exe):
+// solo una dirección de este equipo con su puerto, nada más.
+var reURLMCP = regexp.MustCompile(`^http://(127\.0\.0\.1|localhost):[0-9]{1,5}/mcp$`)
+
+// ordenesMCP: los argumentos de las órdenes oficiales de cada herramienta para conectar y para desconectar. Claude
+// Code, para todos los proyectos (--scope user); Codex ya es global.
+func ordenesMCP(herramienta, url string) (conectar, desconectar []string) {
+	if herramienta == "claude" {
+		return []string{"mcp", "add", "--transport", "http", "--scope", "user", "atalaya", url}, []string{"mcp", "remove", "--scope", "user", "atalaya"}
+	}
+	return []string{"mcp", "add", "atalaya", "--url", url}, []string{"mcp", "remove", "atalaya"}
+}
+
+func (s *Servidor) proponerMCP(w http.ResponseWriter, r *http.Request) {
+	if !delPanel(r) {
+		fallo(w, http.StatusForbidden, "solo el panel puede cambiar la configuración")
+		return
+	}
+	var p pedidoMCP
+	if !leerCuerpo(w, r, &p) {
+		return
+	}
+	if (p.Herramienta != "claude" && p.Herramienta != "codex") || (p.Accion != "conectar" && p.Accion != "desconectar") {
+		fallo(w, http.StatusBadRequest, "la herramienta es claude o codex, y la acción conectar o desconectar")
+		return
+	}
+	url := "http://" + r.Host + "/mcp"
+	if !reURLMCP.MatchString(url) {
+		fallo(w, http.StatusBadRequest, "la dirección de Atalaya no es la de este equipo: "+r.Host)
+		return
+	}
+	var h *entorno.Herramienta
+	for _, x := range s.listaHerramientas() {
+		if x.ID == p.Herramienta {
+			x := x
+			h = &x
+		}
+	}
+	if h == nil || !h.Instalada {
+		fallo(w, http.StatusConflict, "esa herramienta no está instalada en este equipo")
+		return
+	}
+	if p.Accion == "conectar" && h.MCP {
+		fallo(w, http.StatusConflict, h.Nombre+" ya está conectada a Atalaya")
+		return
+	}
+	if p.Accion == "desconectar" && !h.MCP {
+		fallo(w, http.StatusConflict, h.Nombre+" no está conectada a Atalaya")
+		return
+	}
+	pu, err := s.puerta()
+	if err != nil {
+		fallo(w, http.StatusConflict, err.Error())
+		return
+	}
+	con, des := ordenesMCP(p.Herramienta, url)
+	c := configurar.Cambio{Tipo: configurar.Orden, Programa: p.Herramienta, Argumentos: con, Deshacer: des}
+	resumen := "Conectar " + h.Nombre + " a Atalaya por MCP"
+	if p.Accion == "desconectar" {
+		c.Argumentos, c.Deshacer = des, con
+		resumen = "Desconectar " + h.Nombre + " de Atalaya"
+	}
+	prop, err := pu.Proponer("mcp", resumen, []configurar.Cambio{c})
+	if err != nil {
+		fallo(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	escribir(w, prop)
+}
+
 type pedidoID struct {
 	ID string `json:"id"`
 }
@@ -483,6 +575,10 @@ func (s *Servidor) conPuerta(w http.ResponseWriter, r *http.Request, hacer func(
 	}
 	// El registro pudo cambiar: la portada lo ve ya, sin esperar a Vigilar.
 	s.recargarRegistro()
+	// Y la conexión de una herramienta: que el asistente la vea ya, no a los 5 min de la caché.
+	s.cacheEnt.mu.Lock()
+	s.cacheEnt.hs = nil
+	s.cacheEnt.mu.Unlock()
 	escribir(w, e)
 }
 

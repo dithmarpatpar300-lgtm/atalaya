@@ -490,6 +490,8 @@ export const api = {
   proponerProyectos: (p: { agregar?: { ruta: string; nivel: number; sigla?: string }[]; quitar?: string[] }) =>
     escribirPanel<Propuesta>("/api/configurar/proyectos", p),
   proponerPreferencias: (p: Preferencias) => escribirPanel<Propuesta>("/api/configurar/preferencias", p),
+  /** Conectar o desconectar Claude Code o Codex del MCP de Atalaya, con su orden oficial. */
+  proponerMCP: (herramienta: HerramientaId, accion: "conectar" | "desconectar") => escribirPanel<Propuesta>("/api/configurar/mcp", { herramienta, accion }),
   aplicarCambio: (id: string) => escribirPanel<EntradaCambio>("/api/configurar/aplicar", { id }),
   deshacerCambio: (id: string) => escribirPanel<EntradaCambio>("/api/configurar/deshacer", { id }),
 };

@@ -82,14 +82,22 @@ type Puerta struct {
 	Dir string
 	// Permitido: si una ruta (ya limpia y absoluta) está en la lista cerrada de archivos.
 	Permitido func(ruta string) bool
-	// Programas: nombre → ejecutable resuelto. Solo estos se corren.
-	Programas map[string]string
+	// Programa: el ejecutable resuelto de un nombre de la lista cerrada («claude», «codex»), o false si no está (no
+	// instalado, o no es de la lista). Se pregunta en cada uso: uno instalado después de arrancar también vale.
+	Programa func(nombre string) (string, bool)
 	// Correr: por omisión, el programa sin shell, con 60 s de límite; devuelve lo que escribió.
 	Correr func(ctx context.Context, exe string, args []string) (string, error)
 	Ahora  func() time.Time
 
 	mu         sync.Mutex
 	propuestas map[string]Propuesta
+}
+
+func (p *Puerta) programa(nombre string) (string, bool) {
+	if p.Programa == nil {
+		return "", false
+	}
+	return p.Programa(nombre)
 }
 
 func (p *Puerta) ahora() time.Time {
@@ -143,7 +151,7 @@ func (p *Puerta) Proponer(operacion, resumen string, cambios []Cambio) (Propuest
 				return Propuesta{}, fmt.Errorf("no se pudo leer %s: %w", r, err)
 			}
 		case Orden:
-			if _, ok := p.Programas[c.Programa]; !ok {
+			if _, ok := p.programa(c.Programa); !ok {
 				return Propuesta{}, fmt.Errorf("%w: %s", ErrPrograma, c.Programa)
 			}
 		default:
@@ -231,7 +239,7 @@ func (p *Puerta) hacer(ctx context.Context, e *Entrada) error {
 }
 
 func (p *Puerta) correr(ctx context.Context, programa string, args []string) (string, error) {
-	exe, ok := p.Programas[programa]
+	exe, ok := p.programa(programa)
 	if !ok {
 		return "", fmt.Errorf("%w: %s", ErrPrograma, programa)
 	}

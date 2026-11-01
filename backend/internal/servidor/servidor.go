@@ -25,6 +25,7 @@ import (
 	"atalaya/internal/configurar"
 	"atalaya/internal/cuotas"
 	"atalaya/internal/datapedia"
+	"atalaya/internal/entorno"
 	"atalaya/internal/trazabilidad"
 )
 
@@ -75,10 +76,12 @@ type Servidor struct {
 	// Casa y CodexHome: dónde buscar Claude Code y Codex (configurar.go, /api/entorno); vacías, no se buscan.
 	Casa, CodexHome string
 	// Datos: la carpeta propia de Atalaya, con las copias y el historial de la puerta de escritura (configurar.go).
-	Datos      string
-	cacheEnt   cacheEntorno
-	puertaUna  sync.Once
-	puertaConf *configurar.Puerta
+	Datos    string
+	cacheEnt cacheEntorno
+	// herramientasPrueba: en las pruebas, las herramientas en lugar de buscarlas en el equipo.
+	herramientasPrueba []entorno.Herramienta
+	puertaUna          sync.Once
+	puertaConf         *configurar.Puerta
 
 	difusion      difusor
 	vueltas       int
@@ -265,6 +268,7 @@ func (s *Servidor) Handler() http.Handler {
 	mux.HandleFunc("POST /api/configurar/proyectos", s.proponerProyectos)
 	mux.HandleFunc("GET /api/configurar/preferencias", s.verPreferencias)
 	mux.HandleFunc("POST /api/configurar/preferencias", s.proponerPreferencias)
+	mux.HandleFunc("POST /api/configurar/mcp", s.proponerMCP)
 	mux.HandleFunc("POST /api/configurar/aplicar", s.aplicarConfiguracion)
 	mux.HandleFunc("POST /api/configurar/deshacer", s.deshacerConfiguracion)
 	if s.Web != nil {

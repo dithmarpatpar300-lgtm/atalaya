@@ -1,6 +1,7 @@
 package servidor
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"atalaya/internal/claude"
 	"atalaya/internal/configurar"
 	"atalaya/internal/cuotas"
+	"atalaya/internal/entorno"
 	"atalaya/internal/proyectos"
 )
 
@@ -239,6 +241,67 @@ func TestPreferencias(t *testing.T) {
 	}
 	if p := s.preferencias(); p.Principal != "codex" || p.Secundario != "claude" || !p.Asistente {
 		t.Errorf("guardadas: %+v", p)
+	}
+}
+
+// Conectar Codex por MCP: la orden oficial con la dirección de este servidor, corrida sin shell por la puerta, y
+// deshacer corre la inversa. Nada real se corre: las herramientas y el que corre son de mentira.
+func TestConectarPorMCP(t *testing.T) {
+	s, _ := conRegistro(t, "")
+	s.herramientasPrueba = []entorno.Herramienta{
+		{ID: "claude", Nombre: "Claude Code", Instalada: true, Ruta: `C:\bin\claude.exe`, MCP: true},
+		{ID: "codex", Nombre: "Codex", Instalada: true, Ruta: `C:\npm\codex.cmd`},
+	}
+	pu, _ := s.puerta()
+	var corridas []string
+	pu.Correr = func(_ context.Context, exe string, args []string) (string, error) {
+		corridas = append(corridas, exe+" "+strings.Join(args, " "))
+		return "Added global MCP server 'atalaya'", nil
+	}
+	h := s.Handler()
+	malos := map[string]int{
+		`{"herramienta":"gemini","accion":"conectar"}`:   http.StatusBadRequest,
+		`{"herramienta":"codex","accion":"borrar"}`:      http.StatusBadRequest,
+		`{"herramienta":"claude","accion":"conectar"}`:   http.StatusConflict, // ya está conectada
+		`{"herramienta":"codex","accion":"desconectar"}`: http.StatusConflict,
+	}
+	for cuerpo, codigo := range malos {
+		if w := pedir(t, h, "POST", "/api/configurar/mcp", cuerpo, true); w.Code != codigo {
+			t.Errorf("%s: %d, quería %d", cuerpo, w.Code, codigo)
+		}
+	}
+	if w := pedir(t, h, "POST", "/api/configurar/mcp", `{"herramienta":"codex","accion":"conectar"}`, false); w.Code != http.StatusForbidden {
+		t.Errorf("sin la cabecera del panel: %d", w.Code)
+	}
+	w := pedir(t, h, "POST", "/api/configurar/mcp", `{"herramienta":"codex","accion":"conectar"}`, true)
+	var prop configurar.Propuesta
+	_ = json.Unmarshal(w.Body.Bytes(), &prop)
+	if w.Code != 200 || prop.Resumen != "Conectar Codex a Atalaya por MCP" || len(corridas) != 0 {
+		t.Fatalf("vista previa: %d %s %q", w.Code, w.Body, corridas)
+	}
+	if w = pedir(t, h, "POST", "/api/configurar/aplicar", `{"id":"`+prop.ID+`"}`, true); w.Code != 200 {
+		t.Fatalf("aplicar: %d %s", w.Code, w.Body)
+	}
+	if w = pedir(t, h, "POST", "/api/configurar/deshacer", `{"id":"`+prop.ID+`"}`, true); w.Code != 200 {
+		t.Fatalf("deshacer: %d %s", w.Code, w.Body)
+	}
+	quiere := []string{`C:\npm\codex.cmd mcp add atalaya --url http://127.0.0.1:7420/mcp`, `C:\npm\codex.cmd mcp remove atalaya`}
+	if strings.Join(corridas, "|") != strings.Join(quiere, "|") {
+		t.Errorf("corridas: %q", corridas)
+	}
+	// Claude Code va para todos los proyectos (--scope user).
+	if con, des := ordenesMCP("claude", "http://localhost:7421/mcp"); strings.Join(con, " ") != "mcp add --transport http --scope user atalaya http://localhost:7421/mcp" || strings.Join(des, " ") != "mcp remove --scope user atalaya" {
+		t.Errorf("claude: %q %q", con, des)
+	}
+	for _, u := range []string{"http://127.0.0.1:7420/mcp", "http://localhost:80/mcp"} {
+		if !reURLMCP.MatchString(u) {
+			t.Errorf("%s debería valer", u)
+		}
+	}
+	for _, u := range []string{"http://127.0.0.1:7420/mcp&calc", "http://evil.example:7420/mcp", "http://127.0.0.1/mcp", "http://127.0.0.1:7420/mcp \"x\""} {
+		if reURLMCP.MatchString(u) {
+			t.Errorf("%s no debería valer", u)
+		}
 	}
 }
 

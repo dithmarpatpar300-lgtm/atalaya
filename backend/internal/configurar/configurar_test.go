@@ -23,8 +23,13 @@ func puerta(t *testing.T, permitidos ...string) *Puerta {
 			}
 			return false
 		},
-		Programas: map[string]string{"codex": "/bin/codex"},
-		Ahora:     func() time.Time { return ahora },
+		Programa: func(n string) (string, bool) {
+			if n == "codex" {
+				return "/bin/codex", true
+			}
+			return "", false
+		},
+		Ahora: func() time.Time { return ahora },
 	}
 }
 

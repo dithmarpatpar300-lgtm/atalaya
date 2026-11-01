@@ -36,20 +36,29 @@ foreach ($c in $conexiones) {
 }
 if ($Apagar) { Write-Host 'apagado'; exit 0 }
 
-# 2. Compilar, si se pide.
-if ($Verificar) { & (Join-Path $PSScriptRoot 'compilar.ps1') -Verificar }
-elseif ($Compilar) { & (Join-Path $PSScriptRoot 'compilar.ps1') }
+# 2. Compilar, si se pide. Si falla (una prueba, el formato), se enciende igual el atalaya.exe que había (go build no lo
+#    toca si no llega a compilar) y el error se informa al final: el 7420 no queda apagado por una verificación que falla.
+$fallo = $null
+try {
+    if ($Verificar) { & (Join-Path $PSScriptRoot 'compilar.ps1') -Verificar }
+    elseif ($Compilar) { & (Join-Path $PSScriptRoot 'compilar.ps1') }
+} catch { $fallo = $_ }
 
 # 3. Encender y esperar a que responda.
 if (-not (Test-Path -LiteralPath $exe)) { throw "No existe ${exe}: corre con -Compilar." }
 $p = Start-Process -FilePath $exe -ArgumentList '-escucha', "127.0.0.1:$Puerto" -WorkingDirectory $raiz -WindowStyle Hidden -PassThru
-for ($i = 0; $i -lt 30; $i++) {
+$listo = $false
+for ($i = 0; $i -lt 30 -and -not $listo; $i++) {
     Start-Sleep -Milliseconds 500
     try {
         $s = Invoke-RestMethod "http://127.0.0.1:$Puerto/api/salud" -TimeoutSec 2
         Write-Host "== encendido: atalaya.exe $($s.version) (pid $($p.Id)) en http://127.0.0.1:$Puerto"
-        exit 0
+        $listo = $true
     } catch { }
-    if ($p.HasExited) { throw "atalaya.exe terminó al arrancar (salida $($p.ExitCode))." }
+    if (-not $listo -and $p.HasExited) { throw "atalaya.exe terminó al arrancar (salida $($p.ExitCode))." }
 }
-throw "atalaya.exe no respondió en el $Puerto a los 15 s."
+if (-not $listo) { throw "atalaya.exe no respondió en el $Puerto a los 15 s." }
+if ($fallo) {
+    Write-Host '== ojo: la compilación falló; sigue encendido el atalaya.exe anterior'
+    throw $fallo
+}

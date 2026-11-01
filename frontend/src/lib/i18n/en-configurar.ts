@@ -83,6 +83,8 @@ export const EN_CONFIGURAR: Record<string, string> = {
   "Crea {ruta}": "Creates {ruta}",
   "Antes de escribir, Atalaya guarda una copia; desde el historial de abajo se puede deshacer.":
     "Before writing, Atalaya keeps a copy; it can be undone from the history below.",
+  "Atalaya corre esta orden sin intérprete de órdenes; desde el historial de abajo se puede deshacer (corre la orden inversa).":
+    "Atalaya runs this command without a shell; it can be undone from the history below (by running the inverse command).",
   Aplicar: "Apply",
   "Aplicando…": "Applying…",
   Cancelar: "Cancel",
@@ -101,8 +103,10 @@ export const EN_CONFIGURAR: Record<string, string> = {
   "Para todos tus proyectos, una vez (en un proyecto con el kit, su .mcp.json ya lo hace y además le dice a Atalaya de qué proyecto se trata):":
     "For all your projects, once (in a project with the kit, its .mcp.json already does it and also tells Atalaya which project it is):",
   "Una vez, para todos tus proyectos:": "Once, for all your projects:",
-  "Que Atalaya corra estas órdenes por ti, con vista previa y deshacer, llega en la próxima entrega.":
-    "Having Atalaya run these commands for you, with a preview and undo, comes in the next release.",
+  "Conectar por mí": "Connect it for me",
+  Desconectar: "Disconnect",
+  "Prefiero hacerlo yo": "I would rather do it myself",
+  "No está instalada en este equipo.": "It is not installed on this computer.",
   Copiada: "Copied",
 
   // Listo

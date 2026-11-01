@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { IconoCheck } from "@/components/ui/iconos";
 import {
   api,
@@ -91,7 +91,11 @@ function VistaPrevia({ propuesta, aplicando, alAplicar, alCancelar }: { propuest
           </pre>
         ),
       )}
-      <p className="m-0 text-ayuda text-suave">{t("Antes de escribir, Atalaya guarda una copia; desde el historial de abajo se puede deshacer.")}</p>
+      <p className="m-0 text-ayuda text-suave">
+        {propuesta.cambios.every((c) => c.tipo === "orden")
+          ? t("Atalaya corre esta orden sin intérprete de órdenes; desde el historial de abajo se puede deshacer (corre la orden inversa).")
+          : t("Antes de escribir, Atalaya guarda una copia; desde el historial de abajo se puede deshacer.")}
+      </p>
       <div className="flex gap-2">
         <button type="button" className={botonPrimario} disabled={aplicando} onClick={alAplicar}>
           {aplicando ? t("Aplicando…") : t("Aplicar")}
@@ -301,7 +305,7 @@ export function Configurar({ alTerminar }: { alTerminar: () => void }) {
           ) : paso === "proyectos" ? (
             <PasoProyectos entorno={entorno} alCambio={() => cargar()} />
           ) : paso === "conectar" ? (
-            <PasoConectar entorno={entorno} prefs={prefs} comprobando={comprobando} alComprobar={comprobar} />
+            <PasoConectar entorno={entorno} prefs={prefs} comprobando={comprobando} alComprobar={comprobar} alCambio={() => cargar(true)} />
           ) : (
             <PasoListo entorno={entorno} prefs={prefs} alTerminar={alTerminar} alGuardado={() => cargar()} />
           )}
@@ -589,7 +593,96 @@ function PasoProyectos({ entorno, alCambio }: { entorno: Entorno; alCambio: () =
   );
 }
 
-function PasoConectar({ entorno, prefs, comprobando, alComprobar }: { entorno: Entorno; prefs: Preferencias; comprobando: boolean; alComprobar: () => void }) {
+/**
+ * Una herramienta en el paso de conexión: su estado, el botón para que Atalaya corra la orden oficial (con su vista
+ * previa) y la misma orden para copiar, para quien prefiere hacerlo a mano.
+ */
+function ConexionHerramienta({
+  h,
+  estado,
+  nota,
+  orden,
+  alCambio,
+}: {
+  h: Herramienta;
+  estado: ReactNode;
+  nota: string;
+  orden: string;
+  alCambio: () => void;
+}) {
+  const [propuesta, setPropuesta] = useState<Propuesta | null>(null);
+  const [aplicando, setAplicando] = useState(false);
+  const [mensaje, setMensaje] = useState<{ ok?: string; error?: string }>({});
+  const pedir = async (accion: "conectar" | "desconectar") => {
+    setMensaje({});
+    try {
+      setPropuesta(await api.proponerMCP(h.id, accion));
+    } catch (e) {
+      setMensaje({ error: e instanceof Error ? e.message : String(e) });
+    }
+  };
+  const aplicar = async () => {
+    if (!propuesta) return;
+    setAplicando(true);
+    try {
+      const e = await api.aplicarCambio(propuesta.id);
+      setMensaje(e.error ? { error: tServidor(e.error) } : { ok: tServidor(e.resumen) });
+      setPropuesta(null);
+      alCambio();
+    } catch (e) {
+      setMensaje({ error: e instanceof Error ? e.message : String(e) });
+    }
+    setAplicando(false);
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="m-0 flex items-center gap-3 text-rotulo font-semibold">
+        {h.nombre}
+        {estado}
+      </h3>
+      {!h.instalada ? (
+        <p className="m-0 text-ayuda text-suave">{t("No está instalada en este equipo.")}</p>
+      ) : propuesta ? (
+        <VistaPrevia propuesta={propuesta} aplicando={aplicando} alAplicar={aplicar} alCancelar={() => setPropuesta(null)} />
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          {h.mcp ? (
+            <button type="button" className={botonSecundario} onClick={() => pedir("desconectar")}>
+              {t("Desconectar")}
+            </button>
+          ) : (
+            <button type="button" className={botonPrimario} onClick={() => pedir("conectar")}>
+              {t("Conectar por mí")}
+            </button>
+          )}
+          {mensaje.ok && <span className="text-rotulo text-ok">{mensaje.ok}</span>}
+          {mensaje.error && <span className="text-rotulo text-error">{mensaje.error}</span>}
+        </div>
+      )}
+      <details className="text-ayuda text-suave">
+        <summary className="cursor-pointer select-none hover:text-texto">{t("Prefiero hacerlo yo")}</summary>
+        <div className="mt-2 flex flex-col gap-1.5">
+          <span>{nota}</span>
+          <Orden texto={orden} />
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function PasoConectar({
+  entorno,
+  prefs,
+  comprobando,
+  alComprobar,
+  alCambio,
+}: {
+  entorno: Entorno;
+  prefs: Preferencias;
+  comprobando: boolean;
+  alComprobar: () => void;
+  alCambio: () => void;
+}) {
   const url = typeof window === "undefined" ? "http://127.0.0.1:7420/mcp" : `${window.location.origin}/mcp`;
   const usa = (id: HerramientaId) => !prefs.principal || prefs.principal === id || prefs.secundario === id;
   const claude = entorno.herramientas.find((h) => h.id === "claude");
@@ -600,32 +693,29 @@ function PasoConectar({ entorno, prefs, comprobando, alComprobar }: { entorno: E
         {t("Por MCP tus agentes le preguntan a Atalaya («¿cómo vamos?», «¿qué hizo el codificador?») en vez de releer documentos. Cada herramienta se conecta una vez; Atalaya lo ve en cuanto llega la conexión.")}
       </p>
       {usa("claude") && claude && (
-        <div className="flex flex-col gap-2">
-          <h3 className="m-0 flex items-center gap-3 text-rotulo font-semibold">
-            Claude Code
+        <ConexionHerramienta
+          h={claude}
+          estado={
             <Estado
               ok={claude.mcp || entorno.registrados.some((r) => r.marcas.mcp_atalaya)}
               si={claude.mcp ? t("conectada para todos los proyectos") : t("conectada en algunos proyectos (.mcp.json)")}
               no={t("sin conectar")}
             />
-          </h3>
-          <p className="m-0 text-ayuda text-suave">
-            {t("Para todos tus proyectos, una vez (en un proyecto con el kit, su .mcp.json ya lo hace y además le dice a Atalaya de qué proyecto se trata):")}
-          </p>
-          <Orden texto={`claude mcp add --transport http --scope user atalaya ${url}`} />
-        </div>
+          }
+          nota={t("Para todos tus proyectos, una vez (en un proyecto con el kit, su .mcp.json ya lo hace y además le dice a Atalaya de qué proyecto se trata):")}
+          orden={`claude mcp add --transport http --scope user atalaya ${url}`}
+          alCambio={alCambio}
+        />
       )}
       {usa("codex") && codex && (
-        <div className="flex flex-col gap-2">
-          <h3 className="m-0 flex items-center gap-3 text-rotulo font-semibold">
-            Codex
-            <Estado ok={codex.mcp} si={t("conectada")} no={t("sin conectar")} />
-          </h3>
-          <p className="m-0 text-ayuda text-suave">{t("Una vez, para todos tus proyectos:")}</p>
-          <Orden texto={`codex mcp add atalaya --url ${url}`} />
-        </div>
+        <ConexionHerramienta
+          h={codex}
+          estado={<Estado ok={codex.mcp} si={t("conectada")} no={t("sin conectar")} />}
+          nota={t("Una vez, para todos tus proyectos:")}
+          orden={`codex mcp add atalaya --url ${url}`}
+          alCambio={alCambio}
+        />
       )}
-      <p className="m-0 text-ayuda text-suave">{t("Que Atalaya corra estas órdenes por ti, con vista previa y deshacer, llega en la próxima entrega.")}</p>
       <div>
         <button type="button" className={botonSecundario} disabled={comprobando} onClick={alComprobar}>
           {comprobando ? t("Comprobando…") : t("Comprobar de nuevo")}
