@@ -38,8 +38,12 @@ func (s *Servidor) cargarConsultas() {
 		cs = cs[len(cs)-MaxConsultas:]
 	}
 	s.consultas = cs
-	go s.recortarConsultas()
+	s.escrituras.Go(s.recortarConsultas)
 }
+
+// esperarEscrituras: hasta que terminen las escrituras del registro que van aparte; las pruebas lo esperan antes de
+// borrar su carpeta, que si no se borra a medio escribir.
+func (s *Servidor) esperarEscrituras() { s.escrituras.Wait() }
 
 func leerRegistroConsultas(ruta string, ahora time.Time) ([]Consulta, bool, error) {
 	cs := []Consulta{}

@@ -72,7 +72,9 @@ func TestRutaPlan(t *testing.T) {
 	if r := rutaPlan(raiz, "`docs/planes/fase-2.md` §4"); r != filepath.Join(raiz, "docs", "planes", "fase-2.md") {
 		t.Errorf("plan: %q", r)
 	}
-	for _, p := range []string{"", "../otro/plan.md", "C:/fuera.md"} {
+	// Una ruta absoluta de este sistema: «C:/…» en Linux es relativa.
+	fuera := filepath.ToSlash(filepath.Join(t.TempDir(), "fuera.md"))
+	for _, p := range []string{"", "../otro/plan.md", fuera} {
 		if r := rutaPlan(raiz, p); r != "" {
 			t.Errorf("plan %q fuera del proyecto: %q", p, r)
 		}

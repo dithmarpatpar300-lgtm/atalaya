@@ -90,6 +90,8 @@ type Servidor struct {
 	cacheEnt cacheEntorno
 	// clientes: cuándo llegó y consultó cada herramienta por el MCP (mcp_clientes.go).
 	clientes clientesMCP
+	// escrituras: las del registro de consultas, que van aparte para no demorar la respuesta (consultas_registro.go).
+	escrituras sync.WaitGroup
 	// Kit: la carpeta del kit atalaya-proyecto (junto a atalaya.exe), de donde se copia la skill; vacía si no está.
 	Kit string
 	// Compilacion: identifica este atalaya.exe (versión, tamaño y hora del ejecutable); vacía, la versión.

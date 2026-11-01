@@ -30,6 +30,7 @@ func TestClientesMCP(t *testing.T) {
 	datos := t.TempDir()
 	ahora := time.Date(2026, 11, 1, 9, 0, 0, 0, time.Local)
 	s := &Servidor{Cuotas: cuotas.NuevoLector("x", t.TempDir()), Claude: claude.NuevoIndice(t.TempDir()), Datos: datos, Ahora: func() time.Time { return ahora }}
+	t.Cleanup(s.esperarEscrituras)
 	h := s.Handler()
 	pedir := func(cuerpo string) {
 		r := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(cuerpo))

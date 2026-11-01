@@ -15,6 +15,7 @@ func TestRegistroConsultasReinicioYRecorte(t *testing.T) {
 	ahora := time.Date(2026, 10, 31, 18, 0, 0, 0, time.UTC)
 	datos := t.TempDir()
 	s := &Servidor{Datos: datos, Ahora: func() time.Time { return ahora }}
+	t.Cleanup(s.esperarEscrituras)
 	s.guardarConsulta(Consulta{Hora: ahora.AddDate(0, 0, -91), Herramienta: "antigua"})
 	s.anotarConsulta(Consulta{Hora: ahora, Herramienta: "salud", Cliente: "codex", Ms: 42, Bytes: 123, Respuesta: "respuesta"})
 	ruta := filepath.Join(datos, "consultas.jsonl")
@@ -32,6 +33,7 @@ func TestRegistroConsultasReinicioYRecorte(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	otro := &Servidor{Datos: datos, Ahora: s.Ahora}
+	t.Cleanup(otro.esperarEscrituras)
 	otro.mu.Lock()
 	otro.cargarConsultas()
 	cs := append([]Consulta(nil), otro.consultas...)
@@ -76,6 +78,7 @@ func TestConsultaCodexProyectoYBytes(t *testing.T) {
 	s.guardarConsulta(Consulta{Hora: ahora, Herramienta: "salud", Cliente: "codex", Ms: 17, Bytes: 456})
 	// Un servidor nuevo recupera el registro antes de juntar la traza.
 	s = &Servidor{Datos: s.Datos, Ahora: s.Ahora, Proyectos: s.Proyectos, Claude: s.Claude, CodexVivo: s.CodexVivo}
+	t.Cleanup(s.esperarEscrituras)
 	w := httptest.NewRecorder()
 	s.verConsultas(w, httptest.NewRequest("GET", "/api/consultas", nil))
 	var cs []Consulta

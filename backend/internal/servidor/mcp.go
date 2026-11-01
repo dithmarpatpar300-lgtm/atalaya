@@ -803,7 +803,7 @@ func (s *Servidor) anotarConsulta(c Consulta) {
 	}
 	s.mu.Unlock()
 	if s.Datos != "" {
-		go s.guardarConsulta(c)
+		s.escrituras.Go(func() { s.guardarConsulta(c) })
 	}
 	s.difusion.enviar(Evento{Tipo: "consultas"})
 }
