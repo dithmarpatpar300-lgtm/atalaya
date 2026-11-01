@@ -166,8 +166,8 @@ type LlamadaCodex struct {
 
 var (
 	reSegundos = regexp.MustCompile(`^(\d+)\s*s$`)
-	reSalida   = regexp.MustCompile(`^salida\s+(-?\d+)$`)
-	reTokens   = regexp.MustCompile(`^(\d+)\s+entrada\s+\((\d+)\s+en\s+cache\)\s*/\s*(\d+)\s+salida$`)
+	reSalida   = regexp.MustCompile(`^(?:salida|exit)\s+(-?\d+)$`)
+	reTokens   = regexp.MustCompile(`^(\d+)\s+(?:entrada|in)\s+\((\d+)\s+(?:en\s+cache|cached)\)\s*/\s*(\d+)\s+(?:salida|out)$`)
 )
 
 // LeerCodex lee los registros de todas las fases del proyecto.
@@ -204,7 +204,8 @@ func LeerCodex(proyecto, raiz string) ([]LlamadaCodex, error) {
 	return out, nil
 }
 
-// ParsearFilaCodex lee «- fecha · tema · clase · modelo/effort · versión · base · N s · salida X · tokens · contraste: …».
+// ParsearFilaCodex lee «- fecha · tema · clase · modelo/effort · versión · base · N s · salida X · tokens · contraste: …»,
+// también como la escribe el kit en inglés: «exit X», «N in (M cached) / K out» y «review: …».
 func ParsearFilaCodex(linea string) (LlamadaCodex, bool) {
 	var ll LlamadaCodex
 	if !strings.HasPrefix(linea, "- ") {
@@ -247,7 +248,14 @@ func ParsearFilaCodex(linea string) (LlamadaCodex, bool) {
 		ll.Entrada = total - ll.EnCache
 	}
 	resto := strings.Join(partes[i+3:], " · ")
-	ll.Contraste = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(resto), "contraste:"))
+	resto = strings.TrimSpace(resto)
+	// Ambos kits escriben el mismo campo con distinto prefijo.
+	if strings.HasPrefix(resto, "review:") {
+		resto = strings.TrimPrefix(resto, "review:")
+	} else {
+		resto = strings.TrimPrefix(resto, "contraste:")
+	}
+	ll.Contraste = strings.TrimSpace(resto)
 	return ll, true
 }
 

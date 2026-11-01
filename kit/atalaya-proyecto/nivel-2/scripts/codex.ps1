@@ -197,10 +197,10 @@ try {
             if ($e.usage) { $usage = $e.usage }
         }
     }
-    # The wording of this tokens text, of `salida N` and of `contraste:` in the registry row is part of the contract
-    # Atalaya reads (ParsearFilaCodex): do not translate it.
+    # The wording of this tokens text, of `exit N` and of `review:` in the registry row is part of the contract
+    # Atalaya reads (ParsearFilaCodex, which also reads the Spanish kit's `salida`, `entrada` and `contraste:`).
     $tokens = if ($usage) {
-        '{0} entrada ({1} en cache) / {2} salida' -f $usage.input_tokens, $usage.cached_input_tokens, $usage.output_tokens
+        '{0} in ({1} cached) / {2} out' -f $usage.input_tokens, $usage.cached_input_tokens, $usage.output_tokens
     } else { 'no data' }
 
     $patchNote = ''
@@ -239,7 +239,7 @@ try {
         [System.IO.File]::WriteAllText($registry, "# Codex log $dot $Fase`n`nOne line per call (scripts/codex.ps1). The last column is filled in by the coordinator when checking the result (and, with -Escribe, when applying or rejecting the patch).`n`n", $utf8)
     }
     $modo = if ($Escribe) { "writes $dot $patchNote" } else { 'read-only' }
-    $row = "- $date $dot $Tema $dot $Clase $dot $Modelo/$Effort $dot $version $dot $modo $dot $scope $dot $seconds s $dot salida $exit $dot $tokens $dot contraste: $dash`n"
+    $row = "- $date $dot $Tema $dot $Clase $dot $Modelo/$Effort $dot $version $dot $modo $dot $scope $dot $seconds s $dot exit $exit $dot $tokens $dot review: $dash`n"
     [System.IO.File]::AppendAllText($registry, $row, $utf8)
     "result: $outFile"
     if ($patchNote) { $patchNote }

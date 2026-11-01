@@ -200,10 +200,10 @@ try {
         try { $resultado = [System.IO.File]::ReadAllText($last, $utf8) | ConvertFrom-Json } catch { $resultado = $null }
     }
     $usage = if ($resultado) { $resultado.usage } else { $null }
-    # The wording of this tokens text, of `salida N` and of `contraste:` in the registry row is part of the contract
-    # Atalaya reads (ParsearFilaCodex): do not translate it.
+    # The wording of this tokens text, of `exit N` and of `review:` in the registry row is part of the contract
+    # Atalaya reads (ParsearFilaCodex, which also reads the Spanish kit's `salida`, `entrada` and `contraste:`).
     $tokens = if ($usage) {
-        '{0} entrada ({1} en cache) / {2} salida' -f $usage.input_tokens, $usage.cache_read_input_tokens, $usage.output_tokens
+        '{0} in ({1} cached) / {2} out' -f $usage.input_tokens, $usage.cache_read_input_tokens, $usage.output_tokens
     } else { 'no data' }
     $costo = if ($resultado -and $null -ne $resultado.total_cost_usd) {
         " $dot cost: $($resultado.total_cost_usd) USD"
@@ -245,7 +245,7 @@ try {
         [System.IO.File]::WriteAllText($registry, "# Claude Code log $dot $Fase`n`nOne line per call (scripts/claude.ps1). The last column is filled in by the coordinator when checking the result (and, with -Escribe, when applying or rejecting the patch).`n`n", $utf8)
     }
     $modo = if ($Escribe) { "writes $dot $patchNote" } else { 'read-only' }
-    $row = "- $date $dot $Tema $dot $Clase $dot $Modelo/$Effort $dot $version $dot $modo $dot $scope $dot $seconds s $dot salida $exit $dot $tokens $dot contraste: $dash`n"
+    $row = "- $date $dot $Tema $dot $Clase $dot $Modelo/$Effort $dot $version $dot $modo $dot $scope $dot $seconds s $dot exit $exit $dot $tokens $dot review: $dash`n"
     [System.IO.File]::AppendAllText($registry, $row, $utf8)
     "result: $outFile"
     if ($patchNote) { $patchNote }

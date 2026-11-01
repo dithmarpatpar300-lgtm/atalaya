@@ -65,6 +65,20 @@ func TestParsearFilaCodex(t *testing.T) {
 	}
 }
 
+func TestParsearFilaCodexIdiomas(t *testing.T) {
+	// La base y el contraste contienen separadores propios.
+	es := "- 2026-10-30 · tema · E2 · modelo/high · cli 1 · commit a · cambios · 34 s · salida -1 · 10 entrada (4 en cache) / 2 salida · contraste: bien · detalle"
+	en := "- 2026-10-30 · tema · E2 · modelo/high · cli 1 · commit a · cambios · 34 s · exit -1 · 10 in (4 cached) / 2 out · review: bien · detalle"
+	mezcla := "- 2026-10-30 · tema · E2 · modelo/high · cli 1 · commit a · cambios · 34 s · exit -1 · 10 entrada (4 cached) / 2 salida · review: bien · detalle"
+	esperada := LlamadaCodex{Fecha: "2026-10-30", Tema: "tema", Clase: "E2", Modelo: "modelo", Effort: "high", Version: "cli 1", Base: "commit a · cambios", Segundos: 34, Salida: -1, Entrada: 6, EnCache: 4, TokSalida: 2, Contraste: "bien · detalle"}
+	for _, fila := range []string{es, en, mezcla} {
+		ll, ok := ParsearFilaCodex(fila)
+		if !ok || ll != esperada {
+			t.Errorf("fila %q: %+v, ok=%v; esperada %+v", fila, ll, ok, esperada)
+		}
+	}
+}
+
 func TestLeerDocLimitaLaRuta(t *testing.T) {
 	raiz := t.TempDir()
 	_ = os.MkdirAll(filepath.Join(raiz, "docs"), 0o755)
