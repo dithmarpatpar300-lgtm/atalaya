@@ -124,8 +124,9 @@ func (ix *Indice) Sesion(id string) (ResumenSesion, bool) {
 			continue
 		}
 		_, consulta := HerramientaAtalaya(p.Herramienta)
-		cuota := miraCuota(p)
-		commit := p.Tipo == "Ejecuta" && reGitCommit.MatchString(p.normalizada())
+		// Las marcas, calculadas al leer el paso (revision.go): aquí, sin expresiones regulares por paso y por pedido.
+		cuota := p.tiene(marcaCuota)
+		commit := p.tiene(marcaCommit)
 		if consulta {
 			r.Consultas++
 		}
@@ -136,7 +137,7 @@ func (ix *Indice) Sesion(id string) (ResumenSesion, bool) {
 		if commit {
 			r.Commits = append(r.Commits, CommitSesion{Hora: p.Hora, Paso: p.N, Orden: recortar(p.orden, 200)})
 		}
-		if p.editado != "" && !p.Error && reDocEstado.MatchString(p.editado) {
+		if !p.Error && p.tiene(marcaDocEstado) {
 			d := docs[p.editado]
 			if d == nil {
 				d = &DocEstado{ID: p.editado, Ruta: p.Hilo}

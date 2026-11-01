@@ -123,6 +123,8 @@ type Servidor struct {
 		ls    []claude.LanzamientoCodex
 		hasta time.Time
 	}
+	// resumenes: /api/consultas/resumen guardado poco tiempo y hasta el próximo aviso (ahorro.go).
+	resumenes memoResumen
 
 	mu           sync.RWMutex
 	codex        map[string][]trazabilidad.LlamadaCodex // por proyecto
@@ -208,13 +210,17 @@ func (s *Servidor) vuelta(ctx context.Context, primera bool) {
 		s.mirarAvisos()
 	}
 	if primera {
-		// Y otra vez al terminar, por las alertas y la datapedia ya indexada.
+		// Y otra vez al terminar, por las alertas y la datapedia ya indexada; las consultas también, porque su ahorro
+		// (que_hizo) necesita a los agentes ya leídos y lo que el panel pidió antes salió a medias.
 		s.difusion.enviar(Evento{Tipo: "agentes"})
 		s.difusion.enviar(Evento{Tipo: "alertas"})
 		s.difusion.enviar(Evento{Tipo: "datapedia"})
+		s.difusion.enviar(Evento{Tipo: "consultas"})
 		return
 	}
 	if len(ids) > 0 || cambioDocs {
+		// Lo que el panel pida con este aviso mira las bitácoras en el disco, no en la memoria de 1 s.
+		trazabilidad.OlvidarAvance()
 		s.difusion.enviar(Evento{Tipo: "agentes", IDs: ids})
 	}
 	if cambioAlertas {
@@ -792,6 +798,9 @@ type Evento struct {
 type difusor struct {
 	mu   sync.Mutex
 	subs map[chan Evento]struct{}
+	// generacion: cuántos avisos salieron. Lo que se guarda para el panel vale solo dentro de una misma generación:
+	// con cada aviso el panel vuelve a pedir, y lo que pida tiene que salir fresco.
+	generacion atomic.Uint64
 }
 
 func (d *difusor) alta() chan Evento {
@@ -812,6 +821,7 @@ func (d *difusor) baja(c chan Evento) {
 }
 
 func (d *difusor) enviar(e Evento) {
+	d.generacion.Add(1)
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for c := range d.subs {

@@ -1,12 +1,35 @@
 package servidor
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"atalaya/internal/claude"
 )
+
+// palabraEntera dice lo mismo que la expresión que reemplaza.
+func TestPalabraEnteraComoLaExpresion(t *testing.T) {
+	casos := [][2]string{
+		{`.\scripts\codex.ps1 -tema e2-x -modelo a`, "e2-x"},
+		{`.\scripts\codex.ps1 -tema e2-x-sol`, "e2-x"},
+		{`codex.ps1 -tema e2-x-sol; codex.ps1 -tema e2-x`, "e2-x"},
+		{`codex.ps1 -tema 'e2-x'`, "e2-x"},
+		{`e2-x`, "e2-x"},
+		{`ae2-x`, "e2-x"},
+		{`e2-x.md`, "e2-x"},
+		{`e2-x_b`, "e2-x"},
+		{`sin tema`, "e2-x"},
+		{`-tema "r1-Ñandú"`, "r1-Ñandú"},
+	}
+	for _, c := range casos {
+		re := regexp.MustCompile(`(^|[^\w.-])` + regexp.QuoteMeta(c[1]) + `($|[^\w.-])`)
+		if got, want := palabraEntera(c[0], c[1]), re.MatchString(c[0]); got != want {
+			t.Errorf("%q en %q: %v, la expresión dice %v", c[1], c[0], got, want)
+		}
+	}
+}
 
 func TestSinCortadas(t *testing.T) {
 	got := strings.Join(sinCortadas([]string{"2026-10-31-medidor-w6r", "2026-10-31-med", "2026-10-30-codex-e1"}), ",")

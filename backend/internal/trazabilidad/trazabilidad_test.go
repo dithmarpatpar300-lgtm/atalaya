@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestParsearAvance(t *testing.T) {
@@ -67,5 +68,51 @@ func TestLeerDocLimitaLaRuta(t *testing.T) {
 		if _, err := LeerDoc(raiz, mala); err == nil {
 			t.Errorf("%q debería rechazarse", mala)
 		}
+	}
+}
+
+// LeerAvance guarda lo parseado mientras el archivo no cambie: una bitácora que cambia se vuelve a leer, y tocar lo
+// devuelto no cambia lo guardado.
+func TestLeerAvanceReleeAlCambiar(t *testing.T) {
+	raiz := t.TempDir()
+	ruta := filepath.Join(raiz, "avance.md")
+	if err := os.WriteFile(ruta, []byte("Avance: 10 % — empezando\n\n- 10:00 · leído\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	av, err := LeerAvance(raiz, "avance.md")
+	if err != nil || av.Porcentaje != 10 || len(av.Hitos) != 1 {
+		t.Fatalf("primera lectura: %+v %v", av, err)
+	}
+	av.Hitos[0].Texto, av.Porcentaje = "tocado", 99
+	if av, _ := LeerAvance(raiz, "avance.md"); av.Porcentaje != 10 || av.Hitos[0].Texto != "leído" {
+		t.Fatalf("lo guardado cambió con la copia: %+v", av)
+	}
+	// Otro tamaño y otra hora: LeerTapado lo relee y el texto nuevo se parsea de nuevo.
+	if err := os.WriteFile(ruta, []byte("Avance: 60 % — a medio camino\n\n- 10:00 · leído\n- 10:30 · probado\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(ruta, time.Now().Add(time.Minute), time.Now().Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	// Dentro de la memoria corta todavía sale la de antes; OlvidarAvance (o que pase VidaAvance) la hace mirar.
+	if av, _ := LeerAvance(raiz, "avance.md"); av.Porcentaje != 10 {
+		t.Fatalf("dentro de VidaAvance debía salir la guardada: %+v", av)
+	}
+	OlvidarAvance()
+	if av, _ := LeerAvance(raiz, "avance.md"); av.Porcentaje != 60 || len(av.Hitos) != 2 || av.Texto != "a medio camino" {
+		t.Fatalf("no releyó la bitácora que cambió: %+v", av)
+	}
+	// Y pasada la vida, sin olvidar: otro cambio se ve.
+	vida := VidaAvance
+	VidaAvance = 0
+	defer func() { VidaAvance = vida }()
+	if err := os.WriteFile(ruta, []byte("Avance: 100 % — entregado\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(ruta, time.Now().Add(2*time.Minute), time.Now().Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if av, _ := LeerAvance(raiz, "avance.md"); av.Porcentaje != 100 || len(av.Hitos) != 0 {
+		t.Fatalf("pasada la vida no releyó: %+v", av)
 	}
 }

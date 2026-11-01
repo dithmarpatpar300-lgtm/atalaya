@@ -123,6 +123,7 @@ type Paso struct {
 	// ordenNorm: la orden ya normalizada (Normalizar), una vez al leerla: la salud, las sesiones y los lanzamientos de
 	// Codex la miran en cada pedido del panel, y normalizar miles de órdenes cada vez era lo más caro del servidor.
 	ordenNorm string
+	marcas    uint8 // marcasDe, una vez en agregar (revision.go)
 }
 
 // Linea de un diff, como la guarda Claude Code en structuredPatch.
@@ -713,6 +714,7 @@ func (a *archivo) agregar(p *Paso) {
 	if p.Etapa == "" {
 		p.Etapa = a.etapa()
 	}
+	p.marcas = marcasDe(p)
 	a.pasos = append(a.pasos, p)
 	a.agente.Pasos = len(a.pasos)
 	if a.agente.Tipo == "subagente" {

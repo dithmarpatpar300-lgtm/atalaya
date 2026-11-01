@@ -331,3 +331,36 @@ func TestResumenConsultas(t *testing.T) {
 		t.Errorf("otro proyecto: %s", b)
 	}
 }
+
+// El resumen guardado vale hasta el próximo aviso al panel o VidaResumen: una consulta nueva (que avisa) se ve ya.
+func TestResumenGuardadoHastaElAviso(t *testing.T) {
+	s, _ := proyectoAhorro(t)
+	antes := s.resumenGuardado(DiasConsultas, "").Total.N
+	// Una consulta en la memoria sin aviso: dentro de la vida, el resumen guardado no la ve todavía.
+	s.mu.Lock()
+	s.cargarConsultas()
+	s.consultas = append(s.consultas, Consulta{Hora: s.ahora(), Cliente: "curl", Herramienta: "estado", Paso: -1})
+	s.mu.Unlock()
+	fresco := s.resumenConsultas(DiasConsultas, "").Total.N
+	if fresco == antes {
+		t.Fatalf("la consulta nueva no cambia el resumen (%d): la prueba no prueba nada", fresco)
+	}
+	if n := s.resumenGuardado(DiasConsultas, "").Total.N; n != antes {
+		t.Fatalf("sin aviso y dentro de la vida debía salir el guardado: %d, guardado %d", n, antes)
+	}
+	// Con el aviso, ya sale fresco.
+	s.difusion.enviar(Evento{Tipo: "consultas"})
+	if n := s.resumenGuardado(DiasConsultas, "").Total.N; n != fresco {
+		t.Fatalf("después del aviso: %d, quería %d", n, fresco)
+	}
+	// Y pasada la vida, sin aviso, también.
+	vida := VidaResumen
+	VidaResumen = 0
+	defer func() { VidaResumen = vida }()
+	s.mu.Lock()
+	s.consultas = append(s.consultas, Consulta{Hora: s.ahora(), Cliente: "curl", Herramienta: "salud", Paso: -1})
+	s.mu.Unlock()
+	if n := s.resumenGuardado(DiasConsultas, ""); n.Total.N != s.resumenConsultas(DiasConsultas, "").Total.N || n.Total.N == fresco {
+		t.Fatalf("pasada la vida no se rearmó: %d", n.Total.N)
+	}
+}

@@ -307,6 +307,60 @@ export interface Consulta {
   paso: number;
   /** De dónde salió: el transcrito del agente (sobrevive a un reinicio), el registro en memoria de Atalaya o los dos. */
   origen?: "transcrito" | "memoria" | "transcrito+memoria";
+  // El ahorro (servidor/ahorro.go): lo que el agente habría tenido que leer sin la consulta, y la diferencia.
+  /** Los documentos que la consulta reemplaza, con su tamaño de hoy. */
+  evita?: { ruta: string; bytes: number }[];
+  alternativa_bytes?: number;
+  alternativa_tokens?: number;
+  ahorro_bytes?: number;
+  ahorro_tokens?: number;
+  /** El ahorro es un máximo: la respuesta no tiene tamaño (Codex) y se cuenta entera la lectura evitada. */
+  ahorro_es_cota?: boolean;
+  /** La herramienta no reemplaza una lectura medible (buscar, archivo, preguntar). */
+  sin_medir?: boolean;
+  /** El agente leyó igual alguno de los documentos que la consulta le evitaba. */
+  releyo?: boolean;
+  /** La misma consulta del mismo agente poco antes. */
+  repetida?: boolean;
+}
+
+/** Una fila del resumen del ahorro: el total, una herramienta, un proyecto, un rol o un día. */
+export interface FilaAhorro {
+  clave: string;
+  n: number;
+  bytes: number;
+  alternativa_bytes: number;
+  alternativa_tokens: number;
+  ahorro_bytes: number;
+  ahorro_tokens: number;
+  releyo: number;
+  repetidas: number;
+  errores: number;
+}
+
+/** Una lectura de un documento que una consulta habría dado (servidor/ahorro.go, podriaHaberConsultado). */
+export interface LecturaEvitable {
+  hora: string;
+  agente: string;
+  nombre?: string;
+  proyecto?: string;
+  paso: number;
+  ruta: string;
+  bytes: number;
+}
+
+/** GET /api/consultas/resumen: el ahorro de los últimos `dias` días. */
+export interface ResumenConsultas {
+  dias: number;
+  desde: string;
+  proyecto?: string;
+  total: FilaAhorro;
+  por_herramienta: FilaAhorro[] | null;
+  por_proyecto: FilaAhorro[] | null;
+  /** sesion, subagente, codex y «sin agente». */
+  por_rol: FilaAhorro[] | null;
+  por_dia: FilaAhorro[] | null;
+  podria_haber_consultado: { lecturas: LecturaEvitable[] | null; bytes: number; tokens: number };
 }
 
 /** Claude Code o Codex en este equipo (servidor/configurar.go, internal/entorno). */
@@ -499,7 +553,9 @@ export const api = {
   alertas: (proyecto: string) => pedir<RespuestaAlertas>(`/api/alertas?proyecto=${encodeURIComponent(proyecto)}`),
   pasos: (f: { q: string; tipo: string; proyecto: string; horas: number }, senal?: AbortSignal) =>
     pedir<RespuestaPasos>(`/api/pasos?${new URLSearchParams({ q: f.q, tipo: f.tipo, proyecto: f.proyecto, horas: f.horas ? String(f.horas) : "" })}`, senal),
-  consultas: () => pedir<Consulta[]>("/api/consultas"),
+  consultas: (senal?: AbortSignal) => pedir<Consulta[]>("/api/consultas", senal),
+  /** El ahorro de las consultas de los últimos `dias` (1 a 14). */
+  resumenConsultas: (dias: number, senal?: AbortSignal) => pedir<ResumenConsultas>(`/api/consultas/resumen?dias=${Math.min(14, Math.max(1, Math.round(dias)))}`, senal),
   proceso: (proyecto: string, periodo: Periodo, senal?: AbortSignal) =>
     pedir<InformeProceso>(`/api/proceso?${new URLSearchParams({ proyecto, periodo })}`, senal),
   estadisticas: (proyecto: string, periodo: PeriodoEstadisticas, senal?: AbortSignal) =>

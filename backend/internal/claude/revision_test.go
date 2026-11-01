@@ -75,3 +75,38 @@ func TestMiradaEnUnaPasada(t *testing.T) {
 		t.Errorf("revisión: %+v", r)
 	}
 }
+
+// Las marcas que agregar guarda en el paso dicen lo mismo que la regla calculada en el momento, y un paso sin marcar
+// (que no pasó por agregar) las calcula igual.
+func TestMarcasDelPaso(t *testing.T) {
+	casos := []struct {
+		p    Paso
+		want uint8
+	}{
+		{Paso{Tipo: "Ejecuta", orden: `cuotas.exe una-vez`}, marcaCuota},
+		{Paso{Tipo: "Usa", Herramienta: "mcp__ccd_session_mgmt__get_usage"}, marcaCuota},
+		{Paso{Tipo: "Ejecuta", orden: `git -C 'D:\x' commit -F msg.txt`}, marcaCommit},
+		{Paso{Tipo: "Ejecuta", orden: `.\scripts\codex.ps1 -Tema a`}, marcaCodex},
+		{Paso{Tipo: "Edita", editado: "d:/p/docs/trazabilidad/estado-para-retomar.md"}, marcaDocEstado},
+		{Paso{Tipo: "Edita", editado: "d:/p/backend/main.go"}, 0},
+		{Paso{Tipo: "Lee", orden: "git commit"}, 0}, // solo un «Ejecuta» comitea
+	}
+	a := &archivo{agente: &Agente{Tipo: "sesion"}}
+	for i, c := range casos {
+		suelto := c.p
+		agregado := c.p
+		a.agregar(&agregado)
+		for _, m := range []uint8{marcaCuota, marcaCommit, marcaCodex, marcaDocEstado} {
+			want := c.want&m != 0
+			if got := suelto.tiene(m); got != want {
+				t.Errorf("caso %d sin marcar, marca %d: %v", i, m, got)
+			}
+			if got := agregado.tiene(m); got != want {
+				t.Errorf("caso %d agregado, marca %d: %v", i, m, got)
+			}
+		}
+		if agregado.marcas&marcado == 0 {
+			t.Errorf("caso %d: agregar no lo marcó", i)
+		}
+	}
+}

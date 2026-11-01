@@ -89,6 +89,8 @@ Este archivo se carga solo en cada sesión de **Claude Code** (y de otras herram
 - **Cada agente lleva una bitácora en `docs/trazabilidad/<fase>/avance/<rol>.md`:**
   - primera línea `Avance: NN % — qué hace ahora`;
   - una línea por hito, `- HH:MM · NN % · hito`, con la hora tomada del reloj, nunca de memoria;
+  - **con cada hito se reescribe también la primera línea, con el mismo %**: Atalaya muestra el último hito si la
+    primera línea quedó atrás, pero lo marca como desfase;
   - termina en `Avance: 100 % — entregado`.
 - **Cuando {{DUENO}} pregunte cuánto vamos:** Atalaya (MCP `estado`) para la fase y `scripts/avance.ps1` para los agentes, no una estimación.
 - **Al cerrar una sub-etapa:**

@@ -10,9 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"atalaya/internal/secretos"
@@ -42,12 +44,73 @@ var (
 func LeerAvance(raiz, rel string) (*Avance, error) {
 	// El texto y los hitos van al panel: los secretos se tapan como en los transcritos (LeerTapado guarda lo leído
 	// mientras el archivo no cambie: se lee para cada agente en cada pedido).
-	texto, err := secretos.LeerTapado(filepath.Join(raiz, filepath.FromSlash(rel)))
+	ruta := filepath.Join(raiz, filepath.FromSlash(rel))
+	clave := ruta + "\x00" + rel
+	ahora := time.Now()
+	parseadosMu.Lock()
+	p, ok := parseados[clave]
+	parseadosMu.Unlock()
+	// Leída hace menos de VidaAvance: tal cual, sin mirar el archivo (el Stat de Windows, por agente y por pedido,
+	// era lo que quedaba de esta lectura).
+	if ok && ahora.Sub(p.visto) < VidaAvance {
+		return copiaAvance(p.av), nil
+	}
+	texto, err := secretos.LeerTapado(ruta)
 	if err != nil {
 		return nil, err
 	}
-	return ParsearAvance(texto, rel), nil
+	// Y lo parseado se guarda junto al texto del que salió: mientras LeerTapado devuelva el mismo (el archivo no
+	// cambió), no se vuelve a pasar cada línea por las expresiones. Comparar el texto entero es casi gratis cuando es
+	// el mismo string guardado, y si el archivo cambió el texto es otro y se parsea de nuevo.
+	if !ok || p.texto != texto {
+		p = parseado{texto: texto, av: ParsearAvance(texto, rel)}
+	}
+	p.visto = ahora
+	parseadosMu.Lock()
+	if len(parseados) >= MaxParseados {
+		clear(parseados)
+	}
+	parseados[clave] = p
+	parseadosMu.Unlock()
+	return copiaAvance(p.av), nil
 }
+
+// OlvidarAvance: la próxima lectura de cada bitácora vuelve a mirar el archivo (lo parseado se queda: solo se
+// rehace si el texto cambió). La llama el servidor antes de avisar al panel de un cambio, para que lo que el panel
+// pide con ese aviso no salga de la memoria corta.
+func OlvidarAvance() {
+	parseadosMu.Lock()
+	for k, p := range parseados {
+		p.visto = time.Time{}
+		parseados[k] = p
+	}
+	parseadosMu.Unlock()
+}
+
+// copiaAvance: quien la recibe puede tocarla sin cambiar la guardada.
+func copiaAvance(g *Avance) *Avance {
+	av := *g
+	av.Hitos = slices.Clone(g.Hitos)
+	return &av
+}
+
+// MaxParseados: cuántas bitácoras parseadas se guardan (una por agente; pasado el tope se empieza de nuevo).
+const MaxParseados = 512
+
+// VidaAvance: cuánto vale una bitácora leída sin volver a mirar el archivo. Corta, como la de avance.Leer: el panel
+// nunca muestra un avance más viejo que esto.
+var VidaAvance = time.Second
+
+type parseado struct {
+	texto string
+	av    *Avance
+	visto time.Time // cuándo se miró el archivo por última vez
+}
+
+var (
+	parseadosMu sync.Mutex
+	parseados   = map[string]parseado{}
+)
 
 func ParsearAvance(texto, rel string) *Avance {
 	av := &Avance{Porcentaje: -1, Ruta: rel, Hitos: []Hito{}}

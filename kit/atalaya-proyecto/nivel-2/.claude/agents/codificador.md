@@ -68,6 +68,7 @@ Mantén el archivo que te indique el encargo (`docs/trazabilidad/<fase>/avance/<
 - **Primera línea:** `Avance: NN % — qué estás haciendo ahora`. **Actualízala siempre**, porque {{DUENO}} la consulta.
 - **Después,** una línea en blanco.
 - **Luego, una línea por hito:** `- HH:MM · NN % · hito`, con la hora tomada del reloj (`date +%H:%M`), nunca de memoria.
+- **Con cada hito, reescribe también la primera línea con el mismo %.** Si queda atrás, Atalaya lo marca como desfase.
 
 Empieza con el desglose en partes y su peso. Termina en `Avance: 100 % — entregado`. Si vas a pasarte del presupuesto de tiempo, dilo en la bitácora en cuanto lo veas, con lo que falta.
 

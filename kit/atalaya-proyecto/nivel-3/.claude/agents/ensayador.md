@@ -37,7 +37,7 @@ Eres el **ensayador independiente** de {{PROYECTO}} (`{{RAIZ}}`). No armaste el 
 ## Bitácora y entrega
 
 - **Bitácora:** `docs/trazabilidad/<fase>/avance/ensayador-<version>.md`.
-  - Primera línea `Avance: NN % — qué haces ahora`; actualízala siempre.
+  - Primera línea `Avance: NN % — qué haces ahora`; actualízala con el mismo % en cada hito.
   - Empieza con el desglose en partes y su peso.
   - Una línea por hito, `- HH:MM · NN % · hito`, con la hora tomada del reloj.
   - Termina en `Avance: 100 % — entregado`.

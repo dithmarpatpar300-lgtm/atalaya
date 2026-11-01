@@ -64,7 +64,7 @@ Eres un **auditor independiente** del proyecto {{PROYECTO}} (`{{RAIZ}}`). No esc
 ## Bitácora y entrega
 
 - **Bitácora:** `docs/trazabilidad/<fase>/avance/<rol>.md`.
-  - Primera línea `Avance: NN % — …`; actualízala siempre, porque {{DUENO}} la consulta.
+  - Primera línea `Avance: NN % — …`; actualízala con el mismo % en cada hito, porque {{DUENO}} la consulta.
   - Empieza con el desglose en partes y su peso.
   - Una línea por hito, `- HH:MM · NN % · hito`, con la hora tomada del reloj.
   - Termina en `Avance: 100 % — entregado`.

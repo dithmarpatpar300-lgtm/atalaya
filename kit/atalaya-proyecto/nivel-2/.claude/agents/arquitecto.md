@@ -40,7 +40,7 @@ Eres el **arquitecto** de {{PROYECTO}} (`{{RAIZ}}`). Decides **cómo** se resuel
 ## Bitácora y entrega
 
 - **Bitácora:** `docs/trazabilidad/<fase>/avance/arquitecto-<tema>.md`.
-  - Primera línea `Avance: NN % — …`.
+  - Primera línea `Avance: NN % — …`, reescrita con el mismo % en cada hito.
   - Empieza con el desglose en partes y su peso.
   - Una línea por hito, con la hora tomada del reloj.
   - Termina en `Avance: 100 % — entregado`.

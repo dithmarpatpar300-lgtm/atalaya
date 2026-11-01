@@ -403,7 +403,45 @@ func (s *Servidor) verResumenConsultas(w http.ResponseWriter, r *http.Request) {
 		// Más allá de DiasConsultas no hay transcritos leídos: el resumen mentiría por omisión.
 		dias = min(n, DiasConsultas)
 	}
-	escribir(w, s.resumenConsultas(dias, strings.TrimSpace(r.URL.Query().Get("proyecto"))))
+	escribir(w, s.resumenGuardado(dias, strings.TrimSpace(r.URL.Query().Get("proyecto"))))
+}
+
+// VidaResumen: cuánto vale un resumen de consultas ya armado. Además se tira con cada aviso al panel (una consulta
+// nueva, un transcrito que cambió): el panel lo vuelve a pedir con cada aviso y no ve nada más viejo que esto.
+var VidaResumen = 2 * time.Second
+
+// memoResumen: los resúmenes armados, por días y proyecto, con la generación de avisos y la hora en que se armaron.
+type memoResumen struct {
+	mu sync.Mutex
+	m  map[string]resumenMemo
+}
+
+type resumenMemo struct {
+	gen   uint64
+	hecho time.Time
+	r     ResumenConsultas
+}
+
+// resumenGuardado: resumenConsultas, guardado VidaResumen dentro de la misma generación de avisos. Armarlo recorre
+// todas las consultas y los transcritos de DiasConsultas días, y el panel lo pide con cada aviso.
+func (s *Servidor) resumenGuardado(dias int, proyecto string) ResumenConsultas {
+	clave := strconv.Itoa(dias) + "\x00" + proyecto
+	// La generación se lee antes de armar: si llega un aviso mientras se arma, lo guardado ya queda viejo.
+	gen := s.difusion.generacion.Load()
+	s.resumenes.mu.Lock()
+	g, ok := s.resumenes.m[clave]
+	s.resumenes.mu.Unlock()
+	if ok && g.gen == gen && time.Since(g.hecho) < VidaResumen {
+		return g.r
+	}
+	r := s.resumenConsultas(dias, proyecto)
+	s.resumenes.mu.Lock()
+	if s.resumenes.m == nil || len(s.resumenes.m) >= 64 {
+		s.resumenes.m = map[string]resumenMemo{}
+	}
+	s.resumenes.m[clave] = resumenMemo{gen: gen, hecho: time.Now(), r: r}
+	s.resumenes.mu.Unlock()
+	return r
 }
 
 func (s *Servidor) resumenConsultas(dias int, proyecto string) ResumenConsultas {

@@ -60,6 +60,9 @@
      deután y 21,4 con visión normal sobre blanco. El acento y `opcional` quedan para texto y acciones. */
   --serie-claude: #6b3fd4;
   --serie-codex: #0a8db3;
+  /* Lo que una consulta evitó leer (Consultas): un azul que no nombra a un proveedor; pasa las seis pruebas del
+     script de dataviz sobre blanco. */
+  --serie-ahorro: #2563eb;
 
   --alto-control-compacto: 2rem;
   --alto-control: 2.5rem;
@@ -113,6 +116,8 @@
      se separan solo 5,2 para un protán: sirven para texto, no para distinguir series). */
   --serie-claude: #9a7bf5;
   --serie-codex: #0fa3c4;
+  /* Pasa las seis pruebas sobre #161618 (L 0,48–0,67: el celeste de --hilo-5 se pasaba de claro). */
+  --serie-ahorro: #4a8ef0;
 }
 
 @theme inline {
@@ -140,6 +145,7 @@
   --color-opcional-suave: var(--opcional-suave);
   --color-serie-claude: var(--serie-claude);
   --color-serie-codex: var(--serie-codex);
+  --color-serie-ahorro: var(--serie-ahorro);
   --color-hundido: var(--fondo-hundido);
   --color-vidrio: var(--vidrio);
   --color-capa: var(--capa);

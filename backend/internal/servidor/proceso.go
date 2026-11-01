@@ -324,8 +324,6 @@ func lanzamientoDe(ls []claude.LanzamientoCodex, proyecto, tema string, inicio t
 	if t == "" {
 		return mejor, false
 	}
-	// El tema como palabra entera: «e2-x» no debe enlazar con la orden de «e2-x-sol».
-	re := regexp.MustCompile(`(^|[^\w.-])` + regexp.QuoteMeta(t) + `($|[^\w.-])`)
 	for _, l := range ls {
 		if l.Proyecto != proyecto || l.Hora.After(inicio.Add(2*time.Minute)) {
 			continue
@@ -334,8 +332,7 @@ func lanzamientoDe(ls []claude.LanzamientoCodex, proyecto, tema string, inicio t
 		if o == "" {
 			o = claude.Normalizar(l.Orden)
 		}
-		// Lo barato primero: que el tema esté; la expresión (palabra entera), solo si hace falta.
-		if !strings.Contains(o, t) || !re.MatchString(o) {
+		if !palabraEntera(o, t) {
 			continue
 		}
 		if !ok || l.Hora.After(mejor.Hora) {
@@ -343,6 +340,32 @@ func lanzamientoDe(ls []claude.LanzamientoCodex, proyecto, tema string, inicio t
 		}
 	}
 	return mejor, ok
+}
+
+// palabraEntera: `t` está en `o` como palabra entera, sin letra, cifra, «_», «.» ni «-» pegados a los lados (lo
+// mismo que `(^|[^\w.-])t($|[^\w.-])`): «e2-x» no debe enlazar con la orden de «e2-x-sol». Sin expresión: se armaba
+// una por tema en cada pedido de la salud del proceso.
+func palabraEntera(o, t string) bool {
+	if t == "" {
+		return false
+	}
+	for desde := 0; ; {
+		i := strings.Index(o[desde:], t)
+		if i < 0 {
+			return false
+		}
+		i += desde
+		fin := i + len(t)
+		if (i == 0 || !pegado(o[i-1])) && (fin == len(o) || !pegado(o[fin])) {
+			return true
+		}
+		desde = i + 1
+	}
+}
+
+// pegado: el byte une palabras (\w de Go, que es ASCII, más «.» y «-»).
+func pegado(b byte) bool {
+	return b == '_' || b == '.' || b == '-' || (b >= '0' && b <= '9') || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
 }
 
 func (s *Servidor) codexProceso(proyecto, raiz string, ahora time.Time) []proceso.Agente {
