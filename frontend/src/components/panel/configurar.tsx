@@ -504,7 +504,10 @@ function PasoProyectos({ entorno, alCambio }: { entorno: Entorno; alCambio: () =
     const on = c.ruta in elegidas;
     const defecto = c.marcas?.agents_md ? 2 : 1;
     return (
-      <li key={c.ruta} className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-control px-2.5 py-2 ${on ? "bg-seleccion" : ""}`}>
+      <li key={c.ruta} className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-control px-2.5 py-2 ${on ? "bg-seleccion" : "hover:bg-elevado/50"}`}>
+        {/* La casilla y lo que describe la carpeta, una sola etiqueta: un clic en el nombre o en la ruta la marca. El nivel,
+            aparte, para que elegirlo no la desmarque. */}
+        <label className="col-span-2 grid cursor-pointer grid-cols-subgrid items-center">
         <input type="checkbox" className="size-4 accent-(--acento)" checked={on} onChange={() => alternar(c.ruta, defecto)} aria-label={t("Registrar {nombre}", { nombre: c.nombre })} />
         <span className="flex min-w-0 flex-col">
           <span className="truncate font-medium" title={c.nombre}>
@@ -521,6 +524,7 @@ function PasoProyectos({ entorno, alCambio }: { entorno: Entorno; alCambio: () =
             {c.marcas?.mcp_atalaya && <span>{t(".mcp.json con Atalaya")}</span>}
           </span>
         </span>
+        </label>
         <select
           aria-label={t("Nivel de {nombre}", { nombre: c.nombre })}
           disabled={!on}

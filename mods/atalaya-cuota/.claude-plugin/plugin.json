@@ -1,0 +1,6 @@
+{
+  "name": "atalaya-cuota",
+  "version": "0.1.0",
+  "description": "Sends the plan's 5-hour and weekly usage to Atalaya (127.0.0.1:7420) each time a window moves a point.",
+  "license": "MIT"
+}

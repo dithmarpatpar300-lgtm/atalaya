@@ -329,14 +329,15 @@ function FilaSalud({
   registrar: (id: string, b: HTMLButtonElement | null) => void;
 }) {
   return (
-    <tr className={`border-t border-borde ${elegida ? "bg-seleccion" : "hover:bg-elevado/50"}`}>
+    // Toda la fila elige (también las marcas de cada regla); el botón de la primera celda es el que recibe el teclado, y
+    // su clic llega a la fila.
+    <tr onClick={alElegir} className={`cursor-pointer border-t border-borde ${elegida ? "bg-seleccion" : "hover:bg-elevado/50"}`}>
       <th scope="row" className="p-0 text-left font-normal">
         <button
           ref={(b) => registrar(f.id, b)}
           type="button"
           tabIndex={foco ? 0 : -1}
           aria-pressed={elegida}
-          onClick={alElegir}
           className="flex h-[52px] w-full items-center gap-2.5 px-4 text-left"
         >
           <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${puntoDe(f)}`} />

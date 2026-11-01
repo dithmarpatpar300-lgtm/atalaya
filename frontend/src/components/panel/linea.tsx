@@ -253,7 +253,12 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                 const tope = resp ? f.a + resp.tope_min * 60_000 : f.b;
                 const exceso = f.excede && f.b > tope ? `${((f.b - tope) / Math.max(1, f.b - f.a)) * 100}%` : null;
                 return (
-                  <li key={f.id} className="grid h-[34px] grid-cols-[14rem_minmax(0,1fr)] items-center gap-3 border-t border-borde">
+                  // Toda la fila elige (el nombre y el espacio vacío también); la barra es la que recibe el teclado.
+                  <li
+                    key={f.id}
+                    onClick={() => setElegida(f.id)}
+                    className={`grid h-[34px] cursor-pointer grid-cols-[14rem_minmax(0,1fr)] items-center gap-3 border-t border-borde ${on ? "" : "hover:bg-elevado/40"}`}
+                  >
                     <span className="flex min-w-0 items-center gap-2" style={{ paddingLeft: f.nivel ? 14 : 0 }}>
                       <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${PUNTO[color]}`} />
                       <span className={`truncate text-rotulo ${f.tipo === "sesion" ? "text-suave" : ""}`} title={`${f.nombre}${f.clase ? ` · ${f.clase}` : ""}`}>
@@ -274,7 +279,6 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                             : t("{nombre}, de {de} a {a}", { nombre: f.nombre, de: hhmm(f.a), a: hhmm(f.b) })
                         }
                         onFocus={() => setElegida(f.id)}
-                        onClick={() => setElegida(f.id)}
                         onDoubleClick={() => {
                           if (!f.diario) alAbrirAgente(f.id);
                         }}
@@ -296,7 +300,11 @@ export function Linea({ proyecto, version, alAbrirAgente }: { proyecto: string; 
                             type="button"
                             title={abrir}
                             aria-label={abrir}
-                            onClick={() => alAbrirAgente(c.otro_id!)}
+                            onClick={(e) => {
+                              // Abre al otro agente sin elegir antes esta fila.
+                              e.stopPropagation();
+                              alAbrirAgente(c.otro_id!);
+                            }}
                             className="group absolute inset-y-0 w-3 -translate-x-1/2"
                             style={{ left: p(ms) }}
                           >

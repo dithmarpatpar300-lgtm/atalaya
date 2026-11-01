@@ -31,7 +31,7 @@ consultar.
 | **Datapedia** | Búsqueda de texto completo en los documentos de tus proyectos y en los turnos de los agentes. |
 | **Servidor MCP** | `que_hizo`, `buscar`, `archivo`, `salud`, `estado`, `retomar` y `preguntar`: los agentes preguntan en vez de releer documentos y transcritos. Medido: la mitad de tokens nuevos para la misma pregunta, y más aciertos. |
 | **Consultas** | Lo que ahorró cada consulta MCP: los documentos que reemplazó su respuesta y los tokens que no entraron al contexto del agente, por herramienta, proyecto, rol y día, y las lecturas que una consulta habría evitado. |
-| **Cuota del plan** | El uso de 5 horas y semanal de Claude, leído con `claude -p /usage` y, con un mod opcional de Claude Code, empujado en el momento en que se mueve, con su historia. |
+| **Cuota del plan** | El uso de 5 horas y semanal de Claude, leído con `claude -p /usage` y, con un mod opcional de Claude Code ([`mods/atalaya-cuota`](mods/atalaya-cuota/README.md)), empujado en el momento en que se mueve, con su historia. |
 | **Skill `atalaya-proyecto`** | Prepara un proyecto (nuevo o existente) para trabajar con agentes: instala un kit por niveles (1 indexable, 2 con agentes, 3 completo) en español o en inglés, abre su fase 0 y lo registra en Atalaya, sin pisar nada de lo que ya tenía. |
 
 ## Capturas

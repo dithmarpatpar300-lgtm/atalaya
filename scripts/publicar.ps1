@@ -82,7 +82,7 @@ if ($actualizar) {
 $sueltos = @('README.md', 'README.es.md', 'CHANGELOG.md', 'LICENSE', 'proyectos.ejemplo.json', '.gitignore', '.gitattributes',
     'docs/INSTALL.md', 'docs/INSTALAR.md')
 $archivos = & git -C $raiz ls-files | Where-Object {
-    $_ -match '^(backend|frontend|kit|scripts|\.github|docs/img)/' -or $sueltos -contains $_
+    $_ -match '^(backend|frontend|kit|mods|scripts|\.github|\.claude-plugin|docs/img)/' -or $sueltos -contains $_
 }
 foreach ($a in $sueltos) { if ($archivos -notcontains $a) { Fallar "$a is not tracked" } }
 $copiado = $true

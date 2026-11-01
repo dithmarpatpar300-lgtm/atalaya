@@ -286,7 +286,12 @@ export function Consultas({ version, alAbrirAgente }: { version: number; alAbrir
                       const a = ahorroDe(c);
                       const marca = c.releyo ? t("releyó igual") : c.repetida ? t("repetida") : "";
                       return (
-                        <tr key={`${clave(c)}-${i}`} className={`h-14 border-t border-borde ${actual ? "bg-seleccion" : ""}`}>
+                        // Toda la fila elige; el botón de la herramienta es el que recibe el teclado, y su clic llega a la fila.
+                        <tr
+                          key={`${clave(c)}-${i}`}
+                          onClick={() => setElegida(clave(c))}
+                          className={`h-14 cursor-pointer border-t border-borde ${actual ? "bg-seleccion" : "hover:bg-elevado/60"}`}
+                        >
                           <td className="h-14 px-4 py-2 align-middle">
                             <span className="dato flex flex-col leading-tight text-suave tabular-nums">
                               <span>{conSegundos(f)}</span>
@@ -300,9 +305,8 @@ export function Consultas({ version, alAbrirAgente }: { version: number; alAbrir
                             <button
                               type="button"
                               aria-current={actual ? "true" : undefined}
-                              onClick={() => setElegida(clave(c))}
                               title={`${c.herramienta}(${c.argumentos})`}
-                              className="flex h-14 w-full min-w-0 flex-col justify-center px-2 py-2 text-left hover:bg-elevado/60"
+                              className="flex h-14 w-full min-w-0 flex-col justify-center px-2 py-2 text-left"
                             >
                               <span className={`dato truncate ${c.error ? "text-error" : ""}`}>{c.herramienta}</span>
                               <span className="dato truncate text-ayuda text-tenue">{c.argumentos || t("(sin argumentos)")}</span>

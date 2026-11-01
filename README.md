@@ -33,7 +33,7 @@ your answer for a while. Atalaya puts all of it in one local panel and turns it 
 | **Datapedia** | Full-text search over your projects' documents and the agents' turns. |
 | **MCP server** | `que_hizo`, `buscar`, `archivo`, `salud`, `estado`, `retomar` and `preguntar`: agents ask instead of rereading documents and transcripts. Measured: half the new tokens for the same question, and more correct answers. |
 | **Queries** | What each MCP query saved: the documents its answer replaced and the tokens that never entered the agent's context, by tool, project, role and day, plus the reads a query could have replaced. |
-| **Plan quota** | Claude's 5-hour and weekly usage, read with `claude -p /usage` and, with an optional Claude Code mod, pushed the moment it moves, with its history. |
+| **Plan quota** | Claude's 5-hour and weekly usage, read with `claude -p /usage` and, with an optional Claude Code mod ([`mods/atalaya-cuota`](mods/atalaya-cuota/README.md)), pushed the moment it moves, with its history. |
 | **`atalaya-proyecto` skill** | Prepares a project (new or existing) to work with agents: installs a tiered kit (1 indexable, 2 with agents, 3 complete) in English or Spanish, opens its phase 0 and registers it in Atalaya, without overwriting anything the project already had. |
 
 ## Screenshots

@@ -1,0 +1,6 @@
+{
+  "name": "atalaya",
+  "owner": { "name": "Atalaya" },
+  "description": "Claude Code mods that work with Atalaya, the local panel for Claude Code and Codex agents.",
+  "plugins": [{ "name": "atalaya-cuota", "source": "./mods/atalaya-cuota" }]
+}
