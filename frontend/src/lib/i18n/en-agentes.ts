@@ -69,6 +69,7 @@ export const EN_AGENTES: Record<string, string> = {
   "Abrir bitácora": "Open log",
   "Sin bitácora": "No log",
   "Hitos de la bitácora marcados": "Log milestones marked",
+  "La bitácora no actualizó su primera línea: {detalle}": "The log did not update its first line: {detalle}",
   "Sin hitos": "No milestones",
   "Ver la traza": "View trace",
   "Exportar": "Export",

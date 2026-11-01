@@ -8,11 +8,25 @@ import (
 
 func TestParsearAvance(t *testing.T) {
 	av := ParsearAvance("Avance: 85 % — check en verde\r\n\r\nDesglose: …\r\n- 21:32 · 5 % · leído el ADR\n- 22:08 · 100 % · informe hecho\n", "x.md")
-	if av.Porcentaje != 85 || av.Texto != "check en verde" || len(av.Hitos) != 2 || av.Hitos[1].Hora != "22:08" {
+	// El último hito (100 %) va más adelante que la primera línea (85 %): vale el hito (TestAvanceDesfasado).
+	if av.Porcentaje != 100 || av.Desfase == "" || av.Texto != "check en verde" || len(av.Hitos) != 2 || av.Hitos[1].Hora != "22:08" {
 		t.Errorf("%+v", av)
 	}
 	if av := ParsearAvance("sin avance", "y.md"); av.Porcentaje != -1 {
 		t.Errorf("sin dato debería ser -1: %+v", av)
+	}
+}
+
+// La primera línea quedó en 5 % y el último hito dice 75 %: vale el hito, y el desfase se cuenta. Al revés (la
+// cabecera más adelante que los hitos) manda la cabecera.
+func TestAvanceDesfasado(t *testing.T) {
+	av := ParsearAvance("Avance: 5 % — leyendo\n\n- 10:51 · 5 % · leído\n- 11:07 · 75 % · corpus escrito\n- 11:09 · sin % aquí\n", "x.md")
+	if av.Porcentaje != 75 || av.Desfase != "la primera línea dice 5 %; el último hito (11:07), 75 %" {
+		t.Fatalf("desfasado: %d %q", av.Porcentaje, av.Desfase)
+	}
+	av = ParsearAvance("Avance: 100 % — entregado\n\n- 11:11 · 85 % · lint\n", "x.md")
+	if av.Porcentaje != 100 || av.Desfase != "" {
+		t.Fatalf("cabecera al día: %d %q", av.Porcentaje, av.Desfase)
 	}
 }
 

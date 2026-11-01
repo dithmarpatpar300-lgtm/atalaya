@@ -186,6 +186,7 @@ const ejemplos = [
   "Claude no devolvió un informe de suscripción",
   "No se pudo guardar el historial",
   "solo el panel puede solicitar la lectura",
+  "la primera línea dice 5 %; el último hito (11:07), 75 %",
 ];
 
 test("traduce cada patrón completo y conserva lo desconocido", () => {

@@ -70,6 +70,8 @@ export interface Avance {
   texto: string;
   hitos: { hora: string; texto: string }[];
   ruta: string;
+  /** La primera línea quedó atrás de su último hito con %: el % que vale es el del hito. */
+  desfase?: string;
 }
 
 export type EstadoAgente = "Trabajando" | "En espera" | "Entregado" | "Inactiva";

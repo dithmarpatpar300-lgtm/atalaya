@@ -227,4 +227,5 @@ export const PATRONES_SERVIDOR: [RegExp, Reemplazo][] = [
   [/^Claude no devolvió un informe de suscripción$/, "Claude returned no subscription report"],
   [/^No se pudo guardar el historial$/, "Could not save the history"],
   [/^solo el panel puede solicitar la lectura$/, "only the panel can request a reading"],
+  [/^la primera línea dice (\d+) %; el último hito \((.+)\), (\d+) %$/, "the first line says $1 %; the last milestone ($2), $3 %"],
 ];

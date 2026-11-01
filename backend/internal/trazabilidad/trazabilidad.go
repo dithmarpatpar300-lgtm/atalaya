@@ -6,6 +6,7 @@ package trazabilidad
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,6 +24,8 @@ type Avance struct {
 	Texto      string `json:"texto"`
 	Hitos      []Hito `json:"hitos"`
 	Ruta       string `json:"ruta"`
+	// Desfase: la primera línea quedó atrás de su último hito con % (el % que vale es el del hito).
+	Desfase string `json:"desfase,omitempty"`
 }
 
 type Hito struct {
@@ -57,8 +60,24 @@ func ParsearAvance(texto, rel string) *Avance {
 			av.Hitos = append(av.Hitos, Hito{Hora: m[1], Texto: m[2]})
 		}
 	}
+	// Un agente que anota hitos con su % («- 11:07 · 75 % · …») y se olvida de la primera línea deja la cabecera
+	// atrás: el último hito con % manda si dice más, y Desfase lo cuenta (para que se vea y se corrija).
+	for i := len(av.Hitos) - 1; i >= 0; i-- {
+		if m := reHitoPct.FindStringSubmatch(av.Hitos[i].Texto); m != nil {
+			if p, _ := strconv.Atoi(m[1]); p > av.Porcentaje {
+				if av.Porcentaje >= 0 {
+					av.Desfase = fmt.Sprintf("la primera línea dice %d %%; el último hito (%s), %d %%", av.Porcentaje, av.Hitos[i].Hora, p)
+				}
+				av.Porcentaje = p
+			}
+			break
+		}
+	}
 	return av
 }
+
+// reHitoPct: el % con que empieza el texto de un hito («75 % · corpus escrito…»).
+var reHitoPct = regexp.MustCompile(`^(\d{1,3})\s*%`)
 
 // LlamadaCodex: una fila de REGISTRO.md.
 type LlamadaCodex struct {

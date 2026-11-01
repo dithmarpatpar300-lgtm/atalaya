@@ -445,14 +445,20 @@ export function DetalleAgente({
               <span className="dato">{presupuesto ? `${presupuesto} min` : ""}</span>
             </div>
           </div>
+          {a.avance?.desfase && (
+            <p className="m-0 truncate text-ayuda text-aviso" title={a.avance.desfase}>
+              {t("La bitácora no actualizó su primera línea: {detalle}", { detalle: tServidor(a.avance.desfase) })}
+            </p>
+          )}
           {hitos.length > 0 && (
             <ol className="m-0 flex list-none flex-col gap-2 border-t border-borde p-0 pt-3">
               {hitos.slice(-6).map((h, i) => {
                 const m = /^(\d{1,3})\s*%\s*·\s*(.*)$/.exec(h.texto);
                 return (
-                  <li key={i} className="grid grid-cols-[2.5rem_2.25rem_minmax(0,1fr)] gap-2 text-[12.5px]">
+                  <li key={i} className="grid grid-cols-[2.5rem_3.25rem_minmax(0,1fr)] gap-2 text-[12.5px]">
                     <span className="dato text-tenue">{h.hora}</span>
-                    <span className="dato text-acento">{m ? `${m[1]} %` : ""}</span>
+                    {/* Ancho para «100 %» en una línea: el % nunca baja solo a la siguiente. */}
+                    <span className="dato whitespace-nowrap text-acento">{m ? `${m[1]} %` : ""}</span>
                     <span className="text-suave">{m ? m[2] : h.texto}</span>
                   </li>
                 );
