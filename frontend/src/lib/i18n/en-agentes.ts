@@ -108,7 +108,8 @@ export const EN_AGENTES: Record<string, string> = {
   "Consulta": "Looks up",
   "Entró al contexto ≈ {entra} · generó {sale} · contexto tras el paso ≈ {tras}": "Added to context ≈ {entra} · generated {sale} · context after step ≈ {tras}",
   "Tokens de cada paso: ↓ lo que su resultado mete al contexto, ↑ lo que la IA generó": "Tokens per step: ↓ result added to context, ↑ AI output",
-  "Seguir: cuando la ventana no tiene el foco, la vista baja sola al último paso. Con el foco no se mueve.": "Follow: when the window is not focused, the view scrolls to the latest step. It stays put while focused.",
+  "Seguir: la vista baja sola al último paso cuando la ventana no tiene el foco o lleva un minuto sin que la toques. Mientras la usas no se mueve.":
+    "Follow: the view moves down to the latest step when the window is not focused or has gone a minute untouched. While you use it, it stays put.",
   "dentro de un desvío (nivel {n})": "inside a detour (level {n})",
   "retoma su hilo": "resumes its thread",
   "camino principal": "main path",

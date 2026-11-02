@@ -55,8 +55,10 @@ const TRAZO: Record<string, { color: string; ancho: number; raya?: string; opaci
   etapa: { color: "var(--acento)", ancho: 2 },
 };
 
-// seguir: sin foco en la ventana, la vista baja sola al último paso; con foco no se mueve (lo estás leyendo).
+// seguir: si nadie usa la ventana, la vista baja sola al último paso; mientras se usa no se mueve (la estás leyendo).
 type Ajustes = { modo: Modo; tokens: boolean; seguir: boolean };
+/** Con el foco pero sin tocarla este tiempo, la ventana cuenta como que nadie la usa. */
+const SIN_TOCAR_MS = 60_000;
 
 function leerAjustes(): Ajustes {
   try {
@@ -249,26 +251,40 @@ export function Actividad({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pasoPedido, cuandoPaso]);
 
-  // Seguir: llega un paso nuevo y la ventana no tiene el foco → se elige el último y la vista baja hasta él. Con el
-  // foco no se toca nada: quien lee no debe ver saltar la página. El salto es directo, en el mismo efecto, sin
-  // animación, temporizador ni requestAnimationFrame: con la ventana oculta o minimizada el navegador los frena hasta
-  // un minuto, y nadie está mirando.
+  // Seguir: llega un paso nuevo y nadie está usando la ventana (sin foco, o con foco pero sin tocarla hace un minuto:
+  // mirar otra pantalla no le quita el foco) → se elige el último y la vista baja hasta él. Mientras se usa no se toca
+  // nada: quien lee no debe ver saltar la página. El salto es directo, en el mismo efecto, sin animación, temporizador
+  // ni requestAnimationFrame: con la ventana oculta o minimizada el navegador los frena hasta un minuto.
   const seguir = ajustes.seguir && enVivo;
   const bajar = useRef(false);
+  const ultimoGesto = useRef(0);
   useEffect(() => {
-    if (!seguir || ultimo < 0 || document.hasFocus()) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- seguir es volver al último paso, como al abrir
+    const anotar = () => {
+      ultimoGesto.current = Date.now();
+    };
+    anotar();
+    const gestos = ["pointermove", "pointerdown", "keydown", "wheel"] as const;
+    for (const g of gestos) window.addEventListener(g, anotar, { passive: true });
+    return () => {
+      for (const g of gestos) window.removeEventListener(g, anotar);
+    };
+  }, []);
+  useEffect(() => {
+    if (!seguir || ultimo < 0 || (document.hasFocus() && Date.now() - ultimoGesto.current < SIN_TOCAR_MS)) return;
     setElegido(null);
     // A la última página, anclada en lo de ahora: llena y con el último paso (nadie mira, así que puede correrse).
     setHoja({ agente: idAgente, ancla: total, pagina: Number.MAX_SAFE_INTEGER });
     bajar.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo con un paso nuevo
   }, [seguir, ultimo]);
-  // La bajada, ya pintada la página con el último paso.
+  // La bajada, cuando ya está pintada la fila del último paso: este efecto corre también en la misma pasada que el de
+  // arriba, antes de que la página nueva exista, y sin la fila la pendiente no se gasta.
   useEffect(() => {
     if (!bajar.current) return;
+    const fila = filasRef.current.get(ultimo);
+    if (!fila) return;
     bajar.current = false;
-    filasRef.current.get(ultimo)?.scrollIntoView({ block: "center" });
+    fila.scrollIntoView({ block: "center" });
   });
 
   function elegir(n: number, enfocar = false) {
@@ -343,7 +359,7 @@ export function Actividad({
             type="button"
             onClick={() => cambiar({ seguir: !ajustes.seguir })}
             aria-pressed={ajustes.seguir}
-            title={t("Seguir: cuando la ventana no tiene el foco, la vista baja sola al último paso. Con el foco no se mueve.")}
+            title={t("Seguir: la vista baja sola al último paso cuando la ventana no tiene el foco o lleva un minuto sin que la toques. Mientras la usas no se mueve.")}
             className={`flex h-7 items-center gap-1.5 rounded-control border px-2.5 text-ayuda transition-colors duration-150 ${
               ajustes.seguir ? "border-acento bg-acento-suave text-acento-fuerte" : "border-borde text-suave hover:text-texto"
             }`}
