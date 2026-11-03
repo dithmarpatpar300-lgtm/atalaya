@@ -210,6 +210,23 @@ export interface Detalle {
   desde: number;
 }
 
+/** Una barra del mapa de la sesión: `pasos` pasos seguidos desde el `n`. */
+export interface CeldaMapa {
+  n: number;
+  hora: string;
+  pasos: number;
+  /** Fracción de pasos que editan o escriben, de 0 a 1. */
+  edita: number;
+  errores: number;
+  pedidos: number;
+}
+
+export interface MapaSesion {
+  total: number;
+  por_celda: number;
+  celdas: CeldaMapa[];
+}
+
 export interface ProyectoResumen {
   nombre: string;
   agentes: number;
@@ -545,6 +562,7 @@ export const api = {
   pasosAntes: (id: string, antes: number, n: number, senal?: AbortSignal) =>
     pedir<Detalle>(`/api/agentes/${encodeURIComponent(id)}?antes=${antes}&max=${n}`, senal),
   contexto: (id: string, senal?: AbortSignal) => pedir<ContextoAgente>(`/api/agentes/${encodeURIComponent(id)}/contexto`, senal),
+  mapa: (id: string, senal?: AbortSignal) => pedir<MapaSesion>(`/api/agentes/${encodeURIComponent(id)}/mapa`, senal),
   paso: (id: string, n: number) => pedir<DetallePaso>(`/api/agentes/${encodeURIComponent(id)}/pasos/${n}`),
   doc: (proyecto: string, ruta: string) =>
     pedir<{ ruta: string; texto: string }>(`/api/doc?proyecto=${encodeURIComponent(proyecto)}&ruta=${encodeURIComponent(ruta)}`),

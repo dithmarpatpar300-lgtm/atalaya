@@ -1,13 +1,28 @@
 "use client";
 
-import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
-import { api, type DetallePaso, type Paso } from "@/lib/api";
+import { type KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { api, type DetallePaso, type MapaSesion as Mapa, type Paso } from "@/lib/api";
 import { decimal, t, tServidor } from "@/lib/i18n";
 import { hora } from "@/lib/formato";
-import { ANCHO_CANALETA, armarFilas, coloresDeHilo, type Fila, geometria, metaPaso, nombreEtapa, salidaDelPaso, tokensCortos, ventana } from "@/lib/hilos";
-import { paginaDe, relleno, ventanaAnclada } from "@/lib/paginas";
+import { armarFilas, type Fila, metaPaso, nombreEtapa, salidaDelPaso, tokensCortos, ventana } from "@/lib/hilos";
+import {
+  coloresDeArchivos,
+  colocar,
+  columnas,
+  enlazar,
+  franja,
+  type Lote,
+  nombreArchivo,
+  plegar,
+  type Renglon,
+  renglones,
+  resumenLote,
+  trazar,
+} from "@/lib/lotes";
+import { paginaDe, ventanaAnclada } from "@/lib/paginas";
 import { Fantasmas, Paginador } from "@/components/ui/paginador";
 import { CuerpoPaso, type Modo } from "./detalle-paso";
+import { MapaSesion } from "./mapa-sesion";
 
 // Colores por tipo, para la actividad: ejecutar y planificar en ciruela, editar y escribir en ámbar, responder en
 // verde, delegar en celeste.
@@ -28,16 +43,31 @@ const TIPO: Record<string, string> = {
   Atalaya: "bg-acento text-sobre-acento",
 };
 
-// Pasos por página; el tamaño se recuerda en este navegador.
+// Lo mismo, solo el texto: en las filas va la palabra con su color, sin la pastilla.
+const TIPO_TEXTO: Record<string, string> = {
+  Ejecuta: "text-acento-fuerte",
+  Planifica: "text-acento-fuerte",
+  Atalaya: "text-acento-fuerte",
+  Edita: "text-aviso",
+  Escribe: "text-aviso",
+  Responde: "text-ok",
+  Entrega: "text-ok",
+  Cierra: "text-ok",
+  Delega: "text-opcional",
+  Pide: "text-opcional",
+  Error: "text-error",
+};
+
+// Pasos por página; el tamaño se recuerda en este navegador. Plegados por lote, 100 pasos son unas 25 filas.
 const TAMANOS = [50, 100] as const;
 const CLAVE_TAMANO = "atalaya:por-pagina:actividad";
 
 function leerTamano(): number {
   try {
     const n = Number(localStorage.getItem(CLAVE_TAMANO));
-    return (TAMANOS as readonly number[]).includes(n) ? n : TAMANOS[0];
+    return (TAMANOS as readonly number[]).includes(n) ? n : TAMANOS[1];
   } catch {
-    return TAMANOS[0];
+    return TAMANOS[1];
   }
 }
 
@@ -45,20 +75,14 @@ function leerTamano(): number {
 // no debe repetir un salto viejo.
 const atendidos = new Set<number>();
 const CLAVE = "atalaya:actividad";
-const TRAZO: Record<string, { color: string; ancho: number; raya?: string; opacidad?: number }> = {
-  riel: { color: "var(--riel)", ancho: 1.5, opacidad: 0.7 },
-  desvio: { color: "var(--riel)", ancho: 1.5 },
-  vuelta: { color: "var(--riel)", ancho: 1.5 },
-  hilo: { color: "var(--riel)", ancho: 1.4, raya: "2 4" },
-  paralelo: { color: "var(--acento)", ancho: 1.5, opacidad: 0.9 },
-  delega: { color: "var(--opcional)", ancho: 1.5, raya: "4 3" },
-  etapa: { color: "var(--acento)", ancho: 2 },
-};
 
 // seguir: si nadie usa la ventana, la vista baja sola al último paso; mientras se usa no se mueve (la estás leyendo).
 type Ajustes = { modo: Modo; tokens: boolean; seguir: boolean };
 /** Con el foco pero sin tocarla este tiempo, la ventana cuenta como que nadie la usa. */
 const SIN_TOCAR_MS = 60_000;
+/** Lo que se mide de la lista con el mapa al lado: por debajo, el mapa no se muestra. */
+const ANCHO_CON_MAPA = 600;
+const ANCHO_MAPA = 92;
 
 function leerAjustes(): Ajustes {
   try {
@@ -80,37 +104,61 @@ const conSegundos = (iso: string) => {
   return `${hora(f)}:${String(f.getSeconds()).padStart(2, "0")}`;
 };
 
-/** Lo que domina en un paso: ↓ lo que su resultado mete al contexto, o ↑ lo que la IA generó. */
-function tokDominante(p: Paso): { texto: string; valor: number; sube: boolean } {
-  const sal = salidaDelPaso(p);
-  const sube = sal > p.tok_entra;
-  const valor = sube ? sal : p.tok_entra;
-  return { texto: valor ? `${sube ? "↑" : "↓"} ${tokensCortos(valor)}` : "—", valor, sube };
+/** Lo que domina: ↓ lo que los resultados meten al contexto, o ↑ lo que la IA generó. */
+function tokDominante(filas: readonly Fila[]): { texto: string; valor: number; sube: boolean; entra: number; sale: number } {
+  let entra = 0;
+  let sale = 0;
+  for (const f of filas) {
+    entra += f.paso.tok_entra;
+    sale += salidaDelPaso(f.paso);
+  }
+  const sube = sale > entra;
+  const valor = sube ? sale : entra;
+  return { texto: valor ? `${sube ? "↑" : "↓"} ${tokensCortos(valor)}` : "—", valor, sube, entra, sale };
 }
 
 function Leyenda() {
-  const muestra = (d: string, color: string, raya?: string, extra?: string) => (
-    <svg width="26" height="16" aria-hidden="true" className="shrink-0">
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeDasharray={raya} />
-      {extra && <path d={extra} fill="none" stroke={color} strokeWidth="1.5" />}
-    </svg>
-  );
   return (
     <ul className="m-0 flex list-none flex-wrap items-center gap-x-3.5 gap-y-1 p-0 text-ayuda text-suave">
-      <li className="flex items-center gap-1.5">{muestra("M4 0V6Q4 12 10 12H22", "var(--riel)")}{t("desvío")}</li>
-      <li className="flex items-center gap-1.5">{muestra("M22 2V6Q22 12 16 12H5", "var(--riel)", undefined, "M5 9L2 12L5 15")}{t("vuelta")}</li>
-      <li className="flex items-center gap-1.5">{muestra("M6 2C16 2 16 14 6 14", "var(--hilo-1)", "2 3")}{t("mismo archivo")}</li>
-      <li className="flex items-center gap-1.5">{muestra("M4 2C13 2 13 14 4 14", "var(--acento)")}{t("en paralelo")}</li>
-      <li className="flex items-center gap-1.5">{muestra("M2 8H22", "var(--opcional)", "4 3")}{t("delega")}</li>
+      <li className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="box-border size-2.5 rounded-full border-2 border-acento" />
+        {t("lee")}
+      </li>
+      <li className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="size-2.5 rounded-full bg-acento" />
+        {t("edita")}
+      </li>
+      <li className="flex items-center gap-1.5">
+        <svg width="22" height="12" aria-hidden="true" className="shrink-0">
+          <path d="M1 10H12A6 6 0 0 0 18 4V0" fill="none" stroke="var(--serie-5)" strokeWidth="1.75" />
+        </svg>
+        {t("un archivo sigue")}
+      </li>
+      <li className="flex items-center gap-1.5">
+        <svg width="14" height="14" aria-hidden="true" className="shrink-0">
+          <path d="M3 13V7A4 4 0 0 1 7 3H10" fill="none" stroke="var(--serie-1)" strokeWidth="1.75" strokeDasharray="2 3" strokeLinecap="round" />
+        </svg>
+        {t("viene de antes")}
+      </li>
     </ul>
   );
 }
 
+/** La flecha de un lote que se abre; en uno de un solo paso guarda el lugar sin verse. */
+function Flecha({ abierto, oculta }: { abierto: boolean; oculta: boolean }) {
+  return (
+    <svg width="12" height="12" aria-hidden="true" className={`transition-transform duration-150 ${abierto ? "rotate-90" : ""} ${oculta ? "opacity-0" : ""}`}>
+      <path d="M4 2L8 6L4 10" fill="none" stroke="var(--texto-tenue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /**
- * La actividad como línea de tiempo con hilos: filas de alto fijo a la
- * izquierda, dibujadas por un solo SVG (lib/hilos.ts), y el inspector del paso elegido a la derecha. Las filas son
- * un grupo con foco itinerante: las flechas mueven la elección, Inicio y Fin van a los extremos. Cada fila dice en
- * texto lo que el dibujo muestra (se desvía, vuelve a, en paralelo), así el lector de pantalla no depende del SVG.
+ * La actividad como línea de tiempo: una fila por lote (un mensaje de la IA con sus llamadas), que se abre para ver sus
+ * pasos; un solo SVG dibuja el riel y los hilos que unen lotes por archivo (lib/lotes.ts); el mapa de toda la sesión al
+ * costado y el inspector del paso elegido a la derecha. Las filas son un grupo con foco itinerante: arriba y abajo mueven
+ * la elección, derecha e izquierda abren y cierran, Inicio y Fin van a los extremos. Cada fila dice en texto lo que el
+ * dibujo muestra, así el lector de pantalla no depende del SVG.
  */
 export function Actividad({
   idAgente,
@@ -122,7 +170,7 @@ export function Actividad({
   irAPaso,
 }: {
   idAgente: string;
-  /** Los pasos que mandó el servidor: los últimos (hasta 3000). */
+  /** Los pasos que mandó el servidor: los últimos. */
   pasos: Paso[];
   /** El número del primero de `pasos`; los anteriores se piden por página (api.pasosAntes). */
   desde?: number;
@@ -138,7 +186,20 @@ export function Actividad({
   const [elegido, setElegido] = useState<number | null>(null);
   const [detalles, setDetalles] = useState<Record<number, DetallePaso>>({});
   const [errores, setErrores] = useState<Record<number, string>>({});
-  const filasRef = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const filasRef = useRef<Map<string, HTMLButtonElement>>(new Map());
+  // Los lotes abiertos, por el número de su primer paso. `forzado` es el paso al que se saltó: su lote se muestra abierto.
+  const [abiertos, setAbiertos] = useState<ReadonlySet<number>>(() => new Set());
+  const [forzado, setForzado] = useState<number | null>(null);
+  const [focoClave, setFocoClave] = useState<string | null>(null);
+
+  // Lo que mide la lista con su mapa: de ahí salen las columnas y si el mapa cabe.
+  const [ancho, setAncho] = useState(0);
+  const medir = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setAncho(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Por páginas ancladas (lib/paginas.ts, ventanaAnclada): la última es la de ahora, llena al abrir y crece por abajo
   // con lo que llega; las anteriores no cambian. «Ancla» es cuántos pasos tenía el agente (todos, no solo los que
@@ -161,10 +222,13 @@ export function Actividad({
   function irAPagina(p: number) {
     const ultima = p >= vista.paginas;
     setHoja({ agente: idAgente, ancla: ultima ? total : h.ancla, pagina: ultima ? Number.MAX_SAFE_INTEGER : p });
+    // Lo elegido se queda en su página: aquí manda el último paso de la nueva.
+    setElegido(null);
+    setFocoClave(null);
   }
-  /** La página donde está el paso de la posición `i` de `pasos`, sin volver a anclar. */
+  /** La página donde está el paso de la posición `i` de todos los del agente, sin volver a anclar. */
   function mostrarPosicion(i: number) {
-    setHoja({ agente: idAgente, ancla: h.ancla, pagina: paginaDe(desde + i, total, h.ancla, tamano) });
+    setHoja({ agente: idAgente, ancla: h.ancla, pagina: paginaDe(i, total, h.ancla, tamano) });
   }
 
   // Una página vieja, de antes de lo que llegó: la pide y la guarda por su tramo («inicio-fin»).
@@ -186,21 +250,63 @@ export function Actividad({
     return () => ctl.abort();
   }, [vieja, tramo, viejas, idAgente, vista.inicio, vista.fin]);
 
+  // El mapa de toda la sesión, solo si hay más de lo que cabe en una página. Se refresca cada 10 pasos: es un panorama.
+  // Lo que no tiene transcrito de Claude (Codex) responde 404 y se queda sin mapa.
+  const [mapa, setMapa] = useState<Mapa | null>(null);
+  const conMapa = total > tamano;
+  const corteMapa = Math.floor(total / 10);
+  useEffect(() => {
+    if (!conMapa) return;
+    const ctl = new AbortController();
+    api
+      .mapa(idAgente, ctl.signal)
+      .then(setMapa)
+      .catch(() => {});
+    return () => ctl.abort();
+  }, [conMapa, idAgente, corteMapa]);
+
   const visibles = useMemo(
     () => (vieja ? (viejas[tramo] ?? []).slice(0, finVisible - vista.inicio) : pasos.slice(vista.inicio - desde, finVisible - desde)),
     [vieja, viejas, tramo, pasos, vista.inicio, finVisible, desde],
   );
-  // Los pasos de antes de la página numeran sus etapas; de una página vieja no se tienen (null).
-  const filas = useMemo(() => armarFilas(visibles, vieja ? null : pasos.slice(0, vista.inicio - desde)), [visibles, vieja, pasos, vista.inicio, desde]);
-  const colores = useMemo(() => coloresDeHilo(visibles), [visibles]);
-  const { trazos, nodos, alto } = useMemo(() => geometria(filas, colores), [filas, colores]);
+  // Los pasos de antes de la página numeran sus etapas y dicen qué archivos vienen de antes; de una página vieja no se tienen (null).
+  const previos = useMemo(() => (vieja ? null : pasos.slice(0, vista.inicio - desde)), [vieja, pasos, vista.inicio, desde]);
+  const lotes = useMemo(() => plegar(armarFilas(visibles, previos)), [visibles, previos]);
+  const { enlaces, llegadas } = useMemo(() => enlazar(lotes, previos), [lotes, previos]);
+  const colores = useMemo(() => coloresDeArchivos(lotes), [lotes]);
+  const enlazados = useMemo(() => new Set([...enlaces.flatMap((e) => e.archivos), ...llegadas.values()]), [enlaces, llegadas]);
+  const loteDe = useMemo(() => {
+    const m = new Map<number, number>();
+    lotes.forEach((l, i) => l.filas.forEach((f) => m.set(f.paso.n, i)));
+    return m;
+  }, [lotes]);
+
   const porN = useMemo(() => new Map([...pasos, ...(vieja ? visibles : [])].map((p) => [p.n, p])), [pasos, vieja, visibles]);
   const ultimo = pasos.length ? pasos[pasos.length - 1].n : -1;
-  const actual = elegido !== null && porN.has(elegido) ? elegido : ultimo;
-  const foco = visibles.some((p) => p.n === actual) ? actual : filas[0]?.paso.n;
+  // Sin nada elegido, el último de lo que se ve: en la última página, con pasos nuevos sin mostrar, no es el último de todos.
+  const actual = elegido !== null && porN.has(elegido) ? elegido : (visibles.at(-1)?.n ?? ultimo);
   const paso = porN.get(actual);
-  const max = Math.max(1, ...visibles.map((p) => tokDominante(p).valor));
+  const eleccion = loteDe.get(actual) ?? -1;
   const vent = useMemo(() => ventana(pasos), [pasos]);
+
+  const abierto = (l: Lote) => abiertos.has(l.n) || (forzado !== null && loteDe.get(forzado) === lotes.indexOf(l));
+  const { filas, cy, alto } = renglones(lotes, abierto);
+  const mapaVisible = Boolean(conMapa && mapa?.celdas.length && (ancho === 0 || ancho >= ANCHO_CON_MAPA));
+  const cols = columnas(ancho === 0 ? 0 : ancho - (mapaVisible ? ANCHO_MAPA : 0), ajustes.tokens);
+  // En el teléfono solo corren los hilos del lote elegido.
+  const pista = colocar(enlaces, cols.canaleta, cols.angosto ? eleccion : undefined);
+  const trazos = trazar(pista, cy, alto, eleccion, colores, llegadas);
+  const max = Math.max(1, ...lotes.map((l) => tokDominante(l.filas).valor));
+  const colorHilo = (archivo: string) => (enlazados.has(archivo) ? (colores.get(archivo) ?? "var(--riel)") : "var(--riel)");
+
+  /** La fila donde se ve un paso: la suya si su lote está abierto, si no la del lote. */
+  function claveDe(n: number): string | undefined {
+    const i = loteDe.get(n);
+    if (i === undefined) return undefined;
+    const l = lotes[i];
+    return l.filas.length > 1 && abierto(l) ? `p${n}` : `l${l.n}`;
+  }
+  const foco = focoClave !== null && filas.some((r) => r.clave === focoClave) ? focoClave : (claveDe(actual) ?? filas[0]?.clave);
 
   function cambiar(a: Partial<Ajustes>) {
     const nuevos = { ...ajustes, ...a };
@@ -219,6 +325,19 @@ export function Actividad({
       .catch((e: Error) => setErrores((m) => ({ ...m, [actual]: e.message })));
   }, [idAgente, actual, det, hechoAhora]);
 
+  // Un salto pendiente: se hace cuando la fila de ese paso ya está pintada (la página puede estar llegando del servidor).
+  const salto = useRef<{ n: number; bloque: ScrollLogicalPosition; suave: boolean; enfocar: boolean } | null>(null);
+  function saltarSiSePuede() {
+    const s = salto.current;
+    const clave = s ? claveDe(s.n) : undefined;
+    const fila = clave ? filasRef.current.get(clave) : undefined;
+    if (!s || !fila) return;
+    salto.current = null;
+    fila.scrollIntoView({ behavior: s.suave ? "smooth" : "auto", block: s.bloque });
+    if (s.enfocar) fila.focus({ preventScroll: true });
+  }
+  useEffect(saltarSiSePuede);
+
   // Llegada desde una traza: elige el pedido de ese turno, muestra lo necesario y lleva la vista a él.
   const turnoPedido = irATurno?.turno;
   const cuandoPedido = irATurno?.cuando;
@@ -229,9 +348,11 @@ export function Actividad({
     const n = pasos[i].n;
     const espera = setTimeout(() => {
       atendidos.add(cuandoPedido);
-      mostrarPosicion(i);
+      mostrarPosicion(desde + i);
       setElegido(n);
-      requestAnimationFrame(() => filasRef.current.get(n)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      setFocoClave(null);
+      salto.current = { n, bloque: "start", suave: true, enfocar: false };
+      requestAnimationFrame(saltarSiSePuede);
     }, 0);
     return () => clearTimeout(espera);
     // Solo cuando llega un pedido nuevo (cuándo), no cada vez que crece la lista de pasos.
@@ -272,6 +393,7 @@ export function Actividad({
   useEffect(() => {
     if (!seguir || ultimo < 0 || (document.hasFocus() && Date.now() - ultimoGesto.current < SIN_TOCAR_MS)) return;
     setElegido(null);
+    setFocoClave(null);
     // A la última página, anclada en lo de ahora: llena y con el último paso (nadie mira, así que puede correrse).
     setHoja({ agente: idAgente, ancla: total, pagina: Number.MAX_SAFE_INTEGER });
     bajar.current = true;
@@ -281,49 +403,78 @@ export function Actividad({
   // arriba, antes de que la página nueva exista, y sin la fila la pendiente no se gasta.
   useEffect(() => {
     if (!bajar.current) return;
-    const fila = filasRef.current.get(ultimo);
+    const clave = claveDe(ultimo);
+    const fila = clave ? filasRef.current.get(clave) : undefined;
     if (!fila) return;
     bajar.current = false;
     fila.scrollIntoView({ block: "center" });
   });
 
-  function elegir(n: number, enfocar = false) {
-    setElegido(n);
-    if (enfocar) requestAnimationFrame(() => filasRef.current.get(n)?.focus());
+  function alternar(l: Lote) {
+    const copia = new Set(abiertos);
+    if (abierto(l)) {
+      copia.delete(l.n);
+      // Si estaba abierto por un salto, cerrarlo también lo suelta.
+      if (forzado !== null && loteDe.get(forzado) === lotes.indexOf(l)) setForzado(null);
+    } else copia.add(l.n);
+    setAbiertos(copia);
   }
 
-  // «Retoma»: va al paso donde se dejó ese archivo, aunque haya que mostrar pasos anteriores.
-  function irA(n: number): boolean {
-    const i = pasos.findIndex((p) => p.n === n);
-    if (i < 0) return false;
-    mostrarPosicion(i);
+  /** La elección y el foco itinerante van a esa fila; el foco real, cuando ya está pintada (puede ser una que se acaba de abrir). */
+  const enfocarFila = useRef<string | null>(null);
+  useEffect(() => {
+    if (enfocarFila.current === null) return;
+    filasRef.current.get(enfocarFila.current)?.focus();
+    enfocarFila.current = null;
+  });
+  function moverA(r: Renglon, enfocar = false) {
+    setElegido(r.hijo ? r.hijo.paso.n : r.lote.n);
+    setFocoClave(r.clave);
+    if (enfocar) enfocarFila.current = r.clave;
+  }
+
+  // «Retoma» y el mapa: va a ese paso, en la página que le toque. Abrir su lote es para ver justo ese paso; desde el mapa
+  // basta con llegar al tramo.
+  function irA(n: number, abrir = true): boolean {
+    if (n < 0 || n >= total) return false;
+    mostrarPosicion(n);
     setElegido(n);
-    requestAnimationFrame(() => {
-      const fila = filasRef.current.get(n);
-      fila?.scrollIntoView({ behavior: "smooth", block: "center" });
-      fila?.focus({ preventScroll: true });
-    });
+    setFocoClave(null);
+    if (abrir) setForzado(n);
+    salto.current = { n, bloque: "center", suave: true, enfocar: abrir };
+    requestAnimationFrame(saltarSiSePuede);
     return true;
   }
 
   function alTecla(e: KeyboardEvent<HTMLDivElement>) {
-    const ns = filas.map((f) => f.paso.n);
-    const i = ns.indexOf(foco ?? actual);
-    let j: number;
-    if (e.key === "ArrowDown") j = Math.min(ns.length - 1, i + 1);
+    // La fila que tiene el foco de verdad; el foco itinerante puede ir detrás si llegó de otro modo que con el Tab.
+    const enFoco = [...filasRef.current].find(([, b]) => b === e.target)?.[0] ?? foco;
+    const i = filas.findIndex((r) => r.clave === enFoco);
+    const r = filas[i];
+    if (!r) return;
+    let j = i;
+    if (e.key === "ArrowDown") j = Math.min(filas.length - 1, i + 1);
     else if (e.key === "ArrowUp") j = Math.max(0, i - 1);
     else if (e.key === "Home") j = 0;
-    else if (e.key === "End") j = ns.length - 1;
-    else return;
+    else if (e.key === "End") j = filas.length - 1;
+    else if (e.key === "ArrowRight") {
+      if (!r.hijo && r.lote.filas.length > 1) {
+        if (abierto(r.lote)) j = i + 1;
+        else alternar(r.lote);
+      }
+    } else if (e.key === "ArrowLeft") {
+      if (r.hijo) j = filas.findIndex((o) => o.clave === `l${r.lote.n}`);
+      else if (r.lote.filas.length > 1 && abierto(r.lote)) alternar(r.lote);
+    } else return;
     e.preventDefault();
-    elegir(ns[j], true);
+    if (j !== i) moverA(filas[j], true);
   }
 
   // Totales por turno, para su rótulo.
   const totalTurno = new Map<number, number>();
   for (const p of visibles) totalTurno.set(p.turno, (totalTurno.get(p.turno) ?? 0) + p.tok_entra + salidaDelPaso(p));
 
-  const texto = (f: Fila): string => {
+  const textoPaso = (f: Fila): string => {
     const p = f.paso;
     const marcas: string[] = [];
     if (p.desvio) marcas.push(t("se desvía de su hilo"));
@@ -335,9 +486,53 @@ export function Actividad({
     const etapa = f.marca ? `${nombreEtapa(f.marca)}. ` : "";
     return `${etapa}${hora(new Date(p.hora))}, ${t(p.tipo)}, ${p.resumen || p.herramienta}${marcas.length ? ". " + marcas.join(". ") : ""}`;
   };
+  const textoLote = (l: Lote, i: number): string => {
+    if (l.filas.length === 1) return textoPaso(l.filas[0]);
+    const etapa = l.marca ? `${nombreEtapa(l.marca)}. ` : "";
+    return `${etapa}${franja(l, i, enlaces, hora(new Date(l.filas[0].paso.hora)))}. ${resumenLote(l)}`;
+  };
+  const textoFranja = eleccion >= 0 ? franja(lotes[eleccion], eleccion, enlaces, hora(new Date(lotes[eleccion].filas[0].paso.hora))) : "";
+
+  /** La etapa, dentro de su fila: una marca de ancho tope que se recorta, con el nombre entero en el title. En el teléfono no cabe: queda la raya sobre el riel y la etiqueta de la fila. */
+  const marcaEtapa = (m: Fila["marca"]) =>
+    m &&
+    !cols.angosto && (
+      <span
+        aria-hidden="true"
+        title={nombreEtapa(m)}
+        className="max-w-[60%] flex-none truncate rounded-chip border border-acento px-1.5 text-[10.5px] leading-[18px] font-semibold text-acento-fuerte"
+      >
+        {m.sigue ? "↳ " : ""}
+        {nombreEtapa(m)}
+      </span>
+    );
+
+  /** Los tokens de una fila: una sola línea siempre (lo que cambia en vivo no mueve el diseño). */
+  const celdaTokens = (lista: readonly Fila[], barra: boolean) => {
+    const tok = tokDominante(lista);
+    return (
+      <span
+        title={t("Entró al contexto ≈ {entra} · generó {sale} · contexto tras el paso ≈ {tras}", {
+          entra: tokensCortos(tok.entra),
+          sale: tokensCortos(tok.sale),
+          tras: tokensCortos(lista[lista.length - 1].paso.tok_tras),
+        })}
+        className="flex min-w-0 flex-col items-end gap-[3px] border-l border-borde pl-2"
+      >
+        <span className={`dato max-w-full truncate text-ayuda ${tok.sube ? "text-opcional" : "text-suave"}`}>{tok.texto}</span>
+        {barra && (
+          <span aria-hidden="true" className="flex h-[2px] w-full justify-end rounded-full bg-elevado">
+            <span className={`h-[2px] rounded-full opacity-70 ${tok.sube ? "bg-opcional" : "bg-suave"}`} style={{ width: `${Math.max(4, (tok.valor / max) * 100)}%` }} />
+          </span>
+        )}
+      </span>
+    );
+  };
+
+  const claseFila = "grid w-full scroll-mt-28 items-center gap-x-2 pr-3 text-left transition-colors duration-150 focus-visible:[outline-offset:-2px]";
 
   return (
-    <section aria-labelledby={`${base}-t`} className="flex flex-col gap-4 rounded-tarjeta border border-borde bg-superficie px-6 py-5">
+    <section aria-labelledby={`${base}-t`} className="flex flex-col gap-4 rounded-tarjeta border border-borde bg-superficie px-6 py-5 max-sm:px-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={`${base}-t`} className="m-0 text-encabezado font-semibold">
           {t("Actividad")} <span className="dato text-ayuda font-normal text-tenue">{total === 1 ? t("1 paso") : t("{n} pasos", { n: total })}</span>
@@ -375,195 +570,247 @@ export function Actividad({
       ) : (
         <div className="flex flex-wrap items-start gap-5">
           {/* Línea de tiempo */}
-          <div className="min-w-0 flex-[3_1_40rem]">
+          <div className="flex min-w-0 flex-[3_1_40rem] flex-col gap-2">
             {/* Las páginas, arriba y no al pie: la última crece por abajo con cada paso, y un pie bajaría con ella. */}
             {total > TAMANOS[0] && (
-                <Paginador
-                  arriba
-                  nombre={t("Actividad")}
-                  pagina={vista.pagina}
-                  paginas={vista.paginas}
-                  desde={vista.inicio + 1}
-                  hasta={finVisible}
-                  total={total}
-                  alIr={irAPagina}
-                  nuevos={nuevos}
-                  alVerNuevos={() => irAPagina(vista.paginas)}
-                  porPagina={{
-                    valor: tamano,
-                    opciones: TAMANOS,
-                    alCambiar: (n) => {
-                      setTamano(n);
-                      try {
-                        localStorage.setItem(CLAVE_TAMANO, String(n));
-                      } catch {}
-                      setHoja({ agente: idAgente, ancla: total, pagina: Number.MAX_SAFE_INTEGER });
-                    },
-                  }}
-                />
+              <Paginador
+                arriba
+                nombre={t("Actividad")}
+                pagina={vista.pagina}
+                paginas={vista.paginas}
+                desde={vista.inicio + 1}
+                hasta={finVisible}
+                total={total}
+                alIr={irAPagina}
+                nuevos={nuevos}
+                alVerNuevos={() => irAPagina(vista.paginas)}
+                porPagina={{
+                  valor: tamano,
+                  opciones: TAMANOS,
+                  alCambiar: (n) => {
+                    setTamano(n);
+                    try {
+                      localStorage.setItem(CLAVE_TAMANO, String(n));
+                    } catch {}
+                    setHoja({ agente: idAgente, ancla: total, pagina: Number.MAX_SAFE_INTEGER });
+                  },
+                }}
+              />
             )}
-            {/* Toda página mide `tamano` filas de 40 px: la corta (la primera) y la que se está trayendo se completan con
-                fantasma, y el aviso de carga va encima de ellas, sin sumar alto. */}
-            <div role="group" aria-label={t("Pasos; las flechas mueven la elección")} onKeyDown={alTecla} className="relative">
-              {vieja && !viejas[tramo] && (
-                <p className={`absolute inset-x-0 top-0 z-10 m-0 py-3 text-rotulo ${errorVieja ? "text-error" : "text-suave"}`} aria-live="polite">
-                  {errorVieja ? t("No se pudieron traer esos pasos: {error}", { error: errorVieja }) : t("Trayendo los pasos {desde}–{hasta}…", { desde: vista.inicio + 1, hasta: vista.fin })}
-                </p>
-              )}
-              {filas.map((f) => {
-                const p = f.paso;
-                const esElegido = p.n === actual;
-                const vivo = p.n === ultimo && enVivo;
-                const tok = tokDominante(p);
-                const q = p.continua >= 0 ? porN.get(p.continua) : undefined;
-                const primeroDelLote =
-                  p.paralelo > 1 && p.herramienta !== "Respuesta" && !visibles.some((o) => o.lote === p.lote && o.n < p.n && o.herramienta !== "Respuesta");
-                return (
-                  <button
-                    key={p.n}
-                    ref={(b) => {
-                      if (b) filasRef.current.set(p.n, b);
-                      else filasRef.current.delete(p.n);
-                    }}
-                    type="button"
-                    tabIndex={p.n === foco ? 0 : -1}
-                    aria-pressed={esElegido}
-                    aria-label={texto(f)}
-                    onClick={() => elegir(p.n)}
-                    style={{ height: f.alto }}
-                    className={`grid w-full scroll-mt-28 grid-cols-[3.5rem_7.5rem_minmax(0,1fr)] items-center rounded-control text-left transition-colors duration-150 ${
-                      esElegido ? "bg-seleccion" : "hover:bg-elevado/60"
-                    }`}
-                  >
-                    {/* La hora entra 10 px: el fondo de la fila elegida la rodea con aire y no la toca. */}
-                    <span className="dato pl-2.5 text-ayuda whitespace-nowrap text-tenue" title={conSegundos(p.hora)}>
+            {/* La franja de la elección: un hueco de alto fijo con una línea, el resto en su title. */}
+            <div className="box-border flex h-[30px] items-center overflow-hidden rounded-control bg-hundido px-2.5 text-ayuda whitespace-nowrap text-suave">
+              <span className="truncate" title={textoFranja}>
+                {textoFranja}
+              </span>
+            </div>
+            <div ref={medir} className="flex overflow-clip rounded-panel border border-borde">
+              <div
+                role="group"
+                aria-label={t("Pasos por lote; arriba y abajo mueven la elección, derecha e izquierda abren y cierran un lote")}
+                onKeyDown={alTecla}
+                className="relative min-w-0 flex-1"
+              >
+                {vieja && !viejas[tramo] && (
+                  <p className={`absolute inset-x-0 top-0 z-10 m-0 px-3 py-3 text-rotulo ${errorVieja ? "text-error" : "text-suave"}`} aria-live="polite">
+                    {errorVieja ? t("No se pudieron traer esos pasos: {error}", { error: errorVieja }) : t("Trayendo los pasos {desde}–{hasta}…", { desde: vista.inicio + 1, hasta: vista.fin })}
+                  </p>
+                )}
+                {filas.map((r) => {
+                  const l = r.lote;
+                  const refFila = (b: HTMLButtonElement | null) => {
+                    if (b) filasRef.current.set(r.clave, b);
+                    else filasRef.current.delete(r.clave);
+                  };
+                  const tabIndex = r.clave === foco ? 0 : -1;
+                  // Un paso de un lote abierto: 30 px sobre el fondo hundido.
+                  if (r.hijo) {
+                    const f = r.hijo;
+                    const p = f.paso;
+                    const esElegido = p.n === actual;
+                    return (
+                      <button
+                        key={r.clave}
+                        ref={refFila}
+                        type="button"
+                        tabIndex={tabIndex}
+                        aria-pressed={esElegido}
+                        aria-label={textoPaso(f)}
+                        onClick={() => moverA(r)}
+                        style={{ height: r.alto, gridTemplateColumns: cols.plantilla }}
+                        className={`${claseFila} text-ayuda ${esElegido ? "bg-seleccion" : "bg-hundido hover:bg-elevado/60"}`}
+                      >
+                        <span className="dato text-right text-[11px] whitespace-nowrap text-tenue" title={conSegundos(p.hora)}>
+                          {hora(new Date(p.hora))}
+                        </span>
+                        <span />
+                        <span />
+                        <span className="flex min-w-0 items-center gap-2 pl-1.5">
+                          {f.marca && f.marca !== l.marca && marcaEtapa(f.marca)}
+                          <span className={`shrink-0 text-[11.5px] ${TIPO_TEXTO[p.tipo] ?? "text-suave"}`}>{t(p.tipo)}</span>
+                          <span className={`min-w-0 flex-1 truncate ${esElegido ? "text-texto" : "text-suave"}`} title={p.resumen || p.herramienta}>
+                            {p.resumen || p.herramienta}
+                          </span>
+                          {p.subagente && <span className="shrink-0 rounded-full border border-dashed border-opcional px-2 text-[11px] text-opcional max-sm:hidden">→ {t("subagente")}</span>}
+                        </span>
+                        {cols.archivos === "nombre" ? (
+                          <span className={`dato truncate text-[11.5px] ${p.error ? "text-error" : "text-tenue"}`}>{p.hecho ? metaPaso(p.meta) : t("en curso")}</span>
+                        ) : cols.archivos ? (
+                          <span />
+                        ) : null}
+                        {cols.tokens && celdaTokens([f], false)}
+                        <span />
+                      </button>
+                    );
+                  }
+                  const esElegido = r.i === eleccion;
+                  const uno = l.filas.length === 1;
+                  const p = l.filas[0].paso;
+                  const abre = !uno && abierto(l);
+                  const delegados = l.filas.filter((f) => f.paso.subagente).length;
+                  const estilo = { height: r.alto, gridTemplateColumns: cols.plantilla };
+                  const raya = r.i > 0 ? "border-t border-borde/40" : "";
+                  const fondo = esElegido ? "bg-seleccion" : "hover:bg-elevado/60";
+                  const celdaHora = (
+                    <span className="dato text-right text-ayuda whitespace-nowrap text-tenue" title={conSegundos(p.hora)}>
                       {hora(new Date(p.hora))}
                     </span>
-                    <span />
-                    {f.tipo === "turno" ? (
-                      <span className="flex min-w-0 items-center gap-2.5 pr-2.5">
-                        <span className="dato shrink-0 rounded-chip bg-opcional-suave px-[7px] text-[11px] leading-[18px] font-semibold whitespace-nowrap text-opcional">
-                          {t("Turno {n}", { n: p.turno })}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate font-medium">{p.resumen}</span>
-                        {/* En un teléfono la fila solo tiene sitio para el tipo y el resumen: lo demás está en el inspector y en la etiqueta de la fila. */}
-                        {ajustes.tokens && (
-                          <span className="dato shrink-0 text-ayuda whitespace-nowrap text-tenue max-sm:hidden">
-                            {t("{tokens} en el turno", { tokens: tokensCortos(totalTurno.get(p.turno) ?? 0) })}
+                  );
+                  // El pedido es la fila de su turno.
+                  if (l.turno) {
+                    return (
+                      <button
+                        key={r.clave}
+                        ref={refFila}
+                        type="button"
+                        tabIndex={tabIndex}
+                        aria-pressed={esElegido}
+                        aria-label={textoPaso(l.filas[0])}
+                        onClick={() => moverA(r)}
+                        style={estilo}
+                        className={`${claseFila} box-border ${raya} ${fondo}`}
+                      >
+                        {celdaHora}
+                        <span />
+                        <span className="flex min-w-0 items-center gap-2.5" style={{ gridColumn: "3 / -1" }}>
+                          <span className="dato shrink-0 rounded-chip bg-opcional-suave px-[7px] text-[11px] leading-[18px] font-semibold whitespace-nowrap text-opcional">
+                            {t("Turno {n}", { n: p.turno })}
                           </span>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="flex min-w-0 items-center gap-2 pr-2.5">
-                        {/* La etapa, dentro de su primera fila (y de la primera de la página): una marca de ancho tope que
-                            se recorta, con el nombre entero en el title; la etiqueta de la fila también la dice. */}
-                        {f.marca && (
-                          <span
-                            aria-hidden="true"
-                            title={nombreEtapa(f.marca)}
-                            className="max-w-[14rem] shrink-0 truncate rounded-chip border border-acento px-1.5 text-[10.5px] leading-[18px] font-semibold text-acento-fuerte max-sm:max-w-[6rem]"
-                          >
-                            {f.marca.sigue ? "↳ " : ""}
-                            {nombreEtapa(f.marca)}
+                          <span className="min-w-0 flex-1 truncate font-medium" title={p.resumen}>
+                            {p.resumen}
                           </span>
-                        )}
-                        <span className={`shrink-0 rounded-chip px-2 py-px text-ayuda font-medium ${TIPO[p.tipo] ?? "bg-elevado text-suave"}`}>{t(p.tipo)}</span>
-                        <span className={`min-w-0 flex-1 truncate ${esElegido || vivo ? "text-texto" : "text-suave"}`}>{p.resumen || p.herramienta}</span>
-                        {q && (
-                          <span
-                            className="dato shrink-0 rounded-chip border px-1.5 text-[11px] max-sm:hidden"
-                            style={{ borderColor: colores.get(p.hilo), color: colores.get(p.hilo) }}
-                          >
-                            ↩ {p.hilo.split("/").pop()} · {hora(new Date(q.hora))}
-                          </span>
-                        )}
-                        {primeroDelLote && (
-                          <span className="dato shrink-0 rounded-chip bg-acento-suave px-1.5 text-[11px] text-acento-fuerte max-sm:hidden">∥ {p.paralelo}</span>
-                        )}
-                        {p.subagente && (
-                          <span className="shrink-0 rounded-full border border-dashed border-opcional px-2 text-[11.5px] text-opcional max-sm:hidden">→ {t("subagente")}</span>
-                        )}
-                        <span className={`dato hidden shrink-0 text-ayuda sm:inline ${p.error ? "text-error" : "text-tenue"}`}>
-                          {p.hecho ? metaPaso(p.meta) : t("en curso")}
-                        </span>
-                        {ajustes.tokens && (
-                          <span
-                            title={t("Entró al contexto ≈ {entra} · generó {sale} · contexto tras el paso ≈ {tras}", {
-                              entra: tokensCortos(p.tok_entra),
-                              sale: tokensCortos(salidaDelPaso(p)),
-                              tras: tokensCortos(p.tok_tras),
-                            })}
-                            className="flex w-[84px] shrink-0 flex-col items-end gap-[3px] border-l border-borde pl-2 max-sm:hidden"
-                          >
-                            {/* Una sola línea siempre (lo que cambia en vivo no mueve el diseño): «↓ 999,9 k» cabe entera; lo que no quepa se corta con puntos. */}
-                            <span className={`dato max-w-full truncate text-ayuda ${tok.sube ? "text-opcional" : "text-suave"}`}>{tok.texto}</span>
-                            <span aria-hidden="true" className="flex h-[2px] w-full justify-end rounded-full bg-elevado">
-                              <span
-                                className={`h-[2px] rounded-full opacity-70 ${tok.sube ? "bg-opcional" : "bg-suave"}`}
-                                style={{ width: `${Math.max(4, (tok.valor / max) * 100)}%` }}
-                              />
+                          {cols.tokens && (
+                            <span className="dato shrink-0 text-ayuda whitespace-nowrap text-tenue">
+                              {t("{tokens} en el turno", { tokens: tokensCortos(totalTurno.get(p.turno) ?? 0) })}
                             </span>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  }
+                  const resumen = uno ? `${t(p.tipo)}: ${p.resumen || p.herramienta}` : resumenLote(l);
+                  return (
+                    <button
+                      key={r.clave}
+                      ref={refFila}
+                      type="button"
+                      tabIndex={tabIndex}
+                      aria-pressed={esElegido}
+                      aria-expanded={uno ? undefined : abre}
+                      aria-label={textoLote(l, r.i)}
+                      onClick={() => {
+                        moverA(r);
+                        if (!uno) alternar(l);
+                      }}
+                      style={estilo}
+                      className={`${claseFila} box-border ${raya} ${fondo}`}
+                    >
+                      {celdaHora}
+                      <span />
+                      <span className="dato text-right text-ayuda text-acento-fuerte tabular-nums" title={uno ? undefined : t("{n} pasos del mismo mensaje, en paralelo", { n: l.filas.length })}>
+                        {uno ? "" : `∥ ${l.filas.length}`}
+                      </span>
+                      <span className="flex min-w-0 items-center gap-2 pl-1.5">
+                        {marcaEtapa(l.marca)}
+                        <span className="min-w-0 flex-1 truncate" title={resumen}>
+                          {uno ? (
+                            <>
+                              <span className={TIPO_TEXTO[p.tipo] ?? "text-suave"}>{t(p.tipo)}:</span> {p.resumen || p.herramienta}
+                            </>
+                          ) : (
+                            resumen
+                          )}
+                        </span>
+                        {!uno && l.errores > 0 && <span className="shrink-0 text-ayuda text-error">{t("{n} con error", { n: l.errores })}</span>}
+                        {delegados > 0 && (
+                          <span className="shrink-0 rounded-full border border-dashed border-opcional px-2 text-[11.5px] text-opcional max-sm:hidden">
+                            → {delegados > 1 ? delegados : t("subagente")}
                           </span>
                         )}
                       </span>
-                    )}
-                  </button>
-                );
-              })}
-              <svg
-                aria-hidden="true"
-                width={ANCHO_CANALETA}
-                height={alto}
-                className="pointer-events-none absolute top-0 left-14 overflow-visible"
-              >
-                <defs>
-                  <marker id={`${base}-flecha`} viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                    <path d="M0 0L8 4L0 8z" fill="var(--riel)" />
-                  </marker>
-                </defs>
-                {trazos.map((tz, i) => {
-                  const e = TRAZO[tz.clase];
-                  return (
-                    <path
-                      key={i}
-                      d={tz.d}
-                      fill="none"
-                      stroke={tz.color ?? e.color}
-                      strokeWidth={e.ancho}
-                      strokeDasharray={e.raya}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={e.opacidad}
-                      markerEnd={tz.clase === "vuelta" ? `url(#${base}-flecha)` : undefined}
-                    />
+                      {cols.archivos && (
+                        <span className="flex min-w-0 items-center gap-1 text-ayuda text-suave">
+                          {l.archivos.slice(0, 6).map((f) => (
+                            <span key={f} aria-hidden="true" className="size-[7px] shrink-0 rounded-full" style={{ background: colorHilo(f) }} />
+                          ))}
+                          {cols.archivos === "nombre" &&
+                            (l.archivos.length > 0 ? (
+                              <span className="ml-1 min-w-0 truncate" title={l.archivos.map(nombreArchivo).join(", ")}>
+                                {nombreArchivo(l.archivos[0])}
+                                {l.archivos.length > 1 ? ` ${t("y {n} más", { n: l.archivos.length - 1 })}` : ""}
+                              </span>
+                            ) : (
+                              uno && <span className={`dato truncate ${p.error ? "text-error" : "text-tenue"}`}>{p.hecho ? metaPaso(p.meta) : t("en curso")}</span>
+                            ))}
+                        </span>
+                      )}
+                      {cols.tokens && celdaTokens(l.filas, true)}
+                      <Flecha abierto={abre} oculta={uno} />
+                    </button>
                   );
                 })}
-                {nodos.map((d) => {
-                  const p = porN.get(d.n)!;
-                  const esElegido = d.n === actual;
-                  const vivo = d.n === ultimo && enVivo;
-                  const relleno = p.error
-                    ? "var(--error)"
-                    : p.tipo === "Pide"
-                      ? "var(--opcional-suave)"
-                      : (colores.get(p.hilo) ?? (p.herramienta === "Respuesta" ? "var(--ok)" : "var(--borde-campo)"));
-                  return (
-                    <g key={d.n}>
-                      {esElegido && <circle cx={d.cx} cy={d.cy} r={9} fill="none" stroke="var(--acento)" strokeWidth={2} />}
-                      <circle
-                        cx={d.cx}
-                        cy={d.cy}
-                        r={p.tipo === "Pide" ? 6 : vivo ? 5.5 : 4.5}
-                        fill={relleno}
-                        stroke={p.tipo === "Pide" ? "var(--opcional)" : "var(--superficie)"}
-                        strokeWidth={p.tipo === "Pide" ? 1.5 : 2}
-                        className={vivo ? "pulso" : undefined}
-                      />
-                    </g>
-                  );
-                })}
-              </svg>
-              <Fantasmas n={relleno(filas.length, tamano, vista.paginas)} className="h-10 rounded-control bg-hundido" />
+                <svg aria-hidden="true" width={cols.canaleta} height={alto} className="pointer-events-none absolute top-0 overflow-visible" style={{ left: cols.hora + 8 }}>
+                  {trazos.map((tz, i) => (
+                    <path key={i} d={tz.d} fill="none" stroke={tz.color} strokeWidth={tz.ancho} opacity={tz.opacidad} strokeDasharray={tz.raya} strokeLinecap="round" strokeLinejoin="round" />
+                  ))}
+                  {/* Donde empieza una etapa, una marca corta cruza el riel en el borde de arriba de su fila (no tapa el nodo). */}
+                  {lotes.map((l, i) =>
+                    l.marca && !l.marca.sigue ? <path key={l.n} d={`M ${pista.rail - 5} ${cy[i] - 19} H ${pista.rail + 5}`} stroke="var(--acento)" strokeWidth={2} /> : null,
+                  )}
+                  {filas.map((r) => {
+                    // Un paso abierto: un punto chico con el color de su archivo, relleno si no solo lee.
+                    if (r.hijo) {
+                      const p = r.hijo.paso;
+                      const color = p.error ? "var(--error)" : p.hilo ? colorHilo(p.hilo) : "var(--riel)";
+                      const cyHijo = r.y + r.alto / 2;
+                      return (
+                        <g key={r.clave}>
+                          <circle cx={pista.rail} cy={cyHijo} r={4.5} fill="var(--fondo-hundido)" />
+                          <circle cx={pista.rail} cy={cyHijo} r={2.5} fill={p.tipo === "Lee" ? "var(--fondo-hundido)" : color} stroke={color} strokeWidth={1.5} />
+                        </g>
+                      );
+                    }
+                    const l = r.lote;
+                    const hay = l.archivos.length > 0;
+                    const radio = hay || l.turno || l.errores ? 5 : 3.5;
+                    const color = l.errores ? "var(--error)" : l.turno ? "var(--opcional)" : hay ? "var(--acento)" : "var(--riel)";
+                    const relleno = l.turno ? "var(--opcional-suave)" : l.errores || l.edita || !hay ? color : "var(--superficie)";
+                    const esElegido = r.i === eleccion;
+                    const vivo = enVivo && l.filas.some((f) => f.paso.n === ultimo);
+                    return (
+                      <g key={r.clave}>
+                        {esElegido ? (
+                          <circle cx={pista.rail} cy={cy[r.i]} r={radio + 3} fill="var(--acento)" opacity={0.27} />
+                        ) : (
+                          <circle cx={pista.rail} cy={cy[r.i]} r={radio + 2} fill="var(--superficie)" />
+                        )}
+                        <circle cx={pista.rail} cy={cy[r.i]} r={radio - 1} fill={relleno} stroke={color} strokeWidth={2} className={vivo ? "pulso" : undefined} />
+                      </g>
+                    );
+                  })}
+                </svg>
+                {vieja && !viejas[tramo] && <Fantasmas n={12} className="h-10 bg-hundido" />}
+              </div>
+              {mapaVisible && mapa && <MapaSesion mapa={mapa} inicio={vista.inicio} fin={finVisible} alto={alto} alIr={(n) => irA(n, false)} />}
             </div>
           </div>
 

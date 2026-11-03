@@ -11,11 +11,11 @@ export function hora(fecha: Date): string {
   return `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
 }
 
-/** «dd/mm» si no es de hoy (en inglés, «mm/dd»); vacío si es de hoy (la hora basta). */
-export const diaSiNoHoy = (f: Date) => {
-  if (f.toDateString() === new Date().toDateString()) return "";
-  return idioma() === "en" ? `${dos(f.getMonth() + 1)}/${dos(f.getDate())}` : `${dos(f.getDate())}/${dos(f.getMonth() + 1)}`;
-};
+/** «dd/mm» (en inglés, «mm/dd»). */
+export const diaYMes = (f: Date) => (idioma() === "en" ? `${dos(f.getMonth() + 1)}/${dos(f.getDate())}` : `${dos(f.getDate())}/${dos(f.getMonth() + 1)}`);
+
+/** «dd/mm» si no es de hoy; vacío si es de hoy (la hora basta). */
+export const diaSiNoHoy = (f: Date) => (f.toDateString() === new Date().toDateString() ? "" : diaYMes(f));
 
 /** «16:30» hoy, «30/10 16:30» otro día. */
 export function cuando(f: Date): string {

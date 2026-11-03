@@ -277,6 +277,7 @@ func (s *Servidor) Handler() http.Handler {
 	mux.HandleFunc("GET /api/agentes/{id}", s.agente)
 	mux.HandleFunc("GET /api/agentes/{id}/pasos/{n}", s.paso)
 	mux.HandleFunc("GET /api/agentes/{id}/contexto", s.contexto)
+	mux.HandleFunc("GET /api/agentes/{id}/mapa", s.mapa)
 	mux.HandleFunc("GET /api/alertas", s.verAlertas)
 	mux.HandleFunc("GET /api/pasos", s.buscarPasos)
 	mux.HandleFunc("GET /api/consultas", s.verConsultas)
@@ -778,6 +779,15 @@ func (s *Servidor) contexto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	escribir(w, c)
+}
+
+func (s *Servidor) mapa(w http.ResponseWriter, r *http.Request) {
+	m, ok := s.Claude.Mapa(r.PathValue("id"))
+	if !ok {
+		fallo(w, http.StatusNotFound, "agente desconocido")
+		return
+	}
+	escribir(w, m)
 }
 
 func (s *Servidor) doc(w http.ResponseWriter, r *http.Request) {
