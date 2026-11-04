@@ -18,6 +18,16 @@ func TestParsearAvance(t *testing.T) {
 	}
 }
 
+// La primera línea puede copiar el % con decimales, como lo calcula Atalaya.
+func TestParsearConDecimales(t *testing.T) {
+	for texto, quiere := range map[string]int{"Avance: 88,2 % — sigue": 88, "Progress: 88.6 % — sigue": 89, "Avance: 100,0 % — fin": 100} {
+		av := ParsearAvance(texto+"\n", "x.md")
+		if av.Porcentaje != quiere || av.Texto == "" {
+			t.Errorf("%q: %d %%, texto %q; se esperaba %d %%", texto, av.Porcentaje, av.Texto, quiere)
+		}
+	}
+}
+
 func TestParsearProgress(t *testing.T) {
 	for _, guion := range []string{"—", "–", "-"} {
 		av := ParsearAvance("Progress: 42 % "+guion+" reading\n- 10:00 · 40 % · started\n", "x.md")

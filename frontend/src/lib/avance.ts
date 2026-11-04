@@ -10,6 +10,8 @@ export interface Paquete {
   que: string;
   horas: number;
   estado: EstadoPaquete | string;
+  /** Lo que la celda Estado dice además del estado, tal como está escrito. */
+  nota?: string;
   pct: number;
   evidencia?: string;
 }

@@ -64,6 +64,9 @@ func (s *Servidor) estadoMCP(proyecto string) string {
 	b.WriteString("Paquetes:\n")
 	for _, p := range f.Paquetes {
 		fmt.Fprintf(&b, "  %s · %s · %s h · %s · %d %%", p.ID, p.Que, horas(p.Horas), p.Estado, p.Pct)
+		if p.Nota != "" {
+			b.WriteString(" · " + p.Nota)
+		}
 		if p.Evidencia != "" && p.Estado != avance.Hecho {
 			b.WriteString(" · " + p.Evidencia)
 		}

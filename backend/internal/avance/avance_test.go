@@ -32,10 +32,70 @@ func TestMarcasEnInglesYMezcladas(t *testing.T) {
 }
 
 func TestEstadosInglesConPrefijo(t *testing.T) {
-	for texto, quiere := range map[string]string{"done · listo": Hecho, "completed · listo": Hecho, "in progress · hoy": EnCurso, "ongoing · hoy": EnCurso, "not started · aún": SinEmpezar, "pending · aún": SinEmpezar, "todo": SinEmpezar, "to do": SinEmpezar, "todo hecho": "todo hecho"} {
+	for texto, quiere := range map[string]string{"done · listo": Hecho, "completed · listo": Hecho, "in progress · hoy": EnCurso, "ongoing · hoy": EnCurso, "not started · aún": SinEmpezar, "pending · aún": SinEmpezar, "todo": SinEmpezar, "to do": SinEmpezar, "blocked": Bloqueado, "todo hecho": ""} {
 		if got := normalizarEstado(texto); got != quiere {
 			t.Errorf("%q: %q, se esperaba %q", texto, got, quiere)
 		}
+	}
+}
+
+// Una frase en la columna Estado no es un quinto estado: el estado sale de su % y la frase se guarda tal cual, con sus
+// mayúsculas y sus tildes, sin las comillas de código.
+func TestEstadoEnUnaFrase(t *testing.T) {
+	cabecera := "| Paquete | Qué | Horas | Estado | % | Evidencia |\n|---|---|---|---|---|---|\n"
+	casos := []struct {
+		estado string
+		pct    string
+		quiere string
+		nota   string
+		final  int
+	}{
+		{"G3a cerrado en `123359e`. G3b2 en curso", "45", EnCurso, "G3a cerrado en 123359e. G3b2 en curso", 45},
+		{"falta verlos con ratón", "90", EnCurso, "falta verlos con ratón", 90},
+		{"pasan", "100", Hecho, "pasan", 100},
+		{"en espera", "0", SinEmpezar, "en espera", 0},
+		{"una frase sin su %", "", SinEmpezar, "una frase sin su %", 0},
+		{"hecho, sin commit", "100", Hecho, "hecho, sin commit", 100},
+		{"**Hecho**", "100", Hecho, "", 100},
+		{"En Curso", "50", EnCurso, "", 50},
+	}
+	for _, c := range casos {
+		f := Parsear("Avance: 50 % — x\n\n"+cabecera+"| A | uno | 2 | "+c.estado+" | "+c.pct+" | |\n", "F1", "x")
+		p := f.Paquetes[0]
+		if p.Estado != c.quiere || p.Nota != c.nota || p.Pct != c.final {
+			t.Errorf("%q: estado %q, nota %q, %d %%; se esperaba %q, %q, %d %%", c.estado, p.Estado, p.Nota, p.Pct, c.quiere, c.nota, c.final)
+		}
+	}
+}
+
+// Una fila sin columna Estado también se pinta según su %.
+func TestSinColumnaEstado(t *testing.T) {
+	f := Parsear("| Paquete | Horas | % |\n|---|---|---|\n| A | 2 | 100 |\n| B | 2 | 40 |\n| C | 2 | 0 |\n", "F1", "x")
+	for i, quiere := range []string{Hecho, EnCurso, SinEmpezar} {
+		if f.Paquetes[i].Estado != quiere {
+			t.Errorf("%s: %q, se esperaba %q", f.Paquetes[i].ID, f.Paquetes[i].Estado, quiere)
+		}
+	}
+}
+
+// Un «|» de más dentro de la última columna no se come lo que sigue, y uno escapado no parte la fila.
+func TestBarrasDentroDeUnaCelda(t *testing.T) {
+	cabecera := "| Paquete | Qué | Horas | Estado | % | Evidencia |\n|---|---|---|---|---|---|\n"
+	f := Parsear(cabecera+"| A | uno | 2 | hecho | 100 | antes: | después |\n| B | a \\| b | 2 | hecho | 100 | c.md |\n", "F1", "x")
+	if got := f.Paquetes[0].Evidencia; got != "antes: | después" {
+		t.Errorf("evidencia: %q", got)
+	}
+	if p := f.Paquetes[1]; p.Que != "a | b" || p.Horas != 2 || p.Evidencia != "c.md" {
+		t.Errorf("escapada: %+v", p)
+	}
+}
+
+// Las comillas de código de la Markdown no se muestran: ni en el qué ni entre varias evidencias.
+func TestSinComillasDeCodigo(t *testing.T) {
+	cabecera := "| Paquete | Qué | Horas | Estado | % | Evidencia |\n|---|---|---|---|---|---|\n"
+	p := Parsear(cabecera+"| A | `ui::tema`, textos | 2 | hecho | 100 | `a.md`, `b.md` |\n", "F1", "x").Paquetes[0]
+	if p.Que != "ui::tema, textos" || p.Evidencia != "a.md, b.md" {
+		t.Errorf("%+v", p)
 	}
 }
 

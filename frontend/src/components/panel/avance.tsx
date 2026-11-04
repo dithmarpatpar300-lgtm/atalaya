@@ -117,8 +117,8 @@ export function Avance({ proyecto, version }: { proyecto: string; version: numbe
                 {f.declarado < 0
                   ? t("la primera línea no dice su %")
                   : coincide
-                    ? t("coincide con la primera línea ({pct} %)", { pct: uno(f.declarado) })
-                    : t("la primera línea dice {pct} %", { pct: uno(f.declarado) })}
+                    ? t("coincide con la primera línea ({pct} %)", { pct: f.declarado })
+                    : t("la primera línea dice {pct} %", { pct: f.declarado })}
               </span>
             </div>
             <div className="min-w-0">
@@ -172,7 +172,7 @@ export function Avance({ proyecto, version }: { proyecto: string; version: numbe
             </section>
 
             <div className="flex min-w-0 flex-col gap-5">
-              <section aria-live="polite" aria-label={t("El paquete elegido")} className={`flex h-[13.5rem] flex-col gap-2.5 p-5 ${tarjeta} border-borde-fuerte`}>
+              <section aria-live="polite" aria-label={t("El paquete elegido")} className={`flex h-[15rem] flex-col gap-2.5 p-5 ${tarjeta} border-borde-fuerte`}>
                 {pq ? (
                   <>
                     <span className="flex min-w-0 items-baseline gap-2.5">
@@ -188,6 +188,14 @@ export function Avance({ proyecto, version }: { proyecto: string; version: numbe
                       <dd className={`m-0 ${tonoEstado(pq.estado).clase}`}>
                         {t(tonoEstado(pq.estado).palabra)}, {pq.pct} %
                       </dd>
+                      {pq.nota && (
+                        <>
+                          <dt className="text-tenue">{t("Nota")}</dt>
+                          <dd className="m-0 line-clamp-3 text-suave" title={pq.nota}>
+                            {pq.nota}
+                          </dd>
+                        </>
+                      )}
                       <dt className="text-tenue">{t("Pesa")}</dt>
                       <dd className="m-0">
                         {t("{h} h de {total}, el {pct} % de la fase", { h: horas(pq.horas), total: horas(f.horas), pct: f.horas > 0 ? uno((pq.horas / f.horas) * 100) : decimal(0) })}

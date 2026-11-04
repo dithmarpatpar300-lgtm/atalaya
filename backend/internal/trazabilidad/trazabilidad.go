@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -36,7 +37,7 @@ type Hito struct {
 }
 
 var (
-	reAvance = regexp.MustCompile(`^(?:Avance|Progress):\s*(\d{1,3})\s*%\s*(?:[—–-]\s*(.*))?$`)
+	reAvance = regexp.MustCompile(`^(?:Avance|Progress):\s*(\d{1,3}(?:[.,]\d+)?)\s*%\s*(?:[—–-]\s*(.*))?$`)
 	reHito   = regexp.MustCompile(`^-\s*(\d{1,2}:\d{2})\s*·\s*(.+)$`)
 )
 
@@ -117,7 +118,9 @@ func ParsearAvance(texto, rel string) *Avance {
 	for _, l := range strings.Split(strings.ReplaceAll(texto, "\r\n", "\n"), "\n") {
 		l = strings.TrimSpace(l)
 		if m := reAvance.FindStringSubmatch(l); m != nil && av.Porcentaje < 0 {
-			av.Porcentaje, _ = strconv.Atoi(m[1])
+			// Con decimales («88,2 %», como lo calcula Atalaya) se redondea: Porcentaje es entero.
+			v, _ := strconv.ParseFloat(strings.Replace(m[1], ",", ".", 1), 64)
+			av.Porcentaje = int(math.Round(v))
 			av.Texto = strings.TrimSpace(m[2])
 		} else if m := reHito.FindStringSubmatch(l); m != nil {
 			av.Hitos = append(av.Hitos, Hito{Hora: m[1], Texto: m[2]})

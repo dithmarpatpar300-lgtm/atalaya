@@ -59,7 +59,7 @@ export function HiloFase({
           ))}
         </div>
       )}
-      <div aria-live="polite" className="dato grid h-[30px] grid-cols-[3rem_minmax(0,1fr)_3rem_5.5rem_3rem] items-center gap-2 rounded-control bg-hundido px-2.5 text-[12.5px]">
+      <div aria-live="polite" className="dato grid h-[30px] grid-cols-[2.5rem_minmax(0,1fr)_5.5rem_2.5rem] items-center gap-2 rounded-control bg-hundido px-2.5 text-[12.5px] sm:grid-cols-[3rem_minmax(0,1fr)_3rem_5.5rem_3rem]">
         {elegido ? (
           <>
             {/* Fila de alto fijo: un nombre más largo que su columna se corta, nunca la parte en varias líneas. */}
@@ -69,8 +69,11 @@ export function HiloFase({
             <span className="truncate font-sans" title={elegido.que}>
               {elegido.que || "—"}
             </span>
-            <span className="text-right text-suave">{horas(elegido.horas)} h</span>
-            <span className={tono?.clase}>{tono ? t(tono.palabra) : ""}</span>
+            {/* En el teléfono las horas ceden su sitio al nombre: la tabla de abajo las dice. */}
+            <span className="hidden text-right text-suave sm:inline">{horas(elegido.horas)} h</span>
+            <span className={`truncate ${tono?.clase ?? ""}`} title={elegido.nota}>
+              {tono ? t(tono.palabra) : ""}
+            </span>
             <span className="text-right">{elegido.pct} %</span>
           </>
         ) : (

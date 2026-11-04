@@ -122,6 +122,7 @@ export const EN_VISTAS: Record<string, string> = {
   "Pesa": "Weight",
   "{h} h de {total}, el {pct} % de la fase": "{h} of {total} h, {pct} % of the phase",
   "Evidencia": "Evidence",
+  "Nota": "Note",
   "Elige un paquete.": "Choose a package.",
   "Lo que falta": "What is left",
   "Unas {h} h de lo estimado, en {n} paquetes. Ahora: {ahora}": "About {h} h of the estimate left, across {n} packages. Now: {ahora}",

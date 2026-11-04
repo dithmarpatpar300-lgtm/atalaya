@@ -40,7 +40,8 @@ type Paquete struct {
 	ID        string  `json:"id"`
 	Que       string  `json:"que"`
 	Horas     float64 `json:"horas"`
-	Estado    string  `json:"estado"`
+	Estado    string  `json:"estado"`         // uno de los cuatro, siempre
+	Nota      string  `json:"nota,omitempty"` // lo que la celda Estado dice además del estado, tal como está escrito
 	Pct       int     `json:"pct"`
 	Evidencia string  `json:"evidencia,omitempty"`
 }
@@ -99,30 +100,70 @@ func numero(s string) (float64, bool) {
 	return v, err == nil
 }
 
-// normalizarEstado lleva las formas comunes a los cuatro estados.
+// limpiarEstado: la celda en minúsculas, sin tildes ni negritas, para compararla.
+func limpiarEstado(s string) string {
+	return sinTilde.Replace(strings.ToLower(strings.TrimSpace(strings.Trim(s, "*"))))
+}
+
+// normalizarEstado lleva las formas comunes a los cuatro estados; "" si la celda no dice ninguno.
 func normalizarEstado(s string) string {
-	s = sinTilde.Replace(strings.ToLower(strings.TrimSpace(strings.Trim(s, "*"))))
+	s = limpiarEstado(s)
 	switch {
 	case strings.HasPrefix(s, "hech") || strings.HasPrefix(s, "done") || strings.HasPrefix(s, "complete") || s == "cerrado" || s == "listo":
 		return Hecho
 	case strings.HasPrefix(s, "en curso") || strings.HasPrefix(s, "curso") || strings.HasPrefix(s, "en marcha") || strings.HasPrefix(s, "in progress") || strings.HasPrefix(s, "ongoing"):
 		return EnCurso
-	case strings.HasPrefix(s, "bloq"):
+	case strings.HasPrefix(s, "bloq") || strings.HasPrefix(s, "blocked"):
 		return Bloqueado
 	case strings.HasPrefix(s, "sin empezar") || strings.HasPrefix(s, "pendiente") || strings.HasPrefix(s, "not started") || strings.HasPrefix(s, "pending") || s == "todo" || s == "to do" || s == "":
 		return SinEmpezar
 	}
-	return s
+	return ""
 }
 
-// celdas de una fila de tabla Markdown.
+// soloEstado: las celdas que dicen el estado y nada más. Lo demás («hecho, sin commit», «G3a cerrado…») se guarda como nota.
+var soloEstado = map[string]bool{
+	"": true, "hecho": true, "hecha": true, "done": true, "complete": true, "completed": true, "cerrado": true, "listo": true,
+	"en curso": true, "curso": true, "en marcha": true, "in progress": true, "ongoing": true,
+	"bloqueado": true, "bloqueada": true, "blocked": true,
+	"sin empezar": true, "pendiente": true, "not started": true, "pending": true, "todo": true, "to do": true,
+}
+
+// leerEstado separa la celda Estado en el estado y su nota. Una frase que no dice ninguno de los cuatro deja el estado
+// en "": lo decide calcular con el % de la fila.
+func leerEstado(celda string) (estado, nota string) {
+	estado = normalizarEstado(celda)
+	if !soloEstado[limpiarEstado(celda)] {
+		nota = plano(strings.TrimSpace(strings.Trim(celda, "*")))
+	}
+	return estado, nota
+}
+
+// estadoPorPct: el estado de un paquete que no lo dice en palabras.
+func estadoPorPct(pct int) string {
+	switch {
+	case pct >= 100:
+		return Hecho
+	case pct <= 0:
+		return SinEmpezar
+	}
+	return EnCurso
+}
+
+// plano quita las comillas de código de la Markdown: el panel muestra el texto, no su marcado.
+func plano(s string) string {
+	return strings.ReplaceAll(s, "`", "")
+}
+
+// celdas de una fila de tabla Markdown; «\|» es una barra dentro de la celda, no el fin de la celda.
 func celdas(l string) []string {
-	l = strings.TrimSpace(l)
+	const barra = "\x00"
+	l = strings.ReplaceAll(strings.TrimSpace(l), `\|`, barra)
 	l = strings.TrimPrefix(l, "|")
 	l = strings.TrimSuffix(l, "|")
 	out := strings.Split(l, "|")
 	for i := range out {
-		out[i] = strings.TrimSpace(out[i])
+		out[i] = strings.ReplaceAll(strings.TrimSpace(out[i]), barra, "|")
 	}
 	return out
 }
@@ -176,6 +217,10 @@ func paquetes(texto string, soloPrimera bool) []Paquete {
 		if len(cols) == 0 {
 			continue
 		}
+		// Una barra sin escapar en la última columna abre celdas de más: siguen siendo esa columna, no se pierden.
+		if ultima := len(cols) - 1; len(cs) > len(cols) {
+			cs = append(cs[:ultima:ultima], strings.Join(cs[ultima:], " | "))
+		}
 		p := Paquete{Pct: -1}
 		soloNombre := true
 		for i, c := range cs {
@@ -189,17 +234,17 @@ func paquetes(texto string, soloPrimera bool) []Paquete {
 			case "id":
 				p.ID = strings.Trim(c, "*` ")
 			case "que":
-				p.Que = c
+				p.Que = plano(c)
 			case "horas":
 				p.Horas, _ = numero(c)
 			case "estado":
-				p.Estado = normalizarEstado(c)
+				p.Estado, p.Nota = leerEstado(c)
 			case "pct":
 				if v, ok := numero(c); ok {
 					p.Pct = int(math.Round(v))
 				}
 			case "evidencia":
-				p.Evidencia = strings.Trim(c, "`")
+				p.Evidencia = plano(c)
 			}
 		}
 		if p.ID == "" || soloNombre || strings.EqualFold(p.ID, "total") {
@@ -228,6 +273,9 @@ func (f *Fase) calcular() {
 		if p.Pct < 0 || p.Pct > 100 {
 			f.Avisos = append(f.Avisos, p.ID+" tiene "+strconv.Itoa(p.Pct)+" %: fuera de 0 a 100")
 			p.Pct = int(math.Max(0, math.Min(100, float64(p.Pct))))
+		}
+		if p.Estado == "" {
+			p.Estado = estadoPorPct(p.Pct)
 		}
 		switch {
 		case p.Estado == Hecho && p.Pct != 100:
@@ -350,7 +398,7 @@ func (f *Fase) paquetesDelPlan(raiz string) {
 		return
 	}
 	for i := range ps {
-		ps[i].Estado = SinEmpezar
+		ps[i].Estado, ps[i].Nota = SinEmpezar, ""
 		ps[i].Pct = -1
 	}
 	f.Paquetes = ps
