@@ -46,7 +46,7 @@ Sacadas de la demo (`atalaya.exe -demo`): los proyectos, los agentes y las decis
 
 ## Estado
 
-**Versión 1.3.0, estable.** Probado y validado en **Windows 11** con **Claude Code** (la CLI y la app de escritorio) y
+**Versión 1.4.0, estable.** Probado y validado en **Windows 11** con **Claude Code** (la CLI y la app de escritorio) y
 **Codex CLI**. En **Linux** el panel funciona (probado en Ubuntu con WSL 2) y pasan todas las pruebas en CI,
 sin notificaciones y sin `scripts/codex.ps1`, que necesita Windows; macOS compila, sin probar. La
 interfaz está en español y en inglés (el botón ES/EN de la cabecera), y el kit también.

@@ -1,5 +1,64 @@
 # Changelog · Novedades
 
+## 1.4.0 — 2026-11-04
+
+Activity that holds thousands of steps, the quota mod for every session, and a steadier Progress view. · Una Actividad
+que aguanta miles de pasos, el mod de la cuota para todas las sesiones y un Avance más firme.
+
+**English.**
+
+- **Activity at scale.** Steps now fold into one row per batch, what the AI sent in one message, with a summary and the
+  files it touched; a click or the right arrow opens its steps, and each of your requests stands on its own row. Threads
+  join the batches that touch the same file along a fixed-radius track in a gutter of fixed width, so a new link never
+  moves the text, and a file from before the page shows as a short dashed stub instead of a long line. A strip of fixed
+  height tells what the selected batch picks up and what it leaves for later. A map of the whole session, for sessions
+  longer than a page, marks your requests, errors and the part in view, and a click jumps there even if that part has to
+  come from the server (`GET /api/agentes/{id}/mapa`). Pages now hold 100 steps by default.
+- **The quota mod for every session.** The `atalaya-cuota` mod ships in `mods/atalaya-cuota` with a marketplace file, so
+  one line installs it in every Claude Code session. It also sends each session's real context window, so a 1 M session
+  no longer looks nearly full.
+- **Progress reads what people write.** A sentence in the Status column no longer breaks the view: the status comes from
+  its words or its %, so work in progress shows as such, and the sentence appears as a note with its capitals and
+  accents. A stray `|` no longer cuts the evidence, a first line with decimals (`88,2 %`) is read, and code quotes are
+  not shown. `blocked` counts as a status.
+- **A truer quota chart.** Lines only rise within a window, with no zigzag between sources; a reset drops to 0 at its time
+  with no gap, and a one-point dip is no longer taken for a reset. Pushed percentages are rounded like `/usage`.
+- **Sessions launched by another session** stay main sessions, with their own team, linked to the one that launched them.
+- **Activity follows again:** the scroll waits for the latest step's row, and a focused window untouched for a minute
+  counts as not in use.
+- **The Codex registry in both languages.** Atalaya reads `exit`, `in (cached) / out` and `review:` as well as the Spanish
+  marks, and the English kit's scripts write them in English.
+- Smaller: whole rows select in Health, Queries, the timeline and the setup's project list; Your requests shows the newest
+  first; narrow paginator footers stay on one line; the kit's status template gains its Postponed table.
+
+**Español.**
+
+- **La Actividad a escala.** Los pasos se pliegan en una fila por lote, lo que la IA envió en un mensaje, con un resumen y
+  los archivos que tocó; un clic o la flecha derecha abre sus pasos, y cada pedido tuyo va en su propia fila. Los hilos
+  unen los lotes que tocan el mismo archivo por una pista de radio fijo, en una canaleta de ancho fijo, así que un enlace
+  nuevo nunca mueve el texto, y un archivo de antes de la página se ve como un trazo corto punteado en vez de una línea
+  larga. Una franja de alto fijo dice qué retoma el lote elegido y qué deja para después. Un mapa de toda la sesión, en
+  las sesiones de más de una página, marca tus pedidos, los errores y el tramo a la vista, y un clic lleva ahí aunque ese
+  tramo haya que traerlo del servidor (`GET /api/agentes/{id}/mapa`). Las páginas traen ahora 100 pasos por omisión.
+- **El mod de la cuota para todas las sesiones.** El mod `atalaya-cuota` viene en `mods/atalaya-cuota` con su archivo de
+  marketplace, así que una línea lo instala en todas las sesiones de Claude Code. También envía la ventana de contexto
+  real de cada sesión, y una sesión de 1 M ya no parece casi llena.
+- **El Avance lee lo que la gente escribe.** Una frase en la columna Estado ya no rompe la vista: el estado sale de sus
+  palabras o de su %, así que lo que está en curso se ve en curso, y la frase aparece como nota, con sus mayúsculas y sus
+  tildes. Un `|` de más ya no corta la evidencia, se lee la primera línea con decimales (`88,2 %`) y no se muestran las
+  comillas de código. `blocked` cuenta como estado.
+- **Un gráfico de cuota más fiel.** Las líneas solo suben dentro de una ventana, sin zigzag entre fuentes; un reinicio baja
+  a 0 a su hora, sin hueco, y una bajada de un punto ya no se toma por reinicio. Los porcentajes empujados se redondean
+  como en `/usage`.
+- **Las sesiones lanzadas por otra** siguen siendo principales, con su propio equipo y enlazadas a la que las lanzó.
+- **La Actividad vuelve a seguir:** el desplazamiento espera a la fila del último paso, y una ventana enfocada sin tocar
+  durante un minuto cuenta como sin usar.
+- **El registro de Codex en las dos lenguas.** Atalaya lee `exit`, `in (cached) / out` y `review:` además de las marcas en
+  español, y los scripts del kit en inglés las escriben en inglés.
+- Menores: las filas se eligen enteras en Salud, Consultas, la línea de tiempo y los proyectos de Configurar; Tus pedidos
+  muestra lo último arriba; el pie de los paginadores angostos queda en una línea; la plantilla de estado del kit gana
+  su tabla Aplazado.
+
 ## 1.3.0 — 2026-11-01
 
 What Atalaya saves you, the plan's quota in real time, and the kit in English. · Lo que Atalaya te ahorra, la cuota del
